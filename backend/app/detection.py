@@ -28,34 +28,31 @@ from .features import (
     FEATURE_COLUMNS, ATTACK_LABELS, ID_TO_LABEL, MITRE_MAP,
     DeviceState, build_feature_vector,
 )
+from .config import settings
 
-MODEL_DIR = Path(__file__).parent / "models"
-
-# New-device grace period (plan §10/§11): a device with little to no traffic
-# history looks statistically "anomalous" almost by definition (its rolling
-# baseline hasn't formed yet). Rather than alerting on every brand-new
-# device's first few flows, we observe-only until enough history exists to
-# make the per-device baseline meaningful. This is the single biggest lever
-# for cutting false positives on a freshly-connected fleet (real or
-# simulated) without weakening detection once a device is established.
-GRACE_PERIOD_FLOWS = 15
+MODEL_DIR = settings.MODEL_DIR
+GRACE_PERIOD_FLOWS = settings.GRACE_PERIOD_FLOWS
 
 
 class DetectionEngine:
-    def __init__(self):
+    def __init__(self, model_dir: Path | None = None, grace_period_flows: int | None = None):
         self.lock = Lock()
         self.device_states: dict[str, DeviceState] = {}
+        self.model_dir = Path(model_dir) if model_dir else MODEL_DIR
+        self.grace_period_flows = (
+            grace_period_flows if grace_period_flows is not None else GRACE_PERIOD_FLOWS
+        )
         self._load_models()
 
     def _load_models(self):
         try:
-            self.scaler = joblib.load(MODEL_DIR / "feature_scaler.pkl")
-            self.anomaly_model = joblib.load(MODEL_DIR / "anomaly_model.pkl")
-            self.gate_model = joblib.load(MODEL_DIR / "gate_model.pkl")
-            self.multiclass_model = joblib.load(MODEL_DIR / "multiclass_model.pkl")
-            with open(MODEL_DIR / "gate_threshold.json") as f:
+            self.scaler = joblib.load(self.model_dir / "feature_scaler.pkl")
+            self.anomaly_model = joblib.load(self.model_dir / "anomaly_model.pkl")
+            self.gate_model = joblib.load(self.model_dir / "gate_model.pkl")
+            self.multiclass_model = joblib.load(self.model_dir / "multiclass_model.pkl")
+            with open(self.model_dir / "gate_threshold.json") as f:
                 self.gate_threshold = json.load(f)["gate_threshold"]
-            with open(MODEL_DIR / "feature_columns.json") as f:
+            with open(self.model_dir / "feature_columns.json") as f:
                 saved = json.load(f)
             if saved["feature_columns"] != FEATURE_COLUMNS:
                 raise RuntimeError(
@@ -100,7 +97,7 @@ class DetectionEngine:
         # simple fixed cutoff kept in sync with the notebook's IsolationForest(contamination=0.05)
         anomaly_flag = self.anomaly_model.predict(X_s)[0] == -1
 
-        in_grace_period = flow_count <= GRACE_PERIOD_FLOWS
+        in_grace_period = flow_count <= self.grace_period_flows
         is_flagged = (not in_grace_period) and ((gate_score >= self.gate_threshold) or anomaly_flag)
 
         result = {

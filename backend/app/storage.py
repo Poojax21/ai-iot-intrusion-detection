@@ -17,20 +17,22 @@ import time
 import json
 import threading
 from pathlib import Path
+from .config import settings
 
-DB_PATH = Path(__file__).parent / "iot_ids.db"
+DB_PATH = settings.DB_PATH
 
 _lock = threading.Lock()
 
 
-def get_conn():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+def get_conn(db_path: Path | str | None = None):
+    target = db_path or DB_PATH
+    conn = sqlite3.connect(target, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def init_db():
-    with _lock, get_conn() as conn:
+def init_db(db_path: Path | str | None = None):
+    with _lock, get_conn(db_path) as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS flows (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

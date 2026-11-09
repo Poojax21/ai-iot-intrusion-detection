@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pahredaar-IoT Frontend Test Suite</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; background: #0f172a; color: #f8fafc; }
+    h1 { color: #38bdf8; }
+    .test-pass { color: #4ade80; margin: 4px 0; }
+    .test-fail { color: #f87171; margin: 4px 0; font-weight: bold; }
+    #summary { margin-top: 16px; padding: 12px; background: #1e293b; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Frontend Test Suite Runner</h1>
+  <div id="results"></div>
+  <div id="summary">Running tests...</div>
+
+  <iframe id="dashboard-frame" src="../index.html" style="display:none;"></iframe>
+
+  <script>
+    const results = [];
+    function assert(name, condition) {
+      results.push({ name, passed: Boolean(condition) });
+    }
+
+    const frame = document.getElementById('dashboard-frame');
+    frame.onload = () => {
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      const win = frame.contentWindow;
+
+      try {
+        // Test 1: Critical DOM containers exist
+        assert("Health status pill element exists", doc.getElementById('model-status') !== null);
+        assert("WebSocket connection pill exists", doc.getElementById('conn-status') !== null);
+        assert("Alerts table body exists", doc.getElementById('alerts-body') !== null);
+        assert("Device cards host exists", doc.getElementById('device-cards') !== null);
+        assert("Attack mix container exists", doc.getElementById('attack-mix') !== null);
+        assert("Traffic Lab controls exist", doc.getElementById('traffic-mode') !== null);
+        assert("Send burst button exists", doc.getElementById('send-burst-btn') !== null);
+
+        // Test 2: Helper functions defined
+        assert("fmtTime function defined", typeof win.fmtTime === 'function');
+        assert("severityClass function defined", typeof win.severityClass === 'function');
+        assert("normalizeShap function defined", typeof win.normalizeShap === 'function');
+        assert("buildTrafficFlow function defined", typeof win.buildTrafficFlow === 'function');
+
+        // Test 3: Severity classes
+        assert("Critical severity mapping", win.severityClass('critical').includes('severity-critical'));
+        assert("Warning severity mapping", win.severityClass('warning').includes('severity-warning'));
+
+        // Test 4: SHAP normalization
+        const testAlert = {
+          shap_values: [{ feature: 'byte_rate', value: 1234.5, contribution: 0.12 }],
+          shap_base_value: 0.05
+        };
+        const norm = win.normalizeShap(testAlert);
+        assert("SHAP normalization preserves values", norm.items.length === 1 && norm.items[0].feature === 'byte_rate');
+
+        // Render results
+        const container = document.getElementById('results');
+        let passedCount = 0;
+        results.forEach(t => {
+          const div = document.createElement('div');
+          div.className = t.passed ? 'test-pass' : 'test-fail';
+          div.textContent = `${t.passed ? '✓' : '✗'} ${t.name}`;
+          container.appendChild(div);
+          if (t.passed) passedCount++;
+        });
+
+        const summary = document.getElementById('summary');
+        summary.innerHTML = `<strong>Tests complete:</strong> ${passedCount}/${results.length} passed.`;
+      } catch (err) {
+        document.getElementById('summary').textContent = `Error executing tests: ${err.message}`;
+      }
+    };
+  </script>
+</body>
+</html>

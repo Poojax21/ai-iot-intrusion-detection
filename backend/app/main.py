@@ -24,15 +24,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from .schemas import FlowRecord
 from .detection import engine
 from . import storage
+from .config import settings
+from .logging_config import setup_logging
 
-app = FastAPI(title="IoT IDS Backend", version="1.0")
+logger = setup_logging(settings.LOG_LEVEL, settings.LOG_JSON)
 
-# Wide-open CORS: this is a local dev/demo project meant to be hit directly
-# from a static frontend file opened in a browser. Lock this down before any
-# real deployment.
+app = FastAPI(title="Pahredaar-IoT IDS Backend", version="2.0")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

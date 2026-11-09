@@ -19,14 +19,21 @@ import argparse
 import random
 import time
 import sys
+from pathlib import Path
 
 import requests
 
-sys.path.append(".")
-from synthetic_traffic import (
-    make_device_pool, _benign_flow, _port_scan_flow, _ddos_flow,
-    _brute_force_flow, _mirai_beacon_flow, EXTERNAL_IPS,
-)
+sys.path.append(str(Path(__file__).resolve().parent))
+try:
+    from .synthetic_traffic import (
+        make_device_pool, _benign_flow, _port_scan_flow, _ddos_flow,
+        _brute_force_flow, _mirai_beacon_flow, EXTERNAL_IPS,
+    )
+except ImportError:
+    from synthetic_traffic import (
+        make_device_pool, _benign_flow, _port_scan_flow, _ddos_flow,
+        _brute_force_flow, _mirai_beacon_flow, EXTERNAL_IPS,
+    )
 
 DEVICE_TYPE_LABELS = {
     "camera": "camera", "smart_plug": "smart_plug", "temp_sensor": "temp_sensor",
