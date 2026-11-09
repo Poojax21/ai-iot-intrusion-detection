@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pahredaar IoT IDS — Live Simulation</title>
+<style>
+  :root {
+    --bg: #08111f;
+    --bg-soft: #0d1a2d;
+    --panel: rgba(14, 24, 41, 0.92);
+    --panel-strong: rgba(17, 31, 54, 0.98);
+    --line: rgba(139, 156, 188, 0.18);
+    --text: #eaf0ff;
+    --muted: #91a0be;
+    --muted-2: #6c7a96;
+    --ok: #58d68d;
+    --warn: #ffbf69;
+    --crit: #ff6b8a;
+    --info: #69a7ff;
+    --shadow: 0 22px 50px rgba(2, 8, 20, 0.42);
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(105, 167, 255, 0.22), transparent 30%),
+      radial-gradient(circle at 85% 10%, rgba(255, 111, 168, 0.18), transparent 24%),
+      radial-gradient(circle at 50% 100%, rgba(88, 214, 141, 0.12), transparent 28%),
+      linear-gradient(180deg, #07101d 0%, #091524 38%, #07111d 100%);
+    font-family: "Gill Sans", "Trebuchet MS", "Segoe UI", sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), transparent 85%);
+  }
+
+  .shell {
+    position: relative;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 20px 20px 28px;
+  }
+
+  .topbar,
+  .hero,
+  .summary-grid,
+  .dashboard {
+    animation: rise 520ms ease-out both;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .brand .eyebrow {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    color: var(--muted-2);
+  }
+
+  .brand h1 {
+    margin: 0;
+    font-size: clamp(26px, 3vw, 42px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .brand p {
+    margin: 0;
+    color: var(--muted);
+    max-width: 760px;
+    line-height: 1.55;
+  }
+
+  .status-stack {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    background: rgba(12, 21, 36, 0.78);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-size: 13px;
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+  }
+
+  .pill strong { font-weight: 700; }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--muted-2);
+    box-shadow: 0 0 0 4px rgba(110, 126, 156, 0.12);
+  }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(88, 214, 141, 0.12); }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 0 4px rgba(255, 191, 105, 0.12); }
+  .dot.crit { background: var(--crit); box-shadow: 0 0 0 4px rgba(255, 107, 138, 0.12); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .hero-card,
+  .panel,
+  .metric-card {
+    background: linear-gradient(180deg, rgba(19, 30, 51, 0.96), rgba(11, 20, 34, 0.96));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .hero-card {
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -60px -80px auto;
+    width: 230px;
+    height: 230px;
+    background: radial-gradient(circle, rgba(105, 167, 255, 0.20), transparent 68%);
+    pointer-events: none;
+  }
+
+  .hero-title {
+    margin: 0 0 10px;
+    font-size: clamp(30px, 4.2vw, 56px);
+    line-height: 0.96;
+    letter-spacing: -0.05em;
+  }
+
+  .hero-copy {
+    margin: 0;
+    max-width: 72ch;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .hero-meta .pill {
+    box-shadow: none;
+    background: rgba(8, 15, 27, 0.62);
+  }
+
+  .config-card {
+    padding: 20px;
+  }
+
+  .config-card h2,
+  .panel h2 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .field input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(7, 15, 27, 0.86);
+    color: var(--text);
+    padding: 13px 14px;
+    outline: none;
+    font-size: 14px;
+  }
+
+  .field select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(7, 15, 27, 0.86);
+    color: var(--text);
+    padding: 13px 14px;
+    outline: none;
+    font-size: 14px;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: rgba(105, 167, 255, 0.58);
+    box-shadow: 0 0 0 4px rgba(105, 167, 255, 0.12);
+  }
+
+  .button-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .traffic-lab {
+    margin-bottom: 16px;
+  }
+
+  .traffic-shell {
+    display: grid;
+    gap: 14px;
+  }
+
+  .traffic-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .traffic-top p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 82ch;
+  }
+
+  .traffic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .traffic-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .traffic-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .traffic-stat {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(8, 15, 27, 0.72);
+    padding: 14px;
+  }
+
+  .traffic-stat .label {
+    margin-bottom: 8px;
+  }
+
+  .traffic-stat .value {
+    font-size: 24px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .traffic-stat .detail {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  button {
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 16px;
+    color: #06101d;
+    background: linear-gradient(135deg, #79b7ff, #9ae8ce);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button.secondary {
+    color: var(--text);
+    background: rgba(14, 24, 41, 0.9);
+    border: 1px solid var(--line);
+    font-weight: 600;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .metric-card {
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card .label {
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 10px;
+  }
+
+  .metric-card .value {
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .metric-card .detail {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .metric-card.good::before,
+  .metric-card.warn::before,
+  .metric-card.alert::before,
+  .metric-card.info::before {
+    content: "";
+    position: absolute;
+    inset: auto auto 0 0;
+    height: 4px;
+    width: 100%;
+  }
+
+  .metric-card.good::before { background: linear-gradient(90deg, rgba(88,214,141,0.1), rgba(88,214,141,1)); }
+  .metric-card.warn::before { background: linear-gradient(90deg, rgba(255,191,105,0.1), rgba(255,191,105,1)); }
+  .metric-card.alert::before { background: linear-gradient(90deg, rgba(255,107,138,0.1), rgba(255,107,138,1)); }
+  .metric-card.info::before { background: linear-gradient(90deg, rgba(105,167,255,0.1), rgba(105,167,255,1)); }
+
+  .dashboard {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.4fr);
+    gap: 16px;
+  }
+
+  .panel {
+    padding: 18px;
+  }
+
+  .stack {
+    display: grid;
+    gap: 16px;
+  }
+
+  .device-list,
+  .mix-list,
+  .feed-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .device-card,
+  .mix-card,
+  .feed-card {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(8, 15, 27, 0.74);
+  }
+
+  .device-card {
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .device-head,
+  .feed-head,
+  .mix-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .device-name,
+  .feed-title,
+  .mix-title {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+
+  .subtle {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .risk-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(121, 138, 170, 0.16);
+    overflow: hidden;
+  }
+
+  .risk-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--ok), var(--warn), var(--crit));
+  }
+
+  .device-meta,
+  .feed-meta,
+  .mix-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mini-tag,
+  .severity-tag,
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--muted);
+  }
+
+  .severity-tag {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .severity-critical { background: rgba(255, 107, 138, 0.16); color: #ffd5df; }
+  .severity-warning { background: rgba(255, 191, 105, 0.16); color: #ffe5b8; }
+  .severity-info { background: rgba(105, 167, 255, 0.16); color: #d5e6ff; }
+
+  .mix-card {
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .mix-bar {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mix-bar-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .mix-bar-track {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(121, 138, 170, 0.12);
+  }
+
+  .mix-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #6ea8ff, #7dd6c4, #ffd36e, #ff7d9b);
+  }
+
+  .alerts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .alerts-table th,
+  .alerts-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(139, 156, 188, 0.14);
+    vertical-align: top;
+    text-align: left;
+  }
+
+  .alerts-table th {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 10px;
+    color: var(--muted-2);
+  }
+
+  .alert-row.new-row {
+    animation: flash 1.2s ease-out;
+  }
+
+  @keyframes flash {
+    from { background: rgba(255, 107, 138, 0.20); }
+    to { background: transparent; }
+  }
+
+  .feat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 4px 2px 0;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(121, 138, 170, 0.12);
+    color: var(--muted);
+    font-size: 11px;
+    border: 1px solid rgba(121, 138, 170, 0.12);
+  }
+
+  .shap-wrap { display: grid; gap: 6px; min-width: 240px; }
+  .shap-base { color: var(--muted-2); font-size: 11px; }
+  .shap-row { display: grid; grid-template-columns: 118px 1fr 52px; gap: 8px; align-items: center; font-size: 11px; }
+  .shap-name { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .shap-track { position: relative; height: 10px; border-radius: 999px; background: rgba(121,138,170,0.14); overflow: hidden; }
+  .shap-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(234,240,255,0.35); }
+  .shap-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+  .shap-fill.pos { background: linear-gradient(90deg, #ff7d9b, #ff3d6e); }
+  .shap-fill.neg { background: linear-gradient(90deg, #3d8bff, #7dd6c4); }
+  .shap-val { color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
+  .shap-val.pos { color: #ffb3c4; }
+  .shap-val.neg { color: #a9c8ff; }
+
+  .empty {
+    padding: 16px 4px 4px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .alerts-wrap {
+    display: grid;
+    gap: 12px;
+  }
+
+  .alerts-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .alerts-header .subtle {
+    max-width: 72ch;
+  }
+
+  .table-wrap {
+    overflow: auto;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: rgba(8, 15, 27, 0.68);
+  }
+
+  @media (max-width: 1180px) {
+    .summary-grid,
+    .dashboard,
+    .hero {
+      grid-template-columns: 1fr;
+    }
+
+    .traffic-grid,
+    .traffic-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .shell { padding: 14px; }
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .status-stack { justify-content: flex-start; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .alerts-table { min-width: 1080px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="eyebrow">Pahredaar IoT IDS</div>
+      <h1>Live simulation dashboard</h1>
+      <p>Watch the simulated fleet stream flows into the backend, surface alerts in real time, and inspect how the per-device risk profile changes as the attack mix shifts.</p>
+    </div>
+    <div class="status-stack">
+      <div id="conn-status" class="pill"><span class="dot"></span><strong>connecting</strong></div>
+      <div id="model-status" class="pill">Checking models…</div>
+      <div id="last-refresh" class="pill">Refreshing…</div>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="hero-card">
+      <div class="hero-title">See simulated devices behave like a real fleet.</div>
+      <p class="hero-copy">The launcher script starts the FastAPI backend, the traffic simulator, and a local static frontend together. This view emphasizes live flow volume, alert pressure, and device risk so the simulation reads like an operations console instead of a static demo page.</p>
+      <div class="hero-meta">
+        <div class="pill"><span class="dot info"></span><strong>WS alerts</strong> pushed live</div>
+        <div class="pill"><span class="dot ok"></span><strong>Fleet</strong> risk rolls up per device</div>
+        <div class="pill"><span class="dot warn"></span><strong>Attack mix</strong> updates from backend stats</div>
+      </div>
+    </div>
+    <div class="hero-card config-card">
+      <h2>Connection</h2>
+      <div class="config-grid">
+        <div class="field">
+          <label for="backend-url">Backend URL</label>
+          <input id="backend-url" value="http://localhost:8000" spellcheck="false" />
+        </div>
+        <div class="button-row">
+          <button id="reconnect-btn" type="button">Reconnect</button>
+          <button id="default-btn" type="button" class="secondary">Use local default</button>
+        </div>
+      </div>
+      <p class="subtle" style="margin-top:12px;">start.sh also serves this page on <span id="frontend-url">http://127.0.0.1:4173</span> while the simulator streams traffic into the backend.</p>
+    </div>
+  </section>
+
+  <section class="summary-grid">
+    <div class="metric-card info">
+      <div class="label">Flows seen</div>
+      <div class="value" id="metric-flows">0</div>
+      <div class="detail">Total ingested flow records from the simulator or a real sensor bridge.</div>
+    </div>
+    <div class="metric-card alert">
+      <div class="label">Alerts raised</div>
+      <div class="value" id="metric-alerts">0</div>
+      <div class="detail">Only flows that cross the gate or anomaly threshold make it here.</div>
+    </div>
+    <div class="metric-card warn">
+      <div class="label">Flag rate</div>
+      <div class="value" id="metric-rate">0%</div>
+      <div class="detail">Alerts as a share of total flows. Useful for watching simulation intensity.</div>
+    </div>
+    <div class="metric-card good">
+      <div class="label">Devices tracked</div>
+      <div class="value" id="metric-devices">0</div>
+      <div class="detail">Per-device risk rolls up from alert history and recent traffic.</div>
+    </div>
+  </section>
+
+  <section class="panel traffic-lab">
+    <div class="traffic-shell">
+      <div class="traffic-top">
+        <div>
+          <h2>Traffic Lab</h2>
+          <p>Use this panel to push controlled traffic into the backend from the browser. Normal mode stays benign, suspicious mode overwhelms the detector with attack-heavy flows, and real-world mode mixes both with bursty timing so you can see whether the frontend and alerts behave as expected.</p>
+        </div>
+        <div class="traffic-status">
+          <div class="pill"><span class="dot info"></span><strong id="traffic-mode-label">Real-world mix</strong></div>
+          <div class="pill"><span class="dot ok"></span><strong id="traffic-run-label">idle</strong></div>
+        </div>
+      </div>
+
+      <div class="traffic-grid">
+        <div class="field">
+          <label for="traffic-mode">Traffic mode</label>
+          <select id="traffic-mode">
+            <option value="normal">Normal only</option>
+            <option value="suspicious">Suspicious heavy</option>
+            <option value="realworld" selected>Real-world mix</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="traffic-rate">Flows per pulse</label>
+          <input id="traffic-rate" type="number" min="1" max="25" step="1" value="6" />
+        </div>
+        <div class="field">
+          <label for="traffic-delay">Pulse delay (ms)</label>
+          <input id="traffic-delay" type="number" min="200" max="5000" step="50" value="900" />
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button id="traffic-start-btn" type="button">Start traffic test</button>
+        <button id="traffic-stop-btn" type="button" class="secondary">Stop traffic test</button>
+        <button id="traffic-burst-btn" type="button" class="secondary">Send burst now</button>
+      </div>
+
+      <div class="traffic-stats">
+        <div class="traffic-stat">
+          <div class="label">Test flows sent</div>
+          <div class="value" id="traffic-sent">0</div>
+          <div class="detail">Traffic generated from the browser and delivered to `/api/ingest`.</div>
+        </div>
+        <div class="traffic-stat">
+          <div class="label">Test alerts raised</div>
+          <div class="value" id="traffic-flagged">0</div>
+          <div class="detail">Flows that the backend marked as suspicious while the test runs.</div>
+        </div>
+        <div class="traffic-stat">
+          <div class="label">What it simulates</div>
+          <div class="value" id="traffic-summary">Mixed home IoT</div>
+          <div class="detail">A realistic device fleet with benign chatter plus bursty attack patterns.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard">
+    <div class="stack">
+      <div class="panel">
+        <h2>Fleet view</h2>
+        <div id="device-list" class="device-list"><div class="empty">No devices yet. Start the simulator and this list will fill with the fleet.</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Attack mix</h2>
+        <div id="attack-mix" class="mix-list"><div class="empty">No alerts yet. The mix appears once the simulator starts generating flagged traffic.</div></div>
+      </div>
+    </div>
+
+    <div class="panel alerts-wrap">
+      <div class="alerts-header">
+        <div>
+          <h2>Live alerts</h2>
+          <div class="subtle">Newest alerts stay at the top. SHAP bars show how much each feature pushed the gate toward attack (red) or benign (blue), from the baseline expected value.</div>
+        </div>
+        <div class="pill"><span class="dot ok"></span><strong id="alert-count-label">0</strong> recent alerts shown</div>
+      </div>
+      <div class="table-wrap">
+        <table class="alerts-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Device</th>
+              <th>Attack Type</th>
+              <th>Severity</th>
+              <th>MITRE</th>
+              <th>Gate Score</th>
+              <th>Explainability (SHAP)</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-body"></tbody>
+        </table>
+      </div>
+      <div id="alerts-empty" class="empty">No alerts yet. When the simulator starts hitting the gate, rows will stream in here.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const DEFAULT_BACKEND = 'http://localhost:8000';
+const STORAGE_KEY = 'iot-ids-backend-url';
+const DEFAULT_FRONTEND = 'http://127.0.0.1:4173';
+const TRAFFIC_DEVICE_TYPES = ['camera', 'smart_plug', 'temp_sensor', 'thermostat', 'smart_bulb'];
+const TRAFFIC_DEVICE_PROFILES = {
+  camera:      { bytesMu: 180000, bytesSigma: 42000, durMu: 8.0, pktsMu: 400 },
+  smart_plug:  { bytesMu: 800, bytesSigma: 200, durMu: 0.5, pktsMu: 6 },
+  temp_sensor: { bytesMu: 300, bytesSigma: 80, durMu: 0.2, pktsMu: 3 },
+  thermostat:  { bytesMu: 1200, bytesSigma: 300, durMu: 1.0, pktsMu: 10 },
+  smart_bulb:  { bytesMu: 500, bytesSigma: 150, durMu: 0.3, pktsMu: 4 },
+};
+const TRAFFIC_PRESETS = {
+  normal: {
+    label: 'Normal only',
+    attackRatio: 0,
+    burstMin: 3,
+    burstMax: 5,
+    delayMin: 1200,
+    delayMax: 1800,
+    summary: 'Benign IoT chatter only',
+  },
+  suspicious: {
+    label: 'Suspicious heavy',
+    attackRatio: 0.88,
+    burstMin: 5,
+    burstMax: 9,
+    delayMin: 600,
+    delayMax: 1000,
+    summary: 'Attack-heavy test traffic',
+  },
+  realworld: {
+    label: 'Real-world mix',
+    attackRatio: 0.18,
+    burstMin: 4,
+    burstMax: 10,
+    delayMin: 500,
+    delayMax: 1500,
+    summary: 'Bursty mixed home IoT traffic',
+  },
+};
+const state = {
+  backend: localStorage.getItem(STORAGE_KEY) || DEFAULT_BACKEND,
+  ws: null,
+  reconnectTimer: null,
+  health: null,
+  traffic: {
+    running: false,
+    timer: null,
+    sent: 0,
+    flagged: 0,
+    mode: 'realworld',
+    fleet: [],
+    victimIp: '192.168.1.250',
+    c2Ip: '203.0.113.39',
+    bruteTarget: '192.168.1.251',
+  },
+};
+
+document.getElementById('backend-url').value = state.backend;
+document.getElementById('frontend-url').textContent = DEFAULT_FRONTEND;
+
+function normalizeBackendUrl(value) {
+  return value.trim().replace(/\/$/, '');
+}
+
+function apiUrl(path) {
+  return new URL(path, `${state.backend}/`).toString();
+}
+
+function websocketUrl() {
+  const url = new URL('/ws/alerts', `${state.backend}/`);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.toString();
+}
+
+function fmtTime(ts) {
+  return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function setConnectionPill(kind, text) {
+  const pill = document.getElementById('conn-status');
+  pill.innerHTML = `<span class="dot ${kind}"></span><strong>${text}</strong>`;
+}
+
+function setModelStatus(text) {
+  const el = document.getElementById('model-status');
+  el.textContent = text;
+}
+
+function setRefreshLabel(text) {
+  document.getElementById('last-refresh').textContent = text;
+}
+
+function createTag(text, className = 'mini-tag') {
+  const tag = document.createElement('span');
+  tag.className = className;
+  tag.textContent = text;
+  return tag;
+}
+
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function randInt(min, max) {
+  return Math.floor(min + Math.random() * (max - min + 1));
+}
+
+function randNormal(mean, sigma) {
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mean + sigma * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function makeTrafficFleet(size = 8) {
+  const now = Date.now().toString(36);
+  return Array.from({ length: size }, (_, index) => {
+    const deviceType = TRAFFIC_DEVICE_TYPES[index % TRAFFIC_DEVICE_TYPES.length];
+    return {
+      device_id: `${deviceType}-${now}-${index + 1}`,
+      device_type: deviceType,
+      src_ip: `192.168.1.${20 + index}`,
+    };
+  });
+}
+
+function makeBenignTrafficFlow(device, ts) {
+  const profile = TRAFFIC_DEVICE_PROFILES[device.device_type] || TRAFFIC_DEVICE_PROFILES.smart_plug;
+  const totalBytes = Math.max(50, randNormal(profile.bytesMu, profile.bytesSigma));
+  const duration = Math.max(0.01, randNormal(profile.durMu, profile.durMu * 0.3));
+  const totalPkts = Math.max(1, Math.round(randNormal(profile.pktsMu, profile.pktsMu * 0.3)));
+
+  return {
+    ts,
+    device_id: device.device_id,
+    src_ip: device.src_ip,
+    dst_ip: pick(['203.0.113.1', '203.0.113.3', '203.0.113.5', '203.0.113.7', '203.0.113.11']),
+    src_port: randInt(40000, 60000),
+    dst_port: pick([80, 443, 8883]),
+    proto: 'tcp',
+    duration,
+    orig_bytes: Math.round(totalBytes * 0.4),
+    resp_bytes: Math.round(totalBytes * 0.6),
+    orig_pkts: Math.max(1, Math.round(totalPkts * 0.4)),
+    resp_pkts: Math.max(1, Math.round(totalPkts * 0.6)),
+    conn_state: 'SF',
+    mac_unstable: false,
+    device_type: device.device_type,
+  };
+}
+
+function makeAttackTrafficFlow(device, ts, victimIp, c2Ip, bruteTarget) {
+  const attackType = pick([
+    'port_scan',
+    'ddos',
+    'brute_force',
+    'mirai_beacon',
+  ]);
+
+  if (attackType === 'port_scan') {
+    return {
+      ts,
+      device_id: device.device_id,
+      src_ip: device.src_ip,
+      dst_ip: pick(['203.0.113.8', '203.0.113.12', '203.0.113.19', '203.0.113.27']),
+      src_port: randInt(40000, 60000),
+      dst_port: randInt(1, 65000),
+      proto: 'tcp',
+      duration: Math.max(0.001, randNormal(0.02, 0.01)),
+      orig_bytes: randInt(40, 80),
+      resp_bytes: 0,
+      orig_pkts: 1,
+      resp_pkts: 0,
+      conn_state: pick(['S0', 'REJ']),
+      mac_unstable: false,
+      device_type: device.device_type,
+    };
+  }
+
+  if (attackType === 'ddos') {
+    return {
+      ts,
+      device_id: device.device_id,
+      src_ip: device.src_ip,
+      dst_ip: victimIp,
+      src_port: randInt(1024, 65000),
+      dst_port: 80,
+      proto: pick(['tcp', 'udp']),
+      duration: Math.max(0.001, randNormal(0.01, 0.004)),
+      orig_bytes: randInt(500, 1500),
+      resp_bytes: 0,
+      orig_pkts: randInt(20, 60),
+      resp_pkts: 0,
+      conn_state: 'S0',
+      mac_unstable: false,
+      device_type: device.device_type,
+    };
+  }
+
+  if (attackType === 'brute_force') {
+    return {
+      ts,
+      device_id: device.device_id,
+      src_ip: device.src_ip,
+      dst_ip: bruteTarget,
+      src_port: randInt(40000, 60000),
+      dst_port: pick([22, 23, 80, 443, 8080]),
+      proto: 'tcp',
+      duration: Math.max(0.02, randNormal(0.18, 0.06)),
+      orig_bytes: randInt(80, 200),
+      resp_bytes: randInt(20, 60),
+      orig_pkts: randInt(2, 5),
+      resp_pkts: randInt(1, 3),
+      conn_state: pick(['REJ', 'RSTO', 'S0']),
+      mac_unstable: false,
+      device_type: device.device_type,
+    };
+  }
+
+  return {
+    ts,
+    device_id: device.device_id,
+    src_ip: device.src_ip,
+    dst_ip: c2Ip,
+    src_port: randInt(40000, 60000),
+    dst_port: pick([6667, 23, 8080]),
+    proto: 'tcp',
+    duration: Math.max(0.05, randNormal(0.15, 0.01)),
+    orig_bytes: randInt(60, 90),
+    resp_bytes: randInt(60, 90),
+    orig_pkts: 2,
+    resp_pkts: 2,
+    conn_state: 'SF',
+    mac_unstable: false,
+    device_type: device.device_type,
+  };
+}
+
+function buildTrafficFlow(mode) {
+  if (!state.traffic.fleet.length) {
+    state.traffic.fleet = makeTrafficFleet();
+  }
+
+  const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
+  const device = pick(state.traffic.fleet);
+  const ts = Date.now() / 1000;
+  const attackRoll = Math.random();
+
+  if (mode === 'normal' || attackRoll >= preset.attackRatio) {
+    return makeBenignTrafficFlow(device, ts);
+  }
+
+  return makeAttackTrafficFlow(device, ts, state.traffic.victimIp, state.traffic.c2Ip, state.traffic.bruteTarget);
+}
+
+function setTrafficModeLabel(mode) {
+  const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
+  document.getElementById('traffic-mode-label').textContent = preset.label;
+  document.getElementById('traffic-summary').textContent = preset.summary;
+}
+
+function setTrafficRunLabel(text) {
+  document.getElementById('traffic-run-label').textContent = text;
+}
+
+function updateTrafficStats() {
+  document.getElementById('traffic-sent').textContent = state.traffic.sent.toLocaleString();
+  document.getElementById('traffic-flagged').textContent = state.traffic.flagged.toLocaleString();
+}
+
+async function postTrafficFlow(flow) {
+  const response = await fetch(apiUrl('/api/ingest'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(flow),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function sendTrafficPulse(countOverride = null) {
+  const mode = state.traffic.mode;
+  const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
+  const pulseCount = countOverride ?? randInt(preset.burstMin, preset.burstMax);
+
+  const results = await Promise.allSettled(
+    Array.from({ length: pulseCount }, async () => {
+      const flow = buildTrafficFlow(mode);
+      const result = await postTrafficFlow(flow);
+      state.traffic.sent += 1;
+      if (result.flagged) {
+        state.traffic.flagged += 1;
+      }
+    }),
+  );
+
+  updateTrafficStats();
+  await Promise.allSettled([loadStats(), loadDevices()]);
+  return results;
+}
+
+function clearTrafficTimer() {
+  if (state.traffic.timer) {
+    clearTimeout(state.traffic.timer);
+    state.traffic.timer = null;
+  }
+}
+
+async function scheduleTrafficPulse() {
+  if (!state.traffic.running) return;
+
+  try {
+    const mode = state.traffic.mode;
+    const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
+    const delayInput = Number(document.getElementById('traffic-delay').value) || preset.delayMin;
+    const jitteredDelay = clamp(Math.round(delayInput + ((Math.random() * 2) - 1) * 200), preset.delayMin, preset.delayMax);
+    await sendTrafficPulse();
+    state.traffic.timer = setTimeout(scheduleTrafficPulse, jitteredDelay);
+  } catch (error) {
+    console.error('Traffic pulse failed', error);
+    stopTrafficTest();
+  }
+}
+
+function startTrafficTest() {
+  state.traffic.mode = document.getElementById('traffic-mode').value;
+  state.traffic.running = true;
+  setTrafficModeLabel(state.traffic.mode);
+  setTrafficRunLabel('running');
+  clearTrafficTimer();
+  state.traffic.timer = setTimeout(scheduleTrafficPulse, 0);
+}
+
+function stopTrafficTest() {
+  state.traffic.running = false;
+  clearTrafficTimer();
+  setTrafficRunLabel('stopped');
+}
+
+async function sendBurstNow() {
+  state.traffic.mode = document.getElementById('traffic-mode').value;
+  setTrafficModeLabel(state.traffic.mode);
+  const count = clamp(Number(document.getElementById('traffic-rate').value) || 6, 1, 25);
+  setTrafficRunLabel('bursting');
+  await sendTrafficPulse(count);
+  if (!state.traffic.running) {
+    setTrafficRunLabel('idle');
+  }
+}
+
+function severityClass(severity) {
+  if (severity === 'critical') return 'severity-tag severity-critical';
+  if (severity === 'warning') return 'severity-tag severity-warning';
+  return 'severity-tag severity-info';
+}
+
+function normalizeShap(alert) {
+  // Backend sends shap_values: [{feature, value, contribution}] + shap_base_value.
+  const raw = alert.shap_values;
+  const list = Array.isArray(raw) ? raw : (raw && raw.contributions) || [];
+  return list
+    .map((d) => ({
+      feature: d.feature || d[0] || 'unknown',
+      value: d.value ?? d[1] ?? '',
+      contribution: Number(d.contribution ?? 0) || 0,
+    }))
+    .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+    .slice(0, 6);
+}
+
+function renderShapCell(alert) {
+  const cell = document.createElement('td');
+  const wrap = document.createElement('div');
+  wrap.className = 'shap-wrap';
+  const shap = normalizeShap(alert);
+
+  if (!shap.length) {
+    // Backward compat: old rows only have top_features [[name, value]].
+    const chipWrap = document.createElement('div');
+    (alert.top_features || []).forEach((feature) => {
+      const chip = document.createElement('span');
+      chip.className = 'feat-chip';
+      chip.textContent = Array.isArray(feature) ? `${feature[0]}=${feature[1]}` : `${feature.feature}=${feature.value}`;
+      chipWrap.appendChild(chip);
+    });
+    if (!chipWrap.childNodes.length) chipWrap.appendChild(createTag('No feature summary'));
+    cell.appendChild(chipWrap);
+    return cell;
+  }
+
+  const base = alert.shap_base_value;
+  if (base !== undefined && base !== null) {
+    const baseEl = document.createElement('div');
+    baseEl.className = 'shap-base';
+    baseEl.textContent = `base ${(Number(base) || 0).toFixed(3)} → score ${(Number(alert.gate_score) || 0).toFixed(3)}`;
+    baseEl.title = 'SHAP expected value (average-traffic baseline) pushed to this alert gate score by the bars below';
+    wrap.appendChild(baseEl);
+  }
+
+  const maxAbs = Math.max(...shap.map((d) => Math.abs(d.contribution)), 1e-9);
+  shap.forEach((d) => {
+    const row = document.createElement('div');
+    row.className = 'shap-row';
+    row.title = `${d.feature} = ${d.value} → contribution ${d.contribution >= 0 ? '+' : ''}${d.contribution.toFixed(4)}`;
+
+    const name = document.createElement('span');
+    name.className = 'shap-name';
+    name.textContent = d.feature;
+
+    const track = document.createElement('span');
+    track.className = 'shap-track';
+    const mid = document.createElement('span');
+    mid.className = 'shap-mid';
+    track.appendChild(mid);
+    const fill = document.createElement('span');
+    const pct = Math.max(3, Math.round((Math.abs(d.contribution) / maxAbs) * 50));
+    fill.className = `shap-fill ${d.contribution >= 0 ? 'pos' : 'neg'}`;
+    if (d.contribution >= 0) {
+      fill.style.left = '50%';
+      fill.style.width = `${pct}%`;
+    } else {
+      fill.style.right = '50%';
+      fill.style.width = `${pct}%`;
+    }
+    track.appendChild(fill);
+
+    const val = document.createElement('span');
+    val.className = `shap-val ${d.contribution >= 0 ? 'pos' : 'neg'}`;
+    val.textContent = `${d.contribution >= 0 ? '+' : ''}${d.contribution.toFixed(3)}`;
+
+    row.appendChild(name);
+    row.appendChild(track);
+    row.appendChild(val);
+    wrap.appendChild(row);
+  });
+
+  cell.appendChild(wrap);
+  return cell;
+}
+
+function renderAlertRow(alert, isNew) {
+  const row = document.createElement('tr');
+  row.className = isNew ? 'alert-row new-row' : 'alert-row';
+
+  const cells = [
+    fmtTime(alert.ts),
+    `${alert.device_id}${alert.device_type ? ` (${alert.device_type})` : ''}`,
+    alert.attack_type || 'unknown',
+    alert.severity || 'info',
+    alert.mitre || '',
+    (Number(alert.gate_score) || 0).toFixed(3),
+  ];
+
+  cells.forEach((value, index) => {
+    const cell = document.createElement('td');
+    if (index === 3) {
+      const sev = document.createElement('span');
+      sev.className = severityClass(value);
+      sev.textContent = value;
+      cell.appendChild(sev);
+    } else {
+      cell.textContent = value;
+    }
+    row.appendChild(cell);
+  });
+
+  row.appendChild(renderShapCell(alert));
+
+  return row;
+}
+
+function renderDeviceCard(device) {
+  const card = document.createElement('article');
+  card.className = 'device-card';
+
+  const header = document.createElement('div');
+  header.className = 'device-head';
+
+  const titleWrap = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'device-name';
+  title.textContent = device.device_id;
+  const subtitle = document.createElement('div');
+  subtitle.className = 'subtle';
+  subtitle.textContent = `${device.device_type || 'unknown'} · ${device.ip || 'no IP yet'}`;
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(subtitle);
+
+  const alertsTag = createTag(`${device.alert_count || 0} alerts`);
+  header.appendChild(titleWrap);
+  header.appendChild(alertsTag);
+
+  const riskTrack = document.createElement('div');
+  riskTrack.className = 'risk-track';
+  const riskFill = document.createElement('div');
+  riskFill.className = 'risk-fill';
+  riskFill.style.width = `${Math.max(0, Math.min(100, Number(device.risk_score) || 0))}%`;
+  riskTrack.appendChild(riskFill);
+
+  const meta = document.createElement('div');
+  meta.className = 'device-meta';
+  meta.appendChild(createTag(`Flows ${device.flow_count || 0}`));
+  meta.appendChild(createTag(`Risk ${(Number(device.risk_score) || 0).toFixed(1)}`));
+  meta.appendChild(createTag(`Last ${device.last_seen ? fmtTime(device.last_seen) : 'never'}`));
+
+  card.appendChild(header);
+  card.appendChild(riskTrack);
+  card.appendChild(meta);
+  return card;
+}
+
+function renderAttackMix(alertsByType) {
+  const host = document.getElementById('attack-mix');
+  host.innerHTML = '';
+
+  const entries = Object.entries(alertsByType || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No alerts yet. The mix appears once the simulator starts generating flagged traffic.';
+    host.appendChild(empty);
+    return;
+  }
+
+  const total = entries.reduce((sum, [, count]) => sum + count, 0) || 1;
+  entries.forEach(([name, count]) => {
+    const card = document.createElement('article');
+    card.className = 'mix-card';
+
+    const head = document.createElement('div');
+    head.className = 'mix-head';
+    const title = document.createElement('div');
+    title.className = 'mix-title';
+    title.textContent = name;
+    const amount = document.createElement('div');
+    amount.className = 'subtle';
+    amount.textContent = `${count} alerts`;
+    head.appendChild(title);
+    head.appendChild(amount);
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'mix-bar';
+    const row = document.createElement('div');
+    row.className = 'mix-bar-row';
+    row.innerHTML = `<span>${Math.round((count / total) * 100)}% of alerts</span><span>${count}</span>`;
+    const track = document.createElement('div');
+    track.className = 'mix-bar-track';
+    const fill = document.createElement('div');
+    fill.className = 'mix-bar-fill';
+    fill.style.width = `${Math.max(4, Math.round((count / total) * 100))}%`;
+    track.appendChild(fill);
+    barWrap.appendChild(row);
+    barWrap.appendChild(track);
+
+    card.appendChild(head);
+    card.appendChild(barWrap);
+    host.appendChild(card);
+  });
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+async function loadHealth() {
+  try {
+    const health = await fetchJson(apiUrl('/api/health'));
+    state.health = health;
+    setConnectionPill('ok', 'connected');
+    setModelStatus(health.models_loaded ? 'models loaded' : 'models not trained yet');
+    if (!health.models_loaded && health.hint) {
+      setRefreshLabel(health.hint);
+    }
+  } catch (error) {
+    setConnectionPill('crit', 'disconnected');
+    setModelStatus('backend unavailable');
+    setRefreshLabel('Waiting for backend...');
+    throw error;
+  }
+}
+
+async function loadAlerts() {
+  const alerts = await fetchJson(apiUrl('/api/alerts?limit=50'));
+  const body = document.getElementById('alerts-body');
+  body.innerHTML = '';
+  alerts.forEach((alert) => body.appendChild(renderAlertRow(alert, false)));
+  document.getElementById('alerts-empty').style.display = alerts.length ? 'none' : 'block';
+  document.getElementById('alert-count-label').textContent = alerts.length;
+}
+
+async function loadDevices() {
+  const devices = await fetchJson(apiUrl('/api/devices'));
+  const host = document.getElementById('device-list');
+  host.innerHTML = '';
+  if (!devices.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No devices yet. Start the simulator and this list will fill with the fleet.';
+    host.appendChild(empty);
+  } else {
+    devices.forEach((device) => host.appendChild(renderDeviceCard(device)));
+  }
+  document.getElementById('metric-devices').textContent = devices.length;
+}
+
+async function loadStats() {
+  const stats = await fetchJson(apiUrl('/api/stats'));
+  const totalFlows = Number(stats.total_flows) || 0;
+  const totalAlerts = Number(stats.total_alerts) || 0;
+  const flagRate = totalFlows > 0 ? (totalAlerts / totalFlows) * 100 : 0;
+
+  document.getElementById('metric-flows').textContent = totalFlows.toLocaleString();
+  document.getElementById('metric-alerts').textContent = totalAlerts.toLocaleString();
+  document.getElementById('metric-rate').textContent = `${flagRate.toFixed(1)}%`;
+  renderAttackMix(stats.alerts_by_type || {});
+}
+
+async function refreshDashboard() {
+  const results = await Promise.allSettled([loadHealth(), loadAlerts(), loadDevices(), loadStats()]);
+  if (results.some((result) => result.status === 'fulfilled')) {
+    setRefreshLabel(`Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
+  }
+}
+
+function scheduleReconnect() {
+  clearTimeout(state.reconnectTimer);
+  state.reconnectTimer = setTimeout(connectWebSocket, 2000);
+}
+
+function connectWebSocket() {
+  clearTimeout(state.reconnectTimer);
+  if (state.ws) {
+    try { state.ws.close(); } catch (error) { console.debug(error); }
+  }
+
+  const socket = new WebSocket(websocketUrl());
+  state.ws = socket;
+
+  socket.onopen = () => setConnectionPill('ok', 'connected');
+  socket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type !== 'alert') return;
+
+    const body = document.getElementById('alerts-body');
+    document.getElementById('alerts-empty').style.display = 'none';
+    body.insertBefore(renderAlertRow(message.data, true), body.firstChild);
+    while (body.rows.length > 50) {
+      body.removeChild(body.lastChild);
+    }
+    document.getElementById('alert-count-label').textContent = body.rows.length;
+    loadStats().catch(() => {});
+    loadDevices().catch(() => {});
+  };
+  socket.onclose = () => {
+    if (state.ws === socket) {
+      state.ws = null;
+      setConnectionPill('warn', 'reconnecting');
+      scheduleReconnect();
+    }
+  };
+  socket.onerror = () => {
+    try { socket.close(); } catch (error) { console.debug(error); }
+  };
+}
+
+function updateBackend(nextBackend) {
+  state.backend = normalizeBackendUrl(nextBackend || DEFAULT_BACKEND);
+  localStorage.setItem(STORAGE_KEY, state.backend);
+  document.getElementById('backend-url').value = state.backend;
+}
+
+function reconnect() {
+  updateBackend(document.getElementById('backend-url').value);
+  if (state.ws) {
+    try { state.ws.close(); } catch (error) { console.debug(error); }
+  }
+  refreshDashboard();
+  connectWebSocket();
+}
+
+document.getElementById('reconnect-btn').addEventListener('click', reconnect);
+document.getElementById('default-btn').addEventListener('click', () => {
+  updateBackend(DEFAULT_BACKEND);
+  reconnect();
+});
+document.getElementById('backend-url').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') reconnect();
+});
+document.getElementById('traffic-mode').addEventListener('change', (event) => {
+  state.traffic.mode = event.target.value;
+  setTrafficModeLabel(state.traffic.mode);
+});
+document.getElementById('traffic-start-btn').addEventListener('click', startTrafficTest);
+document.getElementById('traffic-stop-btn').addEventListener('click', stopTrafficTest);
+document.getElementById('traffic-burst-btn').addEventListener('click', () => {
+  sendBurstNow().catch((error) => {
+    console.error(error);
+    setTrafficRunLabel('idle');
+  });
+});
+
+updateBackend(state.backend);
+state.traffic.fleet = makeTrafficFleet();
+state.traffic.mode = document.getElementById('traffic-mode').value;
+setTrafficModeLabel(state.traffic.mode);
+updateTrafficStats();
+setConnectionPill('warn', 'connecting');
+refreshDashboard();
+connectWebSocket();
+setInterval(refreshDashboard, 5000);
+</script>
+</body>
+</html>

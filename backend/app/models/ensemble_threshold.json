@@ -1,0 +1,7 @@
+{
+  "ensemble_threshold": 0.2,
+  "target_max_fpr": 0.02,
+  "achieved_val_fpr": 0.0015801948907031868,
+  "achieved_val_recall": 1.0,
+  "val_pr_auc": 0.9999879621288574
+}

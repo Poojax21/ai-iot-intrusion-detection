@@ -1,0 +1,6 @@
+{
+  "gate_threshold": 0.6779283881187439,
+  "target_max_fpr": 0.02,
+  "achieved_val_fpr": 0.019946586546486397,
+  "achieved_val_recall": 0.9909740655895342
+}

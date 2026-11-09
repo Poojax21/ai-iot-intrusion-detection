@@ -1,0 +1,103 @@
+{
+  "feature_columns": [
+    "ARP",
+    "AVG",
+    "Covariance",
+    "DHCP",
+    "DNS",
+    "Drate",
+    "Duration",
+    "HTTP",
+    "HTTPS",
+    "Header_Length",
+    "IAT",
+    "ICMP",
+    "IPv",
+    "IRC",
+    "LLC",
+    "Magnitue",
+    "Max",
+    "Min",
+    "Number",
+    "Protocol Type",
+    "Radius",
+    "Rate",
+    "SMTP",
+    "SSH",
+    "Srate",
+    "Std",
+    "TCP",
+    "Telnet",
+    "Tot size",
+    "Tot sum",
+    "UDP",
+    "Variance",
+    "Weight",
+    "ack_count",
+    "ack_flag_number",
+    "cwr_flag_number",
+    "ece_flag_number",
+    "fin_count",
+    "fin_flag_number",
+    "flow_duration",
+    "psh_flag_number",
+    "rst_count",
+    "rst_flag_number",
+    "syn_count",
+    "syn_flag_number",
+    "urg_count"
+  ],
+  "class_names": [
+    "benign",
+    "brute_force",
+    "ddos",
+    "dos",
+    "mirai",
+    "recon",
+    "spoofing",
+    "web"
+  ],
+  "family_keywords": {
+    "benign": [
+      "benign"
+    ],
+    "ddos": [
+      "ddos"
+    ],
+    "dos": [
+      "dos-"
+    ],
+    "recon": [
+      "recon",
+      "vulnerabilityscan",
+      "portscan",
+      "osscan",
+      "hostdiscovery",
+      "pingsweep"
+    ],
+    "spoofing": [
+      "spoofing",
+      "mitm-arp",
+      "arpspoofing",
+      "dns_spoofing"
+    ],
+    "mirai": [
+      "mirai"
+    ],
+    "brute_force": [
+      "bruteforce",
+      "brute_force",
+      "dictionarybruteforce"
+    ],
+    "web": [
+      "sql",
+      "xss",
+      "commandinjection",
+      "backdoor",
+      "uploading",
+      "browserhijacking",
+      "web"
+    ]
+  },
+  "unmapped_labels_seen": []
+}

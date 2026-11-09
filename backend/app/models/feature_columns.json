@@ -1,0 +1,31 @@
+{
+  "feature_columns": [
+    "duration",
+    "orig_bytes",
+    "resp_bytes",
+    "orig_pkts",
+    "resp_pkts",
+    "total_bytes",
+    "total_pkts",
+    "byte_rate",
+    "pkt_rate",
+    "avg_pkt_size",
+    "is_new_edge",
+    "src_fanout_recent",
+    "device_zscore",
+    "proto_tcp",
+    "proto_udp",
+    "proto_icmp",
+    "conn_state_sf",
+    "conn_state_s0",
+    "conn_state_rej",
+    "conn_state_other"
+  ],
+  "attack_labels": [
+    "benign",
+    "port_scan",
+    "ddos",
+    "brute_force",
+    "mirai_beacon"
+  ]
+}
