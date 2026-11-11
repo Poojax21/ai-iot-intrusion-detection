@@ -38,6 +38,34 @@ except ImportError:
     OpenSetClassifier = None
     OpenSetDecisionOutcome = None
 
+try:
+    from training.explainability import TreeShapExplainer
+    TREESHAP_AVAILABLE = True
+except ImportError:
+    TREESHAP_AVAILABLE = False
+    TreeShapExplainer = None
+
+try:
+    from training.temporal import TemporalDetector
+    TEMPORAL_AVAILABLE = True
+except ImportError:
+    TEMPORAL_AVAILABLE = False
+    TemporalDetector = None
+
+try:
+    from training.graph import GraphDetector
+    GRAPH_AVAILABLE = True
+except ImportError:
+    GRAPH_AVAILABLE = False
+    GraphDetector = None
+
+try:
+    from backend.app.risk import HierarchicalRiskEngine
+    RISK_ENGINE_AVAILABLE = True
+except ImportError:
+    RISK_ENGINE_AVAILABLE = False
+    HierarchicalRiskEngine = None
+
 MODEL_DIR = settings.MODEL_DIR
 GRACE_PERIOD_FLOWS = settings.GRACE_PERIOD_FLOWS
 
@@ -90,6 +118,50 @@ class DetectionEngine:
                 except Exception:
                     self.open_set_classifier = None
 
+        # Phase 4 Component A: Exact TreeSHAP Explainer
+        self.shap_explainer = None
+        if TREESHAP_AVAILABLE and getattr(settings, "ENABLE_TREESHAP", True):
+            target_gate = self.gate_model or (self.open_set_classifier.gate_model if self.open_set_classifier else None)
+            if target_gate is not None:
+                try:
+                    self.shap_explainer = TreeShapExplainer(
+                        model=target_gate,
+                        feature_names=FEATURE_COLUMNS,
+                        class_names=["benign", "attack"],
+                    )
+                except Exception:
+                    self.shap_explainer = None
+
+        # Phase 4 Component B: Temporal Sequence Intelligence
+        self.temporal_detector = None
+        if TEMPORAL_AVAILABLE and getattr(settings, "ENABLE_TEMPORAL", True):
+            temp_dir = getattr(settings, "TEMPORAL_MODEL_DIR", None)
+            if temp_dir and Path(temp_dir).exists() and (Path(temp_dir) / "temporal_metadata.json").exists():
+                try:
+                    self.temporal_detector = TemporalDetector.load(temp_dir)
+                except Exception:
+                    self.temporal_detector = None
+
+        # Phase 4 Component C: Communication Graph Intelligence
+        self.graph_detector = None
+        if GRAPH_AVAILABLE and getattr(settings, "ENABLE_GRAPH", True):
+            graph_dir = getattr(settings, "GRAPH_MODEL_DIR", None)
+            if graph_dir and Path(graph_dir).exists() and (Path(graph_dir) / "graph_metadata.json").exists():
+                try:
+                    self.graph_detector = GraphDetector.load(graph_dir)
+                except Exception:
+                    self.graph_detector = None
+
+        # Phase 4 Component D: Hierarchical Risk Engine
+        self.risk_engine = None
+        if RISK_ENGINE_AVAILABLE and getattr(settings, "ENABLE_HIERARCHICAL_RISK", True):
+            try:
+                self.risk_engine = HierarchicalRiskEngine(
+                    suppression_window_sec=getattr(settings, "ALERT_SUPPRESSION_WINDOW_SEC", 5.0)
+                )
+            except Exception:
+                self.risk_engine = None
+
     def _device_state(self, device_id: str) -> DeviceState:
         if device_id not in self.device_states:
             self.device_states[device_id] = DeviceState()
@@ -111,6 +183,26 @@ class DetectionEngine:
             flow_count = state.flow_count
 
         in_grace_period = flow_count <= self.grace_period_flows
+
+        current_scaler = self.scaler if self.scaler is not None else (self.open_set_classifier.scaler if self.open_set_classifier else None)
+        X = np.array([vec])
+        X_s = current_scaler.transform(X) if current_scaler is not None else X
+
+        # Phase 4 Component B: Temporal sequence scoring
+        temporal_res = None
+        if self.temporal_detector is not None:
+            try:
+                temporal_res = self.temporal_detector.score_flow(flow["device_id"], X_s[0])
+            except Exception:
+                temporal_res = None
+
+        # Phase 4 Component C: Communication graph scoring
+        graph_res = None
+        if self.graph_detector is not None:
+            try:
+                graph_res = self.graph_detector.score_flow(flow)
+            except Exception:
+                graph_res = None
 
         # Path A: Open-Set Detection Engine (Phase 3)
         if self.open_set_classifier is not None:
@@ -138,9 +230,6 @@ class DetectionEngine:
             }
 
             if is_flagged:
-                X = np.array([vec])
-                X_s = self.scaler.transform(X) if self.scaler is not None else self.open_set_classifier.scaler.transform(X)
-
                 if dec.outcome == OpenSetDecisionOutcome.UNKNOWN_SUSPICIOUS:
                     attack_type = "unknown_suspicious"
                     mitre = "T1204 (Zero-Day / Novel Vector - Open-Set Anomaly)"
@@ -161,6 +250,7 @@ class DetectionEngine:
                         tier = "low"
                         severity = "info"
 
+                shap_method = "exact_treeshap" if (self.shap_explainer and self.shap_explainer.is_exact) else "ablation_vs_scaler_mean"
                 result.update({
                     "attack_type": attack_type,
                     "mitre": mitre,
@@ -170,69 +260,85 @@ class DetectionEngine:
                     "top_features": self._top_features(vec),
                     "shap_values": self._shap_explain(X_s, vec),
                     "shap_base_value": self._shap_base_value(X_s),
-                    "shap_method": "ablation_vs_scaler_mean",
+                    "shap_method": shap_method,
                 })
 
-            return result
+        else:
+            # Path B: Baseline V1 Fallback
+            gate_score = float(self.gate_model.predict_proba(X_s)[0, 1])
+            anomaly_score = float(-self.anomaly_model.score_samples(X_s)[0])
+            anomaly_flag = self.anomaly_model.predict(X_s)[0] == -1
 
-        # Path B: Baseline V1 Fallback
-        X = np.array([vec])
-        X_s = self.scaler.transform(X)
+            is_flagged = (not in_grace_period) and ((gate_score >= self.gate_threshold) or anomaly_flag)
 
-        gate_score = float(self.gate_model.predict_proba(X_s)[0, 1])
-        anomaly_score = float(-self.anomaly_model.score_samples(X_s)[0])
-        anomaly_flag = self.anomaly_model.predict(X_s)[0] == -1
+            result = {
+                "gate_score": gate_score,
+                "anomaly_score": anomaly_score,
+                "calibrated_anomaly_score": 0.0,
+                "novelty_score": 0.0,
+                "is_flagged": bool(is_flagged),
+                "in_grace_period": in_grace_period,
+                "feature_vector": vec,
+                "decision": "known_attack" if is_flagged else "benign",
+                "is_unknown": False,
+                "reason_codes": [],
+            }
 
-        is_flagged = (not in_grace_period) and ((gate_score >= self.gate_threshold) or anomaly_flag)
+            if is_flagged:
+                probs = self.multiclass_model.predict_proba(X_s)[0]
+                pred_id = int(np.argmax(probs))
+                attack_type = ID_TO_LABEL[pred_id]
+                confidence = float(probs[pred_id])
 
-        result = {
-            "gate_score": gate_score,
-            "anomaly_score": anomaly_score,
-            "calibrated_anomaly_score": 0.0,
-            "novelty_score": 0.0,
-            "is_flagged": bool(is_flagged),
-            "in_grace_period": in_grace_period,
-            "feature_vector": vec,
-            "decision": "known_attack" if is_flagged else "benign",
-            "is_unknown": False,
-            "reason_codes": [],
-        }
+                if attack_type == "benign":
+                    attack_type = "unclassified_anomaly"
+                    mitre = "N/A - unsupervised anomaly only, no matching known attack pattern"
+                else:
+                    mitre = MITRE_MAP.get(attack_type, "N/A")
 
-        if is_flagged:
-            probs = self.multiclass_model.predict_proba(X_s)[0]
-            pred_id = int(np.argmax(probs))
-            attack_type = ID_TO_LABEL[pred_id]
-            confidence = float(probs[pred_id])
+                if confidence >= 0.85 and gate_score >= 0.9:
+                    tier = "high"
+                    severity = "critical"
+                elif confidence >= 0.6:
+                    tier = "medium"
+                    severity = "warning"
+                else:
+                    tier = "low"
+                    severity = "info"
 
-            if attack_type == "benign":
-                # gate/anomaly fired but the multiclass head disagrees on "what" —
-                # surface as a low-confidence anomaly rather than inventing an attack label
-                attack_type = "unclassified_anomaly"
-                mitre = "N/A - unsupervised anomaly only, no matching known attack pattern"
-            else:
-                mitre = MITRE_MAP.get(attack_type, "N/A")
+                shap_method = "exact_treeshap" if (self.shap_explainer and self.shap_explainer.is_exact) else "ablation_vs_scaler_mean"
+                result.update({
+                    "attack_type": attack_type,
+                    "mitre": mitre,
+                    "severity": severity,
+                    "confidence_tier": tier,
+                    "confidence": confidence,
+                    "top_features": self._top_features(vec),
+                    "shap_values": self._shap_explain(X_s, vec),
+                    "shap_base_value": self._shap_base_value(X_s),
+                    "shap_method": shap_method,
+                })
 
-            if confidence >= 0.85 and gate_score >= 0.9:
-                tier = "high"
-                severity = "critical"
-            elif confidence >= 0.6:
-                tier = "medium"
-                severity = "warning"
-            else:
-                tier = "low"
-                severity = "info"
+        # Phase 4 Component D: Multi-tier Hierarchical Risk Synthesis
+        risk_breakdown = None
+        if self.risk_engine is not None:
+            try:
+                risk_breakdown = self.risk_engine.evaluate_risk(
+                    device_id=flow["device_id"],
+                    timestamp=flow.get("ts", time.time()),
+                    flow_result=result,
+                    temporal_result=temporal_res,
+                    graph_result=graph_res,
+                )
+            except Exception:
+                risk_breakdown = None
 
-            result.update({
-                "attack_type": attack_type,
-                "mitre": mitre,
-                "severity": severity,
-                "confidence_tier": tier,
-                "confidence": confidence,
-                "top_features": self._top_features(vec),
-                "shap_values": self._shap_explain(X_s, vec),
-                "shap_base_value": self._shap_base_value(X_s),
-                "shap_method": "ablation_vs_scaler_mean",
-            })
+        result["temporal"] = temporal_res
+        result["graph"] = graph_res
+        if risk_breakdown is not None:
+            result["risk_breakdown"] = risk_breakdown.to_dict()
+            result["composite_device_risk"] = risk_breakdown.composite_device_risk
+            result["risk_tier"] = risk_breakdown.risk_tier
 
         return result
 
@@ -247,28 +353,35 @@ class DetectionEngine:
             return 0.0
 
     def _shap_explain(self, X_s, vec, k=8):
-        """SHAP-style additive contributions without the `shap` dependency.
+        """Exact TreeSHAP attribution when available, with heuristic fallback."""
+        if getattr(self, "shap_explainer", None) is not None:
+            try:
+                explanation = self.shap_explainer.explain(
+                    x_raw=vec,
+                    x_scaled=X_s,
+                    target_class="attack",
+                    top_k=k,
+                )
+                return explanation.top_features
+            except Exception:
+                pass
 
-        contribution[i] = P_attack(full) - P_attack(feature i reset to its
-        baseline mean). Positive = pushes toward attack, negative = pushes
-        toward benign. Faithful to the live gate model (same predict_proba),
-        O(n_features) predicts per alert — cheap for 20 features.
-
-        Swap-in path for exact TreeSHAP: replace this body with
-        `shap.TreeExplainer(self.gate_model).shap_values(X_s)` and keep the
-        same return shape [{feature, value, contribution}].
-        """
         try:
             full = float(self.gate_model.predict_proba(X_s)[0, 1])
+            n_cols = len(FEATURE_COLUMNS)
+            ablated_batch = np.repeat(X_s, n_cols, axis=0)
+            np.fill_diagonal(ablated_batch, 0.0)
+            ablated_probs = self.gate_model.predict_proba(ablated_batch)[:, 1]
+
             out = []
             for i, name in enumerate(FEATURE_COLUMNS):
-                ablated = X_s.copy()
-                ablated[0, i] = 0.0  # scaler-mean baseline for feature i
-                s = float(self.gate_model.predict_proba(ablated)[0, 1])
+                raw_val = round(float(vec[i]), 3)
                 out.append({
                     "feature": name,
-                    "value": round(float(vec[i]), 3),
-                    "contribution": round(float(full - s), 5),
+                    "value": raw_val,
+                    "raw_value": raw_val,
+                    "scaled_value": round(float(X_s[0, i]), 4),
+                    "contribution": round(float(full - ablated_probs[i]), 5),
                 })
             out.sort(key=lambda d: abs(d["contribution"]), reverse=True)
             return out[:k]

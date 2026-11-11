@@ -56,6 +56,11 @@ class AlertOut(BaseModel):
     novelty_score: Optional[float] = Field(None, description="Novelty distance factor relative to known class boundaries")
     calibrated_anomaly_score: Optional[float] = Field(None, description="Calibrated ECDF percentile of anomaly score")
     reason_codes: Optional[List[str]] = Field(default_factory=list, description="Triage reason codes")
+    composite_device_risk: Optional[float] = Field(None, description="Composite multi-tier device risk score (0-100)")
+    risk_tier: Optional[str] = Field(None, description="Hierarchical risk tier: LOW | ELEVATED | HIGH | CRITICAL")
+    temporal_risk: Optional[float] = Field(None, description="Temporal sequence anomaly risk contribution (0-100)")
+    graph_risk: Optional[float] = Field(None, description="Topological graph communication risk contribution (0-100)")
+    risk_breakdown: Optional[dict] = Field(None, description="Detailed component breakdown of risk scoring")
     raw_flow: dict
 
 
@@ -67,3 +72,6 @@ class DeviceOut(BaseModel):
     alert_count: int
     risk_score: float
     last_seen: Optional[float]
+    risk_tier: Optional[str] = Field("LOW", description="Hierarchical risk tier: LOW | ELEVATED | HIGH | CRITICAL")
+    temporal_risk: Optional[float] = Field(0.0, description="Latest temporal sequence risk (0-100)")
+    graph_risk: Optional[float] = Field(0.0, description="Latest graph communication risk (0-100)")

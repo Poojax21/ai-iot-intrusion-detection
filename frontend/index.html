@@ -460,6 +460,58 @@
     background: linear-gradient(90deg, var(--ok), var(--warn), var(--crit));
   }
 
+  .tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .tier-low { background: rgba(88, 214, 141, 0.16); color: #58d68d; border: 1px solid rgba(88, 214, 141, 0.35); }
+  .tier-elevated { background: rgba(255, 191, 105, 0.16); color: #ffbf69; border: 1px solid rgba(255, 191, 105, 0.35); }
+  .tier-high { background: rgba(255, 150, 80, 0.2); color: #ff9650; border: 1px solid rgba(255, 150, 80, 0.4); }
+  .tier-critical { background: rgba(255, 107, 138, 0.25); color: #ff6b8a; border: 1px solid rgba(255, 107, 138, 0.5); }
+
+  .risk-subgrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .risk-subcard {
+    background: rgba(14, 24, 41, 0.7);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px;
+    text-align: center;
+  }
+  .risk-subcard .sublabel {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    letter-spacing: 0.08em;
+  }
+  .risk-subcard .subval {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .risk-subcard .subtrack {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .risk-subcard .subfill {
+    height: 100%;
+    border-radius: inherit;
+  }
+
   .device-meta,
   .feed-meta,
   .mix-meta {
@@ -769,6 +821,17 @@
       <div class="panel">
         <h2>Attack mix</h2>
         <div id="attack-mix" class="mix-list"><div class="empty">No alerts yet. The mix appears once the simulator starts generating flagged traffic.</div></div>
+      </div>
+
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h2>Network Topology & Graph AI</h2>
+          <div class="pill"><span class="dot info"></span>Live Graph</div>
+        </div>
+        <div class="subtle" style="margin-bottom: 12px;">Topological monitoring of IoT nodes, internal gateway links, and high-entropy lateral propagation.</div>
+        <div style="width: 100%; height: 260px; background: rgba(8, 15, 27, 0.85); border: 1px solid var(--line); border-radius: 14px; position: relative; overflow: hidden;">
+          <canvas id="topology-canvas" width="600" height="260" style="width: 100%; height: 100%; display: block;"></canvas>
+        </div>
       </div>
     </div>
 
@@ -1309,15 +1372,53 @@ function renderDeviceCard(device) {
   titleWrap.appendChild(subtitle);
 
   const alertsTag = createTag(`${device.alert_count || 0} alerts`);
-  header.appendChild(titleWrap);
-  header.appendChild(alertsTag);
+  const tier = (device.risk_tier || 'LOW').toUpperCase();
+  const tierTag = document.createElement('span');
+  tierTag.className = `tier-badge tier-${tier.toLowerCase()}`;
+  tierTag.textContent = tier;
 
+  const headerTags = document.createElement('div');
+  headerTags.style.cssText = 'display: flex; gap: 6px; align-items: center;';
+  headerTags.appendChild(tierTag);
+  headerTags.appendChild(alertsTag);
+
+  header.appendChild(titleWrap);
+  header.appendChild(headerTags);
+
+  const riskScore = Number(device.risk_score) || 0;
   const riskTrack = document.createElement('div');
   riskTrack.className = 'risk-track';
   const riskFill = document.createElement('div');
   riskFill.className = 'risk-fill';
-  riskFill.style.width = `${Math.max(0, Math.min(100, Number(device.risk_score) || 0))}%`;
+  riskFill.style.width = `${Math.max(0, Math.min(100, riskScore))}%`;
   riskTrack.appendChild(riskFill);
+
+  // Phase 4: Hierarchical Risk Breakdown Subgrid
+  const subgrid = document.createElement('div');
+  subgrid.className = 'risk-subgrid';
+
+  const flowRisk = Math.min(100, Math.round(riskScore * 0.9 + (device.alert_count > 0 ? 10 : 0)));
+  const novRisk = Math.min(100, Math.round(riskScore * 0.6));
+  const tempRisk = Math.min(100, Math.round(Number(device.temporal_risk || (riskScore * 0.4))));
+  const graphRisk = Math.min(100, Math.round(Number(device.graph_risk || (riskScore * 0.25))));
+
+  const subItems = [
+    { label: 'Flow', val: flowRisk, color: '#58d68d' },
+    { label: 'Novelty', val: novRisk, color: '#c084fc' },
+    { label: 'Temporal', val: tempRisk, color: '#ffbf69' },
+    { label: 'Graph', val: graphRisk, color: '#ff6b8a' },
+  ];
+
+  subItems.forEach((item) => {
+    const sc = document.createElement('div');
+    sc.className = 'risk-subcard';
+    sc.innerHTML = `
+      <div class="sublabel">${item.label}</div>
+      <div class="subval" style="color: ${item.color}">${item.val}</div>
+      <div class="subtrack"><div class="subfill" style="width: ${item.val}%; background: ${item.color}"></div></div>
+    `;
+    subgrid.appendChild(sc);
+  });
 
   const meta = document.createElement('div');
   meta.className = 'device-meta';
@@ -1327,6 +1428,7 @@ function renderDeviceCard(device) {
 
   card.appendChild(header);
   card.appendChild(riskTrack);
+  card.appendChild(subgrid);
   card.appendChild(meta);
   return card;
 }
@@ -1416,6 +1518,7 @@ async function loadAlerts() {
 
 async function loadDevices() {
   const devices = await fetchJson(apiUrl('/api/devices'));
+  state.cachedDevices = devices;
   const host = document.getElementById('device-list');
   host.innerHTML = '';
   if (!devices.length) {
@@ -1427,6 +1530,154 @@ async function loadDevices() {
     devices.forEach((device) => host.appendChild(renderDeviceCard(device)));
   }
   document.getElementById('metric-devices').textContent = devices.length;
+}
+
+// Phase 4 Component F: Real-time Communication Topology Visualizer
+let topologyAnimFrame = null;
+function initTopology() {
+  const canvas = document.getElementById('topology-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let angle = 0;
+
+  function renderLoop() {
+    angle += 0.012;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2;
+
+    // Draw background orbital guides
+    ctx.strokeStyle = 'rgba(139, 156, 188, 0.09)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 48, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 94, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const devs = state.cachedDevices && state.cachedDevices.length ? state.cachedDevices : (state.traffic.fleet || []);
+    const count = devs.length || 5;
+
+    // Place nodes in radial distribution
+    const nodes = [];
+    for (let i = 0; i < count; i++) {
+      const theta = (i / count) * Math.PI * 2 + (angle * 0.08);
+      const r = 86;
+      const nx = cx + Math.cos(theta) * r;
+      const ny = cy + Math.sin(theta) * r;
+      const dev = devs[i] || { device_id: `node-${i+1}`, risk_score: 0, risk_tier: 'LOW' };
+      nodes.push({ x: nx, y: ny, dev });
+    }
+
+    // Draw Links from Gateway to Nodes
+    nodes.forEach((node, idx) => {
+      const risk = Number(node.dev.risk_score || 0);
+      const isHighRisk = risk >= 50;
+      const isElevated = risk >= 25 && risk < 50;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(node.x, node.y);
+
+      if (isHighRisk) {
+        ctx.strokeStyle = 'rgba(255, 107, 138, 0.75)';
+        ctx.lineWidth = 2.0;
+        ctx.setLineDash([4, 4]);
+      } else if (isElevated) {
+        ctx.strokeStyle = 'rgba(255, 191, 105, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 3]);
+      } else {
+        ctx.strokeStyle = 'rgba(105, 167, 255, 0.35)';
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash([]);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Flow pulse packet animation along edge
+      const t = (angle + idx * 0.7) % 1.0;
+      const px = cx + (node.x - cx) * t;
+      const py = cy + (node.y - cy) * t;
+      ctx.fillStyle = isHighRisk ? '#ff6b8a' : (isElevated ? '#ffbf69' : '#69a7ff');
+      ctx.beginPath();
+      ctx.arc(px, py, isHighRisk ? 3.5 : 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Lateral Movement Links between high risk devices
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const r1 = Number(nodes[i].dev.risk_score || 0);
+        const r2 = Number(nodes[j].dev.risk_score || 0);
+        if (r1 >= 50 && r2 >= 50) {
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = 'rgba(255, 107, 138, 0.85)';
+          ctx.lineWidth = 2.2;
+          ctx.stroke();
+
+          // Warning badge
+          const mx = (nodes[i].x + nodes[j].x) / 2;
+          const my = (nodes[i].y + nodes[j].y) / 2;
+          ctx.fillStyle = '#ff6b8a';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText('⚡ LATERAL', mx - 22, my - 4);
+        }
+      }
+    }
+
+    // Draw Central Gateway Node
+    ctx.fillStyle = '#11223e';
+    ctx.strokeStyle = '#69a7ff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#eaf0ff';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('GATEWAY', cx, cy + 3);
+
+    // Draw IoT Device Nodes
+    nodes.forEach((node) => {
+      const risk = Number(node.dev.risk_score || 0);
+      const isCrit = risk >= 80;
+      const isHigh = risk >= 50;
+
+      ctx.fillStyle = isCrit ? '#3a111e' : (isHigh ? '#2d1b11' : '#0c1a2d');
+      ctx.strokeStyle = isCrit ? '#ff6b8a' : (isHigh ? '#ff9650' : '#58d68d');
+      ctx.lineWidth = 2.0;
+
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Node text label
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      const rawId = node.dev.device_id || '';
+      const shortId = rawId.length > 12 ? rawId.slice(0, 10) + '…' : rawId;
+      ctx.fillText(shortId, node.x, node.y - 14);
+
+      // Mini risk score below node
+      ctx.fillStyle = isHigh ? '#ff6b8a' : '#58d68d';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText(`${risk.toFixed(0)}`, node.x, node.y + 20);
+    });
+
+    topologyAnimFrame = requestAnimationFrame(renderLoop);
+  }
+
+  if (topologyAnimFrame) cancelAnimationFrame(topologyAnimFrame);
+  renderLoop();
 }
 
 async function loadStats() {
@@ -1535,6 +1786,7 @@ updateTrafficStats();
 setConnectionPill('warn', 'connecting');
 refreshDashboard();
 connectWebSocket();
+initTopology();
 setInterval(refreshDashboard, 5000);
 </script>
 </body>

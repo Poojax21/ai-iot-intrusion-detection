@@ -72,6 +72,32 @@ class Settings(BaseSettings):
         description="Window in seconds to suppress duplicate alerts for the same device and attack",
     )
 
+    # Phase 4: Advanced Hybrid AI Settings
+    ENABLE_TREESHAP: bool = Field(
+        default=True,
+        description="Enable exact TreeSHAP explainability for tree models",
+    )
+    ENABLE_TEMPORAL: bool = Field(
+        default=True,
+        description="Enable temporal sequence modeling (LSTM / GRU)",
+    )
+    ENABLE_GRAPH: bool = Field(
+        default=True,
+        description="Enable communication graph intelligence",
+    )
+    ENABLE_HIERARCHICAL_RISK: bool = Field(
+        default=True,
+        description="Enable hierarchical multi-tier risk synthesis",
+    )
+    TEMPORAL_MODEL_DIR: Path = Field(
+        default=BASE_DIR / "models" / "temporal_v1",
+        description="Directory containing temporal sequence model artifacts",
+    )
+    GRAPH_MODEL_DIR: Path = Field(
+        default=BASE_DIR / "models" / "graph_v1",
+        description="Directory containing communication graph model artifacts",
+    )
+
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     LOG_JSON: bool = Field(default=False, description="Format logs as structured JSON")

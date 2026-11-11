@@ -78,6 +78,24 @@ def init_db(db_path: Path | str | None = None):
             conn.execute("ALTER TABLE alerts ADD COLUMN calibrated_anomaly_score REAL")
         if "reason_codes" not in cols:
             conn.execute("ALTER TABLE alerts ADD COLUMN reason_codes TEXT")
+        if "composite_device_risk" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN composite_device_risk REAL")
+        if "risk_tier" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN risk_tier TEXT")
+        if "temporal_risk" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN temporal_risk REAL")
+        if "graph_risk" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN graph_risk REAL")
+        if "risk_breakdown" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN risk_breakdown TEXT")
+
+        dev_cols = {r["name"] for r in conn.execute("PRAGMA table_info(devices)").fetchall()}
+        if "risk_tier" not in dev_cols:
+            conn.execute("ALTER TABLE devices ADD COLUMN risk_tier TEXT DEFAULT 'LOW'")
+        if "temporal_risk" not in dev_cols:
+            conn.execute("ALTER TABLE devices ADD COLUMN temporal_risk REAL DEFAULT 0.0")
+        if "graph_risk" not in dev_cols:
+            conn.execute("ALTER TABLE devices ADD COLUMN graph_risk REAL DEFAULT 0.0")
         conn.commit()
 
 
@@ -104,7 +122,9 @@ def should_suppress_alert(device_id: str, attack_type: str, ts: float, window_se
         return False
 
 
-def record_flow(flow: dict, gate_score: float, is_flagged: bool):
+def record_flow(flow: dict, gate_score: float, is_flagged: bool,
+                composite_risk: float = None, risk_tier: str = None,
+                temporal_risk: float = None, graph_risk: float = None):
     with _lock, get_conn() as conn:
         conn.execute(
             """INSERT INTO flows (ts, device_id, device_type, src_ip, dst_ip, src_port, dst_port,
@@ -116,7 +136,8 @@ def record_flow(flow: dict, gate_score: float, is_flagged: bool):
              flow["orig_bytes"], flow["resp_bytes"], flow["orig_pkts"], flow["resp_pkts"],
              flow.get("conn_state", "SF"), gate_score, int(is_flagged)),
         )
-        _touch_device(conn, flow, bump_alert=False)
+        _touch_device(conn, flow, bump_alert=False, composite_risk=composite_risk,
+                      risk_tier=risk_tier, temporal_risk=temporal_risk, graph_risk=graph_risk)
         conn.commit()
 
 
@@ -126,44 +147,59 @@ def record_alert(flow: dict, attack_type: str, mitre: str, severity: str,
                   shap_base_value: float = None,
                   decision: str = None, is_unknown: bool = False,
                   novelty_score: float = None, calibrated_anomaly_score: float = None,
-                  reason_codes: list = None) -> int:
+                  reason_codes: list = None,
+                  composite_device_risk: float = None, risk_tier: str = None,
+                  temporal_risk: float = None, graph_risk: float = None,
+                  risk_breakdown: dict = None) -> int:
     with _lock, get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO alerts (ts, device_id, device_type, src_ip, dst_ip, attack_type, mitre,
                                     severity, gate_score, anomaly_score, confidence_tier,
                                     top_features, raw_flow, shap_values, shap_base_value,
                                     decision, is_unknown, novelty_score, calibrated_anomaly_score,
-                                    reason_codes)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                    reason_codes, composite_device_risk, risk_tier, temporal_risk,
+                                    graph_risk, risk_breakdown)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (flow["ts"], flow["device_id"], flow.get("device_type"), flow["src_ip"], flow["dst_ip"],
              attack_type, mitre, severity, gate_score, anomaly_score, confidence_tier,
              json.dumps(top_features), json.dumps(flow),
              json.dumps(shap_values or []), shap_base_value,
              decision, int(is_unknown), novelty_score, calibrated_anomaly_score,
-             json.dumps(reason_codes or [])),
+             json.dumps(reason_codes or []),
+             composite_device_risk, risk_tier, temporal_risk, graph_risk,
+             json.dumps(risk_breakdown or {})),
         )
-        _touch_device(conn, flow, bump_alert=True)
+        _touch_device(conn, flow, bump_alert=True, composite_risk=composite_device_risk,
+                      risk_tier=risk_tier, temporal_risk=temporal_risk, graph_risk=graph_risk)
         conn.commit()
         return cur.lastrowid
 
 
-def _touch_device(conn, flow: dict, bump_alert: bool):
+def _touch_device(conn, flow: dict, bump_alert: bool,
+                  composite_risk: float = None, risk_tier: str = None,
+                  temporal_risk: float = None, graph_risk: float = None):
     row = conn.execute("SELECT * FROM devices WHERE device_id=?", (flow["device_id"],)).fetchone()
+    tier = risk_tier or "LOW"
+    t_risk = float(temporal_risk or 0.0)
+    g_risk = float(graph_risk or 0.0)
     if row is None:
+        initial_risk = float(composite_risk) if composite_risk is not None else (1.0 if bump_alert else 0.0)
         conn.execute(
-            "INSERT INTO devices (device_id, device_type, ip, flow_count, alert_count, risk_score, last_seen) "
-            "VALUES (?,?,?,?,?,?,?)",
+            "INSERT INTO devices (device_id, device_type, ip, flow_count, alert_count, risk_score, last_seen, risk_tier, temporal_risk, graph_risk) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
             (flow["device_id"], flow.get("device_type"), flow["src_ip"], 1, int(bump_alert),
-             1.0 if bump_alert else 0.0, flow["ts"]),
+             initial_risk, flow["ts"], tier, t_risk, g_risk),
         )
     else:
         new_flow_count = row["flow_count"] + 1
         new_alert_count = row["alert_count"] + (1 if bump_alert else 0)
-        # simple decayed risk score: recent alerts weigh more than historical flow volume
-        new_risk = min(100.0, row["risk_score"] * 0.98 + (10.0 if bump_alert else 0.0))
+        if composite_risk is not None:
+            new_risk = float(composite_risk)
+        else:
+            new_risk = min(100.0, row["risk_score"] * 0.98 + (10.0 if bump_alert else 0.0))
         conn.execute(
-            "UPDATE devices SET flow_count=?, alert_count=?, risk_score=?, last_seen=?, ip=? WHERE device_id=?",
-            (new_flow_count, new_alert_count, new_risk, flow["ts"], flow["src_ip"], flow["device_id"]),
+            "UPDATE devices SET flow_count=?, alert_count=?, risk_score=?, last_seen=?, ip=?, risk_tier=?, temporal_risk=?, graph_risk=? WHERE device_id=?",
+            (new_flow_count, new_alert_count, new_risk, flow["ts"], flow["src_ip"], tier, t_risk, g_risk, flow["device_id"]),
         )
 
 
@@ -183,6 +219,10 @@ def list_alerts(limit=100):
                 d["reason_codes"] = json.loads(d.get("reason_codes") or "[]")
             except Exception:
                 d["reason_codes"] = []
+            try:
+                d["risk_breakdown"] = json.loads(d.get("risk_breakdown") or "{}")
+            except Exception:
+                d["risk_breakdown"] = {}
             d["is_unknown"] = bool(d.get("is_unknown", 0))
             # shap_base_value already a REAL column; may be None for old rows.
             out.append(d)

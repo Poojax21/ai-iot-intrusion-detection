@@ -87,8 +87,23 @@ async def ingest_flow(flow: FlowRecord):
 
     result = engine.score_flow(flow_dict)
 
-    storage.record_flow(flow_dict, gate_score=result.get("gate_score", 0.0),
-                         is_flagged=result.get("is_flagged", False))
+    composite_risk = result.get("composite_device_risk")
+    risk_tier = result.get("risk_tier")
+    temp_info = result.get("temporal") if isinstance(result.get("temporal"), dict) else {}
+    graph_info = result.get("graph") if isinstance(result.get("graph"), dict) else {}
+    temporal_risk = temp_info.get("temporal_risk")
+    graph_risk = graph_info.get("graph_risk")
+    risk_breakdown = result.get("risk_breakdown")
+
+    storage.record_flow(
+        flow_dict,
+        gate_score=result.get("gate_score", 0.0),
+        is_flagged=result.get("is_flagged", False),
+        composite_risk=composite_risk,
+        risk_tier=risk_tier,
+        temporal_risk=temporal_risk,
+        graph_risk=graph_risk,
+    )
 
     alert_payload = None
     if result.get("is_flagged") and "attack_type" in result:
@@ -117,6 +132,11 @@ async def ingest_flow(flow: FlowRecord):
                 novelty_score=result.get("novelty_score"),
                 calibrated_anomaly_score=result.get("calibrated_anomaly_score"),
                 reason_codes=result.get("reason_codes", []),
+                composite_device_risk=composite_risk,
+                risk_tier=risk_tier,
+                temporal_risk=temporal_risk,
+                graph_risk=graph_risk,
+                risk_breakdown=risk_breakdown,
             )
             alert_payload = {
                 "id": alert_id, "ts": flow_dict["ts"], "device_id": flow_dict["device_id"],
@@ -132,6 +152,11 @@ async def ingest_flow(flow: FlowRecord):
                 "novelty_score": result.get("novelty_score"),
                 "calibrated_anomaly_score": result.get("calibrated_anomaly_score"),
                 "reason_codes": result.get("reason_codes", []),
+                "composite_device_risk": composite_risk,
+                "risk_tier": risk_tier,
+                "temporal_risk": temporal_risk,
+                "graph_risk": graph_risk,
+                "risk_breakdown": risk_breakdown,
             }
             await manager.broadcast({"type": "alert", "data": alert_payload})
 
@@ -144,6 +169,10 @@ async def ingest_flow(flow: FlowRecord):
         "decision": result.get("decision"),
         "is_unknown": result.get("is_unknown", False),
         "reason_codes": result.get("reason_codes", []),
+        "composite_device_risk": composite_risk,
+        "risk_tier": risk_tier,
+        "temporal_risk": temporal_risk,
+        "graph_risk": graph_risk,
         "alert": alert_payload,
         "warning": result.get("error"),
     }

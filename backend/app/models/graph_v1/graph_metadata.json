@@ -1,0 +1,7 @@
+{
+  "model_type": "topological_baseline",
+  "version": "graph_v1",
+  "window_seconds": 60.0,
+  "in_channels": 5,
+  "threshold": 0.5
+}

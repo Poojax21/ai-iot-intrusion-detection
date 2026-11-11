@@ -1,0 +1,19 @@
+{
+  "selected_architecture": "topological_baseline",
+  "selection_rationale": "Topological baseline selected for deterministic execution and lower compute requirements",
+  "window_seconds": 60.0,
+  "candidates": {
+    "topological_baseline": {
+      "val_macro_f1": 0.8271,
+      "val_accuracy": 0.919,
+      "latency_ms_per_snapshot": 0.152
+    },
+    "graphsage": {
+      "val_macro_f1": 0.7705,
+      "val_accuracy": 0.9057,
+      "latency_ms_per_snapshot": 0.716,
+      "parameter_count": 2994,
+      "pyg_available": true
+    }
+  }
+}
