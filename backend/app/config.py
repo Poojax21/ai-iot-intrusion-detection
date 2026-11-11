@@ -72,7 +72,7 @@ class Settings(BaseSettings):
         description="Window in seconds to suppress duplicate alerts for the same device and attack",
     )
 
-    # Phase 4: Advanced Hybrid AI Settings
+    # Phase 4 & 5: Advanced Hybrid AI & Risk Settings
     ENABLE_TREESHAP: bool = Field(
         default=True,
         description="Enable exact TreeSHAP explainability for tree models",
@@ -96,6 +96,26 @@ class Settings(BaseSettings):
     GRAPH_MODEL_DIR: Path = Field(
         default=BASE_DIR / "models" / "graph_v1",
         description="Directory containing communication graph model artifacts",
+    )
+    RISK_WEIGHT_FLOW: float = Field(default=0.40, description="Flow risk component weight")
+    RISK_WEIGHT_NOVELTY: float = Field(default=0.30, description="Novelty risk component weight")
+    RISK_WEIGHT_TEMPORAL: float = Field(default=0.20, description="Temporal risk component weight")
+    RISK_WEIGHT_GRAPH: float = Field(default=0.10, description="Graph risk component weight")
+    RISK_DECAY_HALF_LIFE_SEC: float = Field(default=120.0, description="Half-life decay in seconds")
+    RISK_CORROBORATION_BONUS: float = Field(default=0.50, description="Secondary corroboration factor")
+
+    # Phase 5: Security & Ingestion Hardening
+    API_KEY: str = Field(
+        default="pahredaar-sensor-secret-key-change-in-production",
+        description="Shared secret key for sensor authentication",
+    )
+    ENABLE_INGEST_AUTH: bool = Field(
+        default=False,
+        description="Whether to enforce API key authentication on /api/ingest",
+    )
+    RATE_LIMIT_INGEST_PER_SEC: int = Field(
+        default=500,
+        description="Maximum allowed ingest requests per second",
     )
 
     # Logging

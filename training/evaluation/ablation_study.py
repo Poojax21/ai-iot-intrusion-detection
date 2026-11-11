@@ -88,10 +88,11 @@ def run_single_ablation(
             engine.graph_detector.tracker.edge_history.clear()
         if hasattr(engine.graph_detector.tracker, "active_edges"):
             engine.graph_detector.tracker.active_edges.clear()
-    if engine.risk_engine is not None and hasattr(engine.risk_engine, "device_profiles"):
-        engine.risk_engine.device_profiles.clear()
-    if engine.risk_engine is not None and hasattr(engine.risk_engine, "recent_alerts"):
-        engine.risk_engine.recent_alerts.clear()
+    if engine.risk_engine is not None:
+        if hasattr(engine.risk_engine, "clear_device_state"):
+            engine.risk_engine.clear_device_state()
+        elif hasattr(engine.risk_engine, "_device_records"):
+            engine.risk_engine._device_records.clear()
 
     latencies = []
     y_true_known_binary = []
@@ -127,8 +128,8 @@ def run_single_ablation(
         latencies.append(t_elapsed)
 
         is_flagged = bool(res.get("is_flagged", False))
-        composite_risk = float(res.get("composite_device_risk", 0.0) if res.get("composite_device_risk") is not None else (100.0 if is_flagged else 0.0))
-        risk_scores.append(composite_risk)
+        fused_threat = float(res.get("fused_event_threat") if res.get("fused_event_threat") is not None else (100.0 if is_flagged else 0.0))
+        risk_scores.append(fused_threat)
 
         if true_label == "benign":
             n_benign_total += 1

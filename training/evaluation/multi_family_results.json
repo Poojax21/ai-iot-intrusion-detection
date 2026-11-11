@@ -1,0 +1,50 @@
+[
+  {
+    "family": "brute_force",
+    "sample_count": 80,
+    "unknown_recall": 0.5375,
+    "unknown_recall_ci_low": 0.4357,
+    "unknown_recall_ci_high": 0.6212,
+    "unknown_flagged_recall": 0.6,
+    "fur_benign": 0.0875,
+    "karr": 0.0055,
+    "auroc": 0.8456,
+    "auprc": 0.237
+  },
+  {
+    "family": "port_scan",
+    "sample_count": 81,
+    "unknown_recall": 0.7037,
+    "unknown_recall_ci_low": 0.6177,
+    "unknown_recall_ci_high": 0.8151,
+    "unknown_flagged_recall": 1.0,
+    "fur_benign": 0.0849,
+    "karr": 0.0,
+    "auroc": 0.9258,
+    "auprc": 0.5251
+  },
+  {
+    "family": "ddos",
+    "sample_count": 66,
+    "unknown_recall": 1.0,
+    "unknown_recall_ci_low": 1.0,
+    "unknown_recall_ci_high": 1.0,
+    "unknown_flagged_recall": 1.0,
+    "fur_benign": 0.0887,
+    "karr": 0.0103,
+    "auroc": 0.9999,
+    "auprc": 0.9983
+  },
+  {
+    "family": "mirai_beacon",
+    "sample_count": 34,
+    "unknown_recall": 0.0,
+    "unknown_recall_ci_low": 0.0,
+    "unknown_recall_ci_high": 0.0,
+    "unknown_flagged_recall": 0.0294,
+    "fur_benign": 0.0925,
+    "karr": 0.0044,
+    "auroc": 0.5585,
+    "auprc": 0.0459
+  }
+]

@@ -57,6 +57,7 @@ class AlertOut(BaseModel):
     calibrated_anomaly_score: Optional[float] = Field(None, description="Calibrated ECDF percentile of anomaly score")
     reason_codes: Optional[List[str]] = Field(default_factory=list, description="Triage reason codes")
     composite_device_risk: Optional[float] = Field(None, description="Composite multi-tier device risk score (0-100)")
+    fused_event_threat: Optional[float] = Field(None, description="Instantaneous non-dilutive event threat score (0-100)")
     risk_tier: Optional[str] = Field(None, description="Hierarchical risk tier: LOW | ELEVATED | HIGH | CRITICAL")
     temporal_risk: Optional[float] = Field(None, description="Temporal sequence anomaly risk contribution (0-100)")
     graph_risk: Optional[float] = Field(None, description="Topological graph communication risk contribution (0-100)")

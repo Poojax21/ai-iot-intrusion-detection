@@ -7,7 +7,8 @@ Synthesizes evidence across four distinct operational dimensions:
   3. Temporal Risk (Sequential Multi-Flow LSTM/GRU State)
   4. Graph Risk (Topological Interaction & Lateral Movement)
 
-Applies exponential temporal decay and duplicate suppression without arbitrary score averaging.
+Applies a non-dilutive dominant-signal architecture with corroboration amplification,
+exponential temporal decay, and duplicate suppression.
 """
 
 from dataclasses import dataclass, field
@@ -30,10 +31,12 @@ class RiskEvidenceBreakdown:
     reason_codes: List[str]
     model_versions: Dict[str, str]
     timestamp: float
+    fused_event_threat: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "composite_device_risk": round(float(self.composite_device_risk), 2),
+            "fused_event_threat": round(float(self.fused_event_threat), 2),
             "risk_tier": self.risk_tier,
             "components": {
                 "flow_risk": round(float(self.flow_risk), 4),
@@ -54,17 +57,19 @@ class RiskEvidenceBreakdown:
 
 class HierarchicalRiskEngine:
     """
-    Stateful multi-modal risk synthesizer with exponential decay and duplicate suppression.
+    Stateful multi-modal risk synthesizer with non-dilutive dominant-signal fusion,
+    exponential decay, and duplicate suppression.
     """
 
     def __init__(
         self,
-        weight_flow: float = 0.35,
-        weight_novelty: float = 0.25,
-        weight_temporal: float = 0.25,
-        weight_graph: float = 0.15,
+        weight_flow: float = 0.40,
+        weight_novelty: float = 0.30,
+        weight_temporal: float = 0.20,
+        weight_graph: float = 0.10,
         decay_half_life_sec: float = 120.0,
         suppression_window_sec: float = 5.0,
+        corroboration_bonus: float = 0.50,
     ):
         total_w = weight_flow + weight_novelty + weight_temporal + weight_graph
         self.w_flow = weight_flow / total_w
@@ -74,9 +79,29 @@ class HierarchicalRiskEngine:
 
         self.decay_half_life_sec = max(decay_half_life_sec, 1.0)
         self.suppression_window_sec = suppression_window_sec
+        self.corroboration_bonus = max(0.0, min(1.0, corroboration_bonus))
 
         # Device state: device_id -> { "risk": float, "last_updated": float, "last_attack": str, "last_attack_ts": float }
         self._device_records: Dict[str, Dict[str, Any]] = {}
+        self._recent_alerts: Dict[str, float] = {}
+
+    @property
+    def device_profiles(self) -> Dict[str, Dict[str, Any]]:
+        """Alias for backward compatibility with audit and evaluation harnesses."""
+        return self._device_records
+
+    @property
+    def recent_alerts(self) -> Dict[str, float]:
+        """Alias for backward compatibility with audit and evaluation harnesses."""
+        return self._recent_alerts
+
+    def clear_device_state(self, device_id: Optional[str] = None) -> None:
+        """Resets device state for clean testing and stateful teardown."""
+        if device_id:
+            self._device_records.pop(device_id, None)
+        else:
+            self._device_records.clear()
+            self._recent_alerts.clear()
 
     def _get_device_record(self, device_id: str, now: float) -> Dict[str, Any]:
         if device_id not in self._device_records:
@@ -105,7 +130,9 @@ class HierarchicalRiskEngine:
         is_suppressed_duplicate: bool = False,
     ) -> RiskEvidenceBreakdown:
         """
-        Synthesizes multimodal model outputs into an updated device-level risk score.
+        Synthesizes multimodal model outputs into both:
+          1. Fused event threat (per-flow normalized threat score in [0, 100])
+          2. Composite device risk (stateful decaying threat posture in [0, 100])
         """
         now = float(timestamp)
         rec = self._get_device_record(device_id, now)
@@ -115,13 +142,11 @@ class HierarchicalRiskEngine:
         decayed_risk = self._apply_decay(prior_risk, dt)
 
         # 1. Flow Risk Component
-        # Gate score is probability of attack; calibrated anomaly is benign ECDF percentile
-        gate_score = float(flow_result.get("gate_score", 0.0))
-        cal_anomaly = float(flow_result.get("calibrated_anomaly_score", 0.0))
+        gate_score = float(flow_result.get("gate_score", 0.0) or 0.0)
+        cal_anomaly = float(flow_result.get("calibrated_anomaly_score", 0.0) or 0.0)
         flow_risk = max(gate_score, cal_anomaly if cal_anomaly >= 0.90 else 0.0)
 
         # 2. Novelty Risk Component
-        # If flow was identified as open-set unknown, incorporate normalized novelty ratio
         is_unknown = bool(flow_result.get("is_unknown", False))
         nov_ratio = float(flow_result.get("novelty_score", 1.0) or 1.0)
         if is_unknown:
@@ -130,47 +155,62 @@ class HierarchicalRiskEngine:
             novelty_risk = 0.0
 
         # 3. Temporal Risk Component
-        # If temporal model executed, extract attack probability; otherwise reallocate neutrally
-        if temporal_result and "temporal_risk" in temporal_result:
+        has_temporal = False
+        if temporal_result and "temporal_risk" in temporal_result and temporal_result["temporal_risk"] is not None:
             temporal_risk = float(temporal_result["temporal_risk"])
+            has_temporal = True
         else:
-            temporal_risk = flow_risk  # Impute from flow risk if temporal disabled
+            temporal_risk = 0.0
 
         # 4. Graph Risk Component
-        # If graph engine executed, extract topological risk; otherwise reallocate neutrally
-        if graph_result and "graph_risk" in graph_result:
+        has_graph = False
+        if graph_result and "graph_risk" in graph_result and graph_result["graph_risk"] is not None:
             graph_risk = float(graph_result["graph_risk"])
             if graph_result.get("is_lateral_movement", False):
                 graph_risk = max(graph_risk, 0.85)
+            has_graph = True
         else:
-            graph_risk = flow_risk
+            graph_risk = 0.0
 
         reasons = []
 
         # Check for duplicate attack suppression
         if is_suppressed_duplicate:
             risk_increment = 0.0
+            fused_signal = 0.0
             reasons.append("DUPLICATE_ALERT_SUPPRESSED")
         else:
-            # Multi-modal fusion
-            fused_signal = (
-                self.w_flow * flow_risk
-                + self.w_novelty * novelty_risk
-                + self.w_temp * temporal_risk
-                + self.w_graph * graph_risk
-            )
+            # Non-dilutive dominant-signal architecture:
+            # Base threat is driven by the primary detection modalities (flow gate + open-set novelty)
+            base_threat = max(flow_risk, novelty_risk)
 
-            # Map to additive risk increment in [0, 40] points per confirmed event
+            # Secondary modalities (temporal sequences & communication graph) corroborate and elevate
+            active_sec_weight = 0.0
+            sec_accum = 0.0
+            if has_temporal:
+                sec_accum += self.w_temp * temporal_risk
+                active_sec_weight += self.w_temp
+            if has_graph:
+                sec_accum += self.w_graph * graph_risk
+                active_sec_weight += self.w_graph
+
+            secondary_signal = (sec_accum / active_sec_weight) if active_sec_weight > 0.0 else 0.0
+
+            # Fused non-dilutive event threat:
+            # High base_threat cannot be averaged down by non-participating modalities.
             if flow_result.get("is_flagged", False):
-                base_impact = 25.0
-                if flow_result.get("severity") == "critical":
-                    base_impact = 35.0
+                fused_signal = min(1.0, base_threat + (1.0 - base_threat) * (self.corroboration_bonus * secondary_signal))
+                base_impact = 35.0 if flow_result.get("severity") == "critical" else 25.0
                 risk_increment = base_impact * fused_signal
-            elif flow_risk > 0.40 or temporal_risk > 0.60 or graph_risk > 0.60:
+            elif base_threat > 0.40 or temporal_risk > 0.60 or graph_risk > 0.60:
+                # Emerging or low-and-slow threat pattern
+                fused_signal = min(1.0, max(base_threat, 0.5 * temporal_risk + 0.5 * graph_risk))
                 risk_increment = 10.0 * fused_signal
             else:
+                fused_signal = max(0.0, base_threat)
                 risk_increment = 0.0
 
+        fused_event_threat = round(fused_signal * 100.0, 2)
         new_device_risk = min(100.0, max(0.0, decayed_risk + risk_increment))
 
         # Assign risk tier
@@ -188,9 +228,9 @@ class HierarchicalRiskEngine:
             reasons.append(f"FLOW_FLAGGED_{flow_result.get('attack_type', 'ATTACK').upper()}")
         if is_unknown:
             reasons.append("OPEN_SET_ZERO_DAY_EVIDENCE")
-        if temporal_result and temporal_result.get("temporal_flagged"):
+        if has_temporal and temporal_result.get("temporal_flagged"):
             reasons.append("TEMPORAL_SEQUENCE_EVIDENCE")
-        if graph_result and graph_result.get("is_lateral_movement"):
+        if has_graph and graph_result.get("is_lateral_movement"):
             reasons.append("INTERNAL_LATERAL_MOVEMENT")
 
         # Update persistent device state
@@ -201,7 +241,7 @@ class HierarchicalRiskEngine:
             "flow_version": flow_result.get("model_version", "v1"),
             "temporal_version": temporal_result.get("model_version", "none") if temporal_result else "disabled",
             "graph_version": graph_result.get("model_version", "none") if graph_result else "disabled",
-            "risk_engine": "hierarchical_v1",
+            "risk_engine": "hierarchical_v2",
         }
 
         return RiskEvidenceBreakdown(
@@ -217,4 +257,5 @@ class HierarchicalRiskEngine:
             reason_codes=reasons,
             model_versions=versions,
             timestamp=now,
+            fused_event_threat=fused_event_threat,
         )

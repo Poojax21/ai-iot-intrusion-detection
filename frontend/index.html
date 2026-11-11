@@ -725,6 +725,25 @@
     </div>
   </section>
 
+  <section class="panel" style="padding: 14px 20px; margin-bottom: 18px; background: rgba(13, 26, 45, 0.7); border: 1px solid var(--line);">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted-2); font-weight: 700;">Engine Modalities:</span>
+        <span id="badge-gate" class="mini-tag">Gate: V1 (RF)</span>
+        <span id="badge-openset" class="mini-tag">Open-Set: v1</span>
+        <span id="badge-temporal" class="mini-tag">Temporal: LSTM v1</span>
+        <span id="badge-graph" class="mini-tag">Graph: Topology v1</span>
+        <span id="badge-risk" class="mini-tag">Risk: Hierarchical v2</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted-2); font-weight: 700;">Operational Quality:</span>
+        <span id="metric-suppression-rate" class="mini-tag">Suppression: --%</span>
+        <span id="metric-mtta" class="mini-tag">MTTA: --s</span>
+        <span id="metric-mttr" class="mini-tag">MTTR: --s</span>
+      </div>
+    </div>
+  </section>
+
   <section class="summary-grid">
     <div class="metric-card info">
       <div class="label">Flows seen</div>
@@ -861,6 +880,35 @@
       </div>
       <div id="alerts-empty" class="empty">No alerts yet. When the simulator starts hitting the gate, rows will stream in here.</div>
     </div>
+  </section>
+
+  <!-- Security Incidents & Incident Response Console -->
+  <section class="panel" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div>
+        <h2>Security Incidents & Response Console</h2>
+        <div class="subtle">Correlated device-level incidents with lifecycle tracking, MTTA/MTTR metrics, and operator remediation.</div>
+      </div>
+      <div id="incident-metrics-pill" class="pill"><span class="dot info"></span>Loading SOC metrics...</div>
+    </div>
+    <div class="table-wrap">
+      <table class="alerts-table" id="incidents-table">
+        <thead>
+          <tr>
+            <th>Incident ID</th>
+            <th>Device</th>
+            <th>Attack Vector</th>
+            <th>Severity</th>
+            <th>Correlated Alerts</th>
+            <th>Status</th>
+            <th>First / Last Seen</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="incidents-body"></tbody>
+      </table>
+    </div>
+    <div id="incidents-empty" class="empty">No active security incidents. Correlated multi-flow attacks will appear here.</div>
   </section>
 </div>
 
@@ -1499,11 +1547,142 @@ async function loadHealth() {
     if (!health.models_loaded && health.hint) {
       setRefreshLabel(health.hint);
     }
+    const bg = document.getElementById('badge-gate');
+    if (bg) bg.textContent = health.models_loaded ? 'Gate: V1 (RF)' : 'Gate: unloaded';
+    const bo = document.getElementById('badge-openset');
+    if (bo) bo.textContent = health.open_set_enabled ? `Open-Set: ${health.open_set_version || 'v1'}` : 'Open-Set: off';
+    const bt = document.getElementById('badge-temporal');
+    if (bt) bt.textContent = health.temporal_enabled ? `Temporal: ${health.temporal_version || 'v1'}` : 'Temporal: off';
+    const bgr = document.getElementById('badge-graph');
+    if (bgr) bgr.textContent = health.graph_enabled ? `Graph: ${health.graph_version || 'v1'}` : 'Graph: off';
+    const br = document.getElementById('badge-risk');
+    if (br) br.textContent = health.risk_engine_enabled ? `Risk: ${health.risk_engine_version || 'v2'}` : 'Risk: off';
   } catch (error) {
     setConnectionPill('crit', 'disconnected');
     setModelStatus('backend unavailable');
     setRefreshLabel('Waiting for backend...');
     throw error;
+  }
+}
+
+async function acknowledgeIncident(incId) {
+  try {
+    await fetch(apiUrl(`/api/incidents/${incId}/acknowledge`), { method: 'POST' });
+    await loadIncidents();
+  } catch (err) {
+    console.error('Failed to ack incident', err);
+  }
+}
+
+async function resolveIncident(incId) {
+  const notes = prompt('Enter resolution notes:', 'Remediated by SOC operator');
+  if (notes === null) return;
+  try {
+    await fetch(apiUrl(`/api/incidents/${incId}/resolve`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+    });
+    await loadIncidents();
+  } catch (err) {
+    console.error('Failed to resolve incident', err);
+  }
+}
+
+async function loadIncidents() {
+  try {
+    const [incidents, metrics] = await Promise.all([
+      fetchJson(apiUrl('/api/incidents?limit=25')),
+      fetchJson(apiUrl('/api/incidents/metrics')).catch(() => null),
+    ]);
+
+    if (metrics) {
+      const supp = metrics.suppression_metrics || {};
+      const rate = ((supp.suppression_rate || 0) * 100).toFixed(1);
+      const srEl = document.getElementById('metric-suppression-rate');
+      if (srEl) srEl.textContent = `Suppression: ${rate}%`;
+      const mttaEl = document.getElementById('metric-mtta');
+      if (mttaEl) mttaEl.textContent = `MTTA: ${metrics.mean_time_to_acknowledge_sec || 0}s`;
+      const mttrEl = document.getElementById('metric-mttr');
+      if (mttrEl) mttrEl.textContent = `MTTR: ${metrics.mean_time_to_resolve_sec || 0}s`;
+      const pill = document.getElementById('incident-metrics-pill');
+      if (pill) pill.innerHTML = `<span class="dot ok"></span><strong>${metrics.open_incidents || 0}</strong> open / <strong>${metrics.total_incidents || 0}</strong> total`;
+    }
+
+    const body = document.getElementById('incidents-body');
+    const emptyEl = document.getElementById('incidents-empty');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!incidents || incidents.length === 0) {
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    incidents.forEach((inc) => {
+      const row = document.createElement('tr');
+      row.className = 'alert-row';
+
+      const tdId = document.createElement('td');
+      tdId.style.fontWeight = '700';
+      tdId.textContent = inc.incident_id;
+
+      const tdDev = document.createElement('td');
+      tdDev.textContent = inc.device_id;
+
+      const tdAtk = document.createElement('td');
+      tdAtk.innerHTML = `<strong>${(inc.attack_type || '').toUpperCase()}</strong><br><span style="font-size: 11px; color: var(--muted);">${inc.mitre || ''}</span>`;
+
+      const tdSev = document.createElement('td');
+      tdSev.innerHTML = `<span class="${severityClass(inc.severity)}">${inc.severity}</span>`;
+
+      const tdCount = document.createElement('td');
+      tdCount.innerHTML = `<span class="mini-tag" style="font-weight: 700;">${inc.alert_count} alerts</span>`;
+
+      const tdStatus = document.createElement('td');
+      const stColor = inc.status === 'OPEN' ? '#ff6b8a' : (inc.status === 'ACKNOWLEDGED' ? '#ffbf69' : '#58d68d');
+      tdStatus.innerHTML = `<span class="mini-tag" style="color: ${stColor}; border-color: ${stColor}; font-weight: 700;">${inc.status}</span>`;
+
+      const tdTime = document.createElement('td');
+      tdTime.innerHTML = `<span style="font-size: 11px; color: var(--muted);">${fmtTime(inc.first_seen)} &rarr; ${fmtTime(inc.last_seen)}</span>`;
+
+      const tdActions = document.createElement('td');
+      if (inc.status === 'OPEN') {
+        const btnAck = document.createElement('button');
+        btnAck.className = 'secondary';
+        btnAck.style.padding = '4px 8px';
+        btnAck.style.fontSize = '11px';
+        btnAck.textContent = 'Ack';
+        btnAck.onclick = () => acknowledgeIncident(inc.incident_id);
+        tdActions.appendChild(btnAck);
+      }
+      if (inc.status !== 'RESOLVED') {
+        const btnRes = document.createElement('button');
+        btnRes.className = 'secondary';
+        btnRes.style.padding = '4px 8px';
+        btnRes.style.fontSize = '11px';
+        btnRes.style.marginLeft = '4px';
+        btnRes.textContent = 'Resolve';
+        btnRes.onclick = () => resolveIncident(inc.incident_id);
+        tdActions.appendChild(btnRes);
+      }
+      if (inc.status === 'RESOLVED') {
+        tdActions.innerHTML = `<span style="font-size: 11px; color: #58d68d;">&check; Remediated</span>`;
+      }
+
+      row.appendChild(tdId);
+      row.appendChild(tdDev);
+      row.appendChild(tdAtk);
+      row.appendChild(tdSev);
+      row.appendChild(tdCount);
+      row.appendChild(tdStatus);
+      row.appendChild(tdTime);
+      row.appendChild(tdActions);
+      body.appendChild(row);
+    });
+  } catch (err) {
+    console.debug('Failed to load incidents', err);
   }
 }
 
@@ -1695,7 +1874,7 @@ async function loadStats() {
 }
 
 async function refreshDashboard() {
-  const results = await Promise.allSettled([loadHealth(), loadAlerts(), loadDevices(), loadStats()]);
+  const results = await Promise.allSettled([loadHealth(), loadAlerts(), loadDevices(), loadStats(), loadIncidents()]);
   if (results.some((result) => result.status === 'fulfilled')) {
     setRefreshLabel(`Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
   }

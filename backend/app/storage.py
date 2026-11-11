@@ -1,22 +1,25 @@
 """
-Lightweight SQLite storage.
+Lightweight SQLite storage with Incident Tracking & Safe Connection Management.
 
 For a real deployment you'd swap this for TimescaleDB/Postgres (per the
 plan), but SQLite keeps this project runnable with zero extra infrastructure
-while preserving the same access pattern (flows table, alerts table, device
-rolling stats), so swapping the backing store later is a small change
-confined to this file.
+while preserving the same access pattern (flows table, alerts table, devices table,
+incidents table).
 
 Privacy note (plan §11): we only ever store flow METADATA here, never packet
 payloads, and device_id is expected to already be a hashed/opaque identifier
 by the time it reaches this layer (see schemas.FlowRecord).
 """
 
-import sqlite3
-import time
+from contextlib import contextmanager
 import json
-import threading
 from pathlib import Path
+import sqlite3
+import threading
+import time
+import uuid
+from typing import Any, Dict, List, Optional, Tuple
+
 from .config import settings
 
 DB_PATH = settings.DB_PATH
@@ -24,15 +27,28 @@ DB_PATH = settings.DB_PATH
 _lock = threading.Lock()
 
 
-def get_conn(db_path: Path | str | None = None):
+def get_conn(db_path: Path | str | None = None) -> sqlite3.Connection:
     target = db_path or DB_PATH
-    conn = sqlite3.connect(target, check_same_thread=False)
+    conn = sqlite3.connect(target, check_same_thread=False, timeout=10.0)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+@contextmanager
+def db_session(db_path: Path | str | None = None):
+    """Guarantees connection cleanup to eliminate unclosed sqlite warnings."""
+    conn = get_conn(db_path)
+    try:
+        yield conn
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 def init_db(db_path: Path | str | None = None):
-    with _lock, get_conn(db_path) as conn:
+    with _lock, db_session(db_path) as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS flows (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +66,12 @@ def init_db(db_path: Path | str | None = None):
             attack_type TEXT, mitre TEXT, severity TEXT,
             gate_score REAL, anomaly_score REAL, confidence_tier TEXT,
             top_features TEXT, raw_flow TEXT,
-            shap_values TEXT, shap_base_value REAL
+            shap_values TEXT, shap_base_value REAL,
+            decision TEXT, is_unknown INTEGER DEFAULT 0,
+            novelty_score REAL, calibrated_anomaly_score REAL,
+            reason_codes TEXT, composite_device_risk REAL,
+            risk_tier TEXT, temporal_risk REAL, graph_risk REAL,
+            risk_breakdown TEXT
         );
 
         CREATE TABLE IF NOT EXISTS devices (
@@ -59,59 +80,70 @@ def init_db(db_path: Path | str | None = None):
             flow_count INTEGER DEFAULT 0,
             alert_count INTEGER DEFAULT 0,
             risk_score REAL DEFAULT 0,
-            last_seen REAL
+            last_seen REAL,
+            risk_tier TEXT DEFAULT 'LOW',
+            temporal_risk REAL DEFAULT 0.0,
+            graph_risk REAL DEFAULT 0.0
+        );
+
+        CREATE TABLE IF NOT EXISTS incidents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            incident_id TEXT UNIQUE,
+            device_id TEXT,
+            title TEXT,
+            severity TEXT,
+            status TEXT DEFAULT 'OPEN',
+            attack_type TEXT,
+            alert_count INTEGER DEFAULT 1,
+            first_seen REAL,
+            last_seen REAL,
+            summary TEXT,
+            mitre TEXT,
+            acknowledged_at REAL,
+            resolved_at REAL,
+            resolution_notes TEXT
         );
         """)
-        # Migrate existing DBs created before SHAP and Open-Set columns existed.
+        # Schema migration checks for backward compatibility
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(alerts)").fetchall()}
-        if "shap_values" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN shap_values TEXT")
-        if "shap_base_value" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN shap_base_value REAL")
-        if "decision" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN decision TEXT")
-        if "is_unknown" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN is_unknown INTEGER DEFAULT 0")
-        if "novelty_score" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN novelty_score REAL")
-        if "calibrated_anomaly_score" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN calibrated_anomaly_score REAL")
-        if "reason_codes" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN reason_codes TEXT")
-        if "composite_device_risk" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN composite_device_risk REAL")
-        if "risk_tier" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN risk_tier TEXT")
-        if "temporal_risk" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN temporal_risk REAL")
-        if "graph_risk" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN graph_risk REAL")
-        if "risk_breakdown" not in cols:
-            conn.execute("ALTER TABLE alerts ADD COLUMN risk_breakdown TEXT")
+        for col_name, col_type in [
+            ("shap_values", "TEXT"), ("shap_base_value", "REAL"), ("decision", "TEXT"),
+            ("is_unknown", "INTEGER DEFAULT 0"), ("novelty_score", "REAL"),
+            ("calibrated_anomaly_score", "REAL"), ("reason_codes", "TEXT"),
+            ("composite_device_risk", "REAL"), ("risk_tier", "TEXT"),
+            ("temporal_risk", "REAL"), ("graph_risk", "REAL"), ("risk_breakdown", "TEXT")
+        ]:
+            if col_name not in cols:
+                conn.execute(f"ALTER TABLE alerts ADD COLUMN {col_name} {col_type}")
 
         dev_cols = {r["name"] for r in conn.execute("PRAGMA table_info(devices)").fetchall()}
-        if "risk_tier" not in dev_cols:
-            conn.execute("ALTER TABLE devices ADD COLUMN risk_tier TEXT DEFAULT 'LOW'")
-        if "temporal_risk" not in dev_cols:
-            conn.execute("ALTER TABLE devices ADD COLUMN temporal_risk REAL DEFAULT 0.0")
-        if "graph_risk" not in dev_cols:
-            conn.execute("ALTER TABLE devices ADD COLUMN graph_risk REAL DEFAULT 0.0")
+        for col_name, col_type in [
+            ("risk_tier", "TEXT DEFAULT 'LOW'"),
+            ("temporal_risk", "REAL DEFAULT 0.0"),
+            ("graph_risk", "REAL DEFAULT 0.0")
+        ]:
+            if col_name not in dev_cols:
+                conn.execute(f"ALTER TABLE devices ADD COLUMN {col_name} {col_type}")
+
         conn.commit()
 
 
 _suppression_lock = threading.Lock()
 _recent_alerts: dict[tuple[str, str], float] = {}
+_suppression_stats = {"total_evaluated": 0, "suppressed_count": 0}
 
 
 def should_suppress_alert(device_id: str, attack_type: str, ts: float, window_sec: float = 5.0) -> bool:
     """
     Suppresses duplicate alerts for the same device and attack within window_sec.
-    Prevents alert storms while preserving first-alert visibility.
+    Prevents alert storms while preserving first-alert visibility and tracking suppression metrics.
     """
     key = (device_id, attack_type)
     with _suppression_lock:
+        _suppression_stats["total_evaluated"] += 1
         last_ts = _recent_alerts.get(key)
         if last_ts is not None and (ts - last_ts) < window_sec:
+            _suppression_stats["suppressed_count"] += 1
             return True
         _recent_alerts[key] = ts
         # Evict stale entries older than 60s
@@ -122,10 +154,22 @@ def should_suppress_alert(device_id: str, attack_type: str, ts: float, window_se
         return False
 
 
+def get_suppression_metrics() -> Dict[str, Any]:
+    with _suppression_lock:
+        total = _suppression_stats["total_evaluated"]
+        suppressed = _suppression_stats["suppressed_count"]
+        rate = (suppressed / total) if total > 0 else 0.0
+        return {
+            "total_alerts_evaluated": total,
+            "suppressed_duplicates": suppressed,
+            "suppression_rate": round(rate, 4),
+        }
+
+
 def record_flow(flow: dict, gate_score: float, is_flagged: bool,
                 composite_risk: float = None, risk_tier: str = None,
                 temporal_risk: float = None, graph_risk: float = None):
-    with _lock, get_conn() as conn:
+    with _lock, db_session() as conn:
         conn.execute(
             """INSERT INTO flows (ts, device_id, device_type, src_ip, dst_ip, src_port, dst_port,
                                    proto, duration, orig_bytes, resp_bytes, orig_pkts, resp_pkts,
@@ -151,7 +195,7 @@ def record_alert(flow: dict, attack_type: str, mitre: str, severity: str,
                   composite_device_risk: float = None, risk_tier: str = None,
                   temporal_risk: float = None, graph_risk: float = None,
                   risk_breakdown: dict = None) -> int:
-    with _lock, get_conn() as conn:
+    with _lock, db_session() as conn:
         cur = conn.execute(
             """INSERT INTO alerts (ts, device_id, device_type, src_ip, dst_ip, attack_type, mitre,
                                     severity, gate_score, anomaly_score, confidence_tier,
@@ -169,10 +213,48 @@ def record_alert(flow: dict, attack_type: str, mitre: str, severity: str,
              composite_device_risk, risk_tier, temporal_risk, graph_risk,
              json.dumps(risk_breakdown or {})),
         )
+        alert_id = cur.lastrowid
         _touch_device(conn, flow, bump_alert=True, composite_risk=composite_device_risk,
                       risk_tier=risk_tier, temporal_risk=temporal_risk, graph_risk=graph_risk)
+        
+        # Correlate alert into stateful security incidents
+        _correlate_incident(conn, flow, attack_type, severity, mitre)
+
         conn.commit()
-        return cur.lastrowid
+        return alert_id
+
+
+def _correlate_incident(conn, flow: dict, attack_type: str, severity: str, mitre: str):
+    """Correlates alerts into a coherent device incident within a 60-second window."""
+    now = float(flow["ts"])
+    dev_id = flow["device_id"]
+    active_inc = conn.execute(
+        "SELECT * FROM incidents WHERE device_id=? AND status IN ('OPEN', 'ACKNOWLEDGED') "
+        "AND (last_seen >= ?) ORDER BY id DESC LIMIT 1",
+        (dev_id, now - 60.0),
+    ).fetchone()
+
+    sev_order = {"info": 1, "warning": 2, "critical": 3}
+    if active_inc is None:
+        inc_id = f"INC-{int(now)}-{dev_id[:4]}-{uuid.uuid4().hex[:6]}"
+        title = f"{attack_type.upper().replace('_', ' ')} Incident on {dev_id}"
+        summary = f"Detected {attack_type} activity targeting or originating from {flow.get('src_ip', 'unknown')}."
+        conn.execute(
+            """INSERT INTO incidents (incident_id, device_id, title, severity, status, attack_type,
+                                       alert_count, first_seen, last_seen, summary, mitre)
+               VALUES (?, ?, ?, ?, 'OPEN', ?, 1, ?, ?, ?, ?)""",
+            (inc_id, dev_id, title, severity, attack_type, now, now, summary, mitre),
+        )
+    else:
+        new_cnt = active_inc["alert_count"] + 1
+        current_sev = active_inc["severity"]
+        upgraded_sev = severity if sev_order.get(severity, 1) > sev_order.get(current_sev, 1) else current_sev
+        new_summary = f"{active_inc['summary']} (Total alerts: {new_cnt})"
+        conn.execute(
+            """UPDATE incidents SET alert_count=?, last_seen=?, severity=?, summary=?
+               WHERE id=?""",
+            (new_cnt, now, upgraded_sev, new_summary, active_inc["id"]),
+        )
 
 
 def _touch_device(conn, flow: dict, bump_alert: bool,
@@ -204,7 +286,7 @@ def _touch_device(conn, flow: dict, bump_alert: bool,
 
 
 def list_alerts(limit=100):
-    with get_conn() as conn:
+    with _lock, db_session() as conn:
         rows = conn.execute("SELECT * FROM alerts ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
         out = []
         for r in rows:
@@ -224,19 +306,81 @@ def list_alerts(limit=100):
             except Exception:
                 d["risk_breakdown"] = {}
             d["is_unknown"] = bool(d.get("is_unknown", 0))
-            # shap_base_value already a REAL column; may be None for old rows.
             out.append(d)
         return out
 
 
 def list_devices():
-    with get_conn() as conn:
+    with _lock, db_session() as conn:
         rows = conn.execute("SELECT * FROM devices ORDER BY risk_score DESC").fetchall()
         return [dict(r) for r in rows]
 
 
+def list_incidents(status: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    with _lock, db_session() as conn:
+        if status:
+            rows = conn.execute("SELECT * FROM incidents WHERE status=? ORDER BY last_seen DESC LIMIT ?", (status, limit)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM incidents ORDER BY last_seen DESC LIMIT ?", (limit,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def acknowledge_incident(incident_id: str, ts: Optional[float] = None) -> bool:
+    now = ts or time.time()
+    with _lock, db_session() as conn:
+        cur = conn.execute(
+            "UPDATE incidents SET status='ACKNOWLEDGED', acknowledged_at=? WHERE incident_id=? AND status='OPEN'",
+            (now, incident_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def resolve_incident(incident_id: str, notes: str = "", ts: Optional[float] = None) -> bool:
+    now = ts or time.time()
+    with _lock, db_session() as conn:
+        cur = conn.execute(
+            "UPDATE incidents SET status='RESOLVED', resolved_at=?, resolution_notes=? WHERE incident_id=? AND status IN ('OPEN', 'ACKNOWLEDGED')",
+            (now, notes, incident_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def get_incident_metrics() -> Dict[str, Any]:
+    with _lock, db_session() as conn:
+        total_incidents = conn.execute("SELECT COUNT(*) c FROM incidents").fetchone()["c"]
+        open_incidents = conn.execute("SELECT COUNT(*) c FROM incidents WHERE status='OPEN'").fetchone()["c"]
+        ack_incidents = conn.execute("SELECT COUNT(*) c FROM incidents WHERE status='ACKNOWLEDGED'").fetchone()["c"]
+        resolved_incidents = conn.execute("SELECT COUNT(*) c FROM incidents WHERE status='RESOLVED'").fetchone()["c"]
+
+        # Mean Time to Acknowledge (seconds)
+        mtta_row = conn.execute(
+            "SELECT AVG(acknowledged_at - first_seen) avg_mtta FROM incidents WHERE acknowledged_at IS NOT NULL"
+        ).fetchone()
+        avg_mtta_sec = float(mtta_row["avg_mtta"]) if mtta_row and mtta_row["avg_mtta"] is not None else 0.0
+
+        # Mean Time to Resolve (seconds)
+        mttr_row = conn.execute(
+            "SELECT AVG(resolved_at - first_seen) avg_mttr FROM incidents WHERE resolved_at IS NOT NULL"
+        ).fetchone()
+        avg_mttr_sec = float(mttr_row["avg_mttr"]) if mttr_row and mttr_row["avg_mttr"] is not None else 0.0
+
+        suppression = get_suppression_metrics()
+
+        return {
+            "total_incidents": total_incidents,
+            "open_incidents": open_incidents,
+            "acknowledged_incidents": ack_incidents,
+            "resolved_incidents": resolved_incidents,
+            "mean_time_to_acknowledge_sec": round(avg_mtta_sec, 2),
+            "mean_time_to_resolve_sec": round(avg_mttr_sec, 2),
+            "suppression_metrics": suppression,
+        }
+
+
 def get_stats():
-    with get_conn() as conn:
+    with _lock, db_session() as conn:
         total_flows = conn.execute("SELECT COUNT(*) c FROM flows").fetchone()["c"]
         total_alerts = conn.execute("SELECT COUNT(*) c FROM alerts").fetchone()["c"]
         unknown_alerts = conn.execute(
@@ -245,9 +389,11 @@ def get_stats():
         by_type = conn.execute(
             "SELECT attack_type, COUNT(*) c FROM alerts GROUP BY attack_type"
         ).fetchall()
+        inc_counts = conn.execute("SELECT status, COUNT(*) c FROM incidents GROUP BY status").fetchall()
         return {
             "total_flows": total_flows,
             "total_alerts": total_alerts,
             "unknown_alerts": unknown_alerts,
             "alerts_by_type": {r["attack_type"]: r["c"] for r in by_type},
+            "incidents_by_status": {r["status"]: r["c"] for r in inc_counts},
         }

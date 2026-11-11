@@ -1,0 +1,116 @@
+{
+  "system_info": {
+    "platform": "Windows-11-10.0.22621-SP0",
+    "processor": "Intel64 Family 6 Model 142 Stepping 12, GenuineIntel",
+    "python_version": "3.14.6",
+    "cpu_count_logical": 8,
+    "cpu_count_physical": 4,
+    "total_ram_gb": 15.19
+  },
+  "model_loading_time_sec": 0.555,
+  "memory_usage": {
+    "initial_mb": 539.02,
+    "post_model_load_mb": 552.69,
+    "model_memory_delta_mb": 13.67
+  },
+  "components": {
+    "1_feature_extraction": {
+      "mean_ms": 0.0488,
+      "median_p50_ms": 0.053,
+      "p90_ms": 0.06,
+      "p95_ms": 0.0626,
+      "p99_ms": 0.0848,
+      "min_ms": 0.0056,
+      "max_ms": 0.2016
+    },
+    "2_v1_inference": {
+      "mean_ms": 280.9245,
+      "median_p50_ms": 251.323,
+      "p90_ms": 380.4146,
+      "p95_ms": 422.6886,
+      "p99_ms": 506.404,
+      "min_ms": 184.5393,
+      "max_ms": 1762.8558
+    },
+    "3_open_set_inference": {
+      "mean_ms": 203.6015,
+      "median_p50_ms": 190.8536,
+      "p90_ms": 271.2103,
+      "p95_ms": 327.2339,
+      "p99_ms": 391.2876,
+      "min_ms": 143.3345,
+      "max_ms": 465.3789
+    },
+    "4_temporal_inference": {
+      "mean_ms": 1.4225,
+      "median_p50_ms": 1.3706,
+      "p90_ms": 1.8908,
+      "p95_ms": 2.1372,
+      "p99_ms": 2.9718,
+      "min_ms": 0.7236,
+      "max_ms": 5.2008
+    },
+    "5_graph_inference": {
+      "mean_ms": 0.6096,
+      "median_p50_ms": 0.5791,
+      "p90_ms": 0.8701,
+      "p95_ms": 0.9262,
+      "p99_ms": 1.152,
+      "min_ms": 0.4019,
+      "max_ms": 2.0738
+    },
+    "6_treeshap_explanation": {
+      "mean_ms": 99.9029,
+      "median_p50_ms": 93.6515,
+      "p90_ms": 131.9786,
+      "p95_ms": 142.8446,
+      "p99_ms": 154.1848,
+      "min_ms": 79.5557,
+      "max_ms": 172.3803
+    },
+    "7_risk_aggregation": {
+      "mean_ms": 0.0068,
+      "median_p50_ms": 0.006,
+      "p90_ms": 0.0099,
+      "p95_ms": 0.011,
+      "p99_ms": 0.0138,
+      "min_ms": 0.0056,
+      "max_ms": 0.0387
+    }
+  },
+  "end_to_end": {
+    "sample_count": 500,
+    "throughput_flows_per_sec": 3.26,
+    "latencies": {
+      "mean_ms": 306.5186,
+      "median_p50_ms": 262.8179,
+      "p90_ms": 458.429,
+      "p95_ms": 493.4459,
+      "p99_ms": 634.428,
+      "min_ms": 214.809,
+      "max_ms": 720.9578
+    }
+  },
+  "batch_benchmarks": {
+    "batch_10": {
+      "total_ms": 117.544,
+      "per_sample_ms": 11.7544,
+      "effective_fps": 85.1
+    },
+    "batch_50": {
+      "total_ms": 118.75,
+      "per_sample_ms": 2.375,
+      "effective_fps": 421.1
+    },
+    "batch_100": {
+      "total_ms": 109.753,
+      "per_sample_ms": 1.0975,
+      "effective_fps": 911.1
+    }
+  },
+  "resource_utilization": {
+    "final_rss_mb": 559.04,
+    "peak_memory_delta_mb": 20.02,
+    "cpu_percent": 25.2
+  }
+}

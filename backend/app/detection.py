@@ -338,6 +338,7 @@ class DetectionEngine:
         if risk_breakdown is not None:
             result["risk_breakdown"] = risk_breakdown.to_dict()
             result["composite_device_risk"] = risk_breakdown.composite_device_risk
+            result["fused_event_threat"] = risk_breakdown.fused_event_threat
             result["risk_tier"] = risk_breakdown.risk_tier
 
         return result
