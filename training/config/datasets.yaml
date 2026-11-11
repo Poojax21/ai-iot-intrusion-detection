@@ -1,0 +1,55 @@
+# Pahredaar-IoT Public Dataset Configuration
+version: "2.0"
+
+datasets:
+  iot23:
+    name: "Stratosphere IPS IoT-23"
+    official_url: "https://www.stratosphereips.org/datasets-iot23"
+    format: "zeek_conn_log"
+    default_path: "data/iot23/conn.log.labeled"
+    chunk_size: 10000
+    description: "23 network captures from real IoT malware infections and benign traffic"
+    supported_classes:
+      - "BENIGN"
+      - "PORT_SCAN"
+      - "DDOS"
+      - "BOTNET"
+      - "MIRAI_BEACON"
+      - "OTHER_ATTACK"
+
+  ciciot2023:
+    name: "UNB CICIoT2023"
+    official_url: "https://www.unb.ca/cic/datasets/iotdataset-2023.html"
+    format: "csv"
+    default_path: "data/ciciot2023/ciciot2023_sample.csv"
+    chunk_size: 10000
+    description: "Large-scale IoT attack dataset with 33 attack variants across 105 devices"
+    supported_classes:
+      - "BENIGN"
+      - "DDOS"
+      - "PORT_SCAN"
+      - "BRUTE_FORCE"
+      - "MIRAI_BEACON"
+      - "OTHER_ATTACK"
+
+  ton_iot:
+    name: "UNSW Canberra TON_IoT (Network Flow)"
+    official_url: "https://research.unsw.edu.au/projects/toniot-datasets"
+    format: "csv"
+    default_path: "data/ton_iot/Network_dataset.csv"
+    chunk_size: 10000
+    description: "Heterogeneous Industry 4.0 IoT telemetry and network flow captures"
+    supported_classes:
+      - "BENIGN"
+      - "PORT_SCAN"
+      - "DDOS"
+      - "BRUTE_FORCE"
+      - "OTHER_ATTACK"
+
+feature_contracts:
+  canonical_v1:
+    feature_count: 20
+    contract_file: "training/feature_contract.py"
+  ciciot_46:
+    feature_count: 46
+    schema_file: "backend/app/models/real_feature_columns.json"

@@ -1,0 +1,6 @@
+flow_duration,Header_Length,Protocol Type,Duration,Rate,Srate,Drate,fin_flag_number,syn_flag_number,rst_flag_number,psh_flag_number,ack_flag_number,ece_flag_number,cwr_flag_number,ack_count,syn_count,fin_count,urg_count,rst_count,HTTP,HTTPS,DNS,Telnet,SMTP,SSH,IRC,TCP,UDP,DHCP,ARP,ICMP,IPv,LLC,Tot sum,Min,Max,AVG,Std,Tot size,IAT,Number,Magnitue,Radius,Covariance,Variance,Weight,label
+0.05,54.0,6,0.05,20.0,20.0,0.0,0,1,0,0,0,0,0,0.0,1.0,0.0,0.0,0.0,0,1,0,0,0,0,0,1,0,0,0,0,1,1,540.0,54.0,54.0,54.0,0.0,54.0,0.01,10.0,10.39,0.0,0.0,0.0,141.75,BenignTraffic
+0.001,32.0,6,0.001,1000.0,1000.0,0.0,0,1,0,0,0,0,0,0.0,1.0,0.0,0.0,0.0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,40.0,40.0,40.0,40.0,0.0,40.0,0.001,1.0,8.94,0.0,0.0,0.0,141.75,Recon-PortScan
+0.002,128.0,17,0.002,15000.0,15000.0,0.0,0,0,0,0,0,0,0,0.0,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1200.0,60.0,120.0,80.0,15.0,80.0,0.0001,30.0,12.65,0.0,0.0,0.0,141.75,DDoS-UDP_Flood
+0.2,64.0,6,0.2,50.0,30.0,20.0,0,1,1,1,1,0,0,2.0,1.0,0.0,0.0,1.0,0,0,0,0,0,1,0,1,0,0,0,0,1,1,250.0,40.0,90.0,62.5,12.0,62.5,0.05,4.0,11.18,0.0,0.0,0.0,141.75,DictionaryBruteForce
+0.01,64.0,6,0.01,200.0,200.0,0.0,0,1,0,0,0,0,0,0.0,1.0,0.0,0.0,0.0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,160.0,80.0,80.0,80.0,0.0,80.0,0.005,2.0,12.65,0.0,0.0,0.0,141.75,Mirai-greeth_flood

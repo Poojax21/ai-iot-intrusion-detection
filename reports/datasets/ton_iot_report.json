@@ -1,0 +1,74 @@
+{
+  "dataset_name": "ton_iot",
+  "generated_at": "2026-11-11T08:02:27.497125+00:00",
+  "source_path": "tests\\fixtures\\sample_ton_iot.csv",
+  "total_records": 5,
+  "time_range": {
+    "start_ts": 1554130000.1,
+    "end_ts": 1554130004.5,
+    "duration_hours": 0.0
+  },
+  "class_distribution": {
+    "counts": {
+      "BENIGN": 1,
+      "PORT_SCAN": 1,
+      "DDOS": 1,
+      "BRUTE_FORCE": 1,
+      "OTHER_ATTACK": 1
+    },
+    "percentages": {
+      "BENIGN": 20.0,
+      "PORT_SCAN": 20.0,
+      "DDOS": 20.0,
+      "BRUTE_FORCE": 20.0,
+      "OTHER_ATTACK": 20.0
+    },
+    "imbalance_ratio": 1.0,
+    "shannon_entropy": 2.3219
+  },
+  "feature_compatibility": {
+    "contract_version": "v1_standard",
+    "feature_count": 20,
+    "compatible_count": 16,
+    "compatibility_percentage": 80.0,
+    "breakdown": {
+      "directly_compatible": {
+        "duration": "Matches column 'duration'"
+      },
+      "derivable": {
+        "total_bytes": "Derivable via state engine from raw flow fields: orig_bytes + resp_bytes",
+        "total_pkts": "Derivable via state engine from raw flow fields: orig_pkts + resp_pkts",
+        "byte_rate": "Derivable via state engine from raw flow fields: total_bytes / (duration + 1e-6)",
+        "pkt_rate": "Derivable via state engine from raw flow fields: total_pkts / (duration + 1e-6)",
+        "avg_pkt_size": "Derivable via state engine from raw flow fields: total_bytes / (total_pkts + 1.0)",
+        "is_new_edge": "Derivable via state engine from raw flow fields: DeviceState.seen_edges",
+        "src_fanout_recent": "Derivable via state engine from raw flow fields: DeviceState.recent_dst_ips",
+        "device_zscore": "Derivable via state engine from raw flow fields: DeviceState.byte_rate_history",
+        "proto_tcp": "Derivable from protocol field via one-hot encoder",
+        "proto_udp": "Derivable from protocol field via one-hot encoder",
+        "proto_icmp": "Derivable from protocol field via one-hot encoder",
+        "conn_state_sf": "Derivable from connection state field via one-hot encoder",
+        "conn_state_s0": "Derivable from connection state field via one-hot encoder",
+        "conn_state_rej": "Derivable from connection state field via one-hot encoder",
+        "conn_state_other": "Derivable from connection state field via one-hot encoder"
+      },
+      "partially_compatible": {},
+      "unavailable": {
+        "orig_bytes": "Missing required source inputs (orig_bytes)",
+        "resp_bytes": "Missing required source inputs (resp_bytes)",
+        "orig_pkts": "Missing required source inputs (orig_pkts)",
+        "resp_pkts": "Missing required source inputs (resp_pkts)"
+      },
+      "incompatible": {}
+    },
+    "is_fully_compatible": false
+  },
+  "metadata": {
+    "dataset_name": "ton_iot",
+    "data_path": "tests\\fixtures\\sample_ton_iot.csv",
+    "total_rows": 5,
+    "valid_rows": 5,
+    "rejected_rows": 0,
+    "duplicate_rows": 0
+  }
+}
