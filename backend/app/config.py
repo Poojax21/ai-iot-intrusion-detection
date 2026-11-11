@@ -50,6 +50,28 @@ class Settings(BaseSettings):
         description="Number of initial flows per device to observe before alerting",
     )
 
+    # Phase 3: Open-Set Recognition Settings
+    ENABLE_OPEN_SET: bool = Field(
+        default=True,
+        description="Enable Phase 3 open-set recognition layer",
+    )
+    OPEN_SET_MODEL_DIR: Path = Field(
+        default=BASE_DIR / "models" / "open_set_v1",
+        description="Directory containing open-set model artifacts",
+    )
+    OPEN_SET_CONFIDENCE_THRESHOLD: float = Field(
+        default=0.70,
+        description="Minimum multiclass confidence for known attacks",
+    )
+    OPEN_SET_NOVELTY_THRESHOLD: float = Field(
+        default=1.25,
+        description="Normalized distance factor beyond cluster boundary for OOD",
+    )
+    ALERT_SUPPRESSION_WINDOW_SEC: float = Field(
+        default=5.0,
+        description="Window in seconds to suppress duplicate alerts for the same device and attack",
+    )
+
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     LOG_JSON: bool = Field(default=False, description="Format logs as structured JSON")

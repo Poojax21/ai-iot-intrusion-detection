@@ -69,11 +69,14 @@ manager = ConnectionManager()
 
 @app.get("/api/health")
 def health():
+    is_ready = engine.models_loaded or (engine.open_set_classifier is not None)
     return {
         "status": "ok",
-        "models_loaded": engine.models_loaded,
-        "hint": None if engine.models_loaded else (
-            "Models not found in backend/app/models/. Run training/train_model.ipynb first."
+        "models_loaded": is_ready,
+        "open_set_enabled": engine.open_set_classifier is not None,
+        "open_set_version": engine.open_set_classifier.version if engine.open_set_classifier else None,
+        "hint": None if is_ready else (
+            "Models not found in backend/app/models/. Run training/train_model.ipynb or train_open_set first."
         ),
     }
 
@@ -89,34 +92,58 @@ async def ingest_flow(flow: FlowRecord):
 
     alert_payload = None
     if result.get("is_flagged") and "attack_type" in result:
-        alert_id = storage.record_alert(
-            flow_dict,
-            attack_type=result["attack_type"],
-            mitre=result["mitre"],
-            severity=result["severity"],
-            gate_score=result["gate_score"],
-            anomaly_score=result["anomaly_score"],
-            confidence_tier=result["confidence_tier"],
-            top_features=result["top_features"],
-            shap_values=result.get("shap_values", []),
-            shap_base_value=result.get("shap_base_value"),
+        attack_type = result["attack_type"]
+        is_suppressed = storage.should_suppress_alert(
+            device_id=flow_dict["device_id"],
+            attack_type=attack_type,
+            ts=flow_dict["ts"],
+            window_sec=getattr(settings, "ALERT_SUPPRESSION_WINDOW_SEC", 5.0),
         )
-        alert_payload = {
-            "id": alert_id, "ts": flow_dict["ts"], "device_id": flow_dict["device_id"],
-            "device_type": flow_dict.get("device_type"), "src_ip": flow_dict["src_ip"],
-            "dst_ip": flow_dict["dst_ip"], "attack_type": result["attack_type"],
-            "mitre": result["mitre"], "severity": result["severity"],
-            "gate_score": result["gate_score"], "confidence_tier": result["confidence_tier"],
-            "top_features": result["top_features"],
-            "shap_values": result.get("shap_values", []),
-            "shap_base_value": result.get("shap_base_value"),
-        }
-        await manager.broadcast({"type": "alert", "data": alert_payload})
+
+        if not is_suppressed:
+            alert_id = storage.record_alert(
+                flow_dict,
+                attack_type=attack_type,
+                mitre=result["mitre"],
+                severity=result["severity"],
+                gate_score=result["gate_score"],
+                anomaly_score=result["anomaly_score"],
+                confidence_tier=result["confidence_tier"],
+                top_features=result["top_features"],
+                shap_values=result.get("shap_values", []),
+                shap_base_value=result.get("shap_base_value"),
+                decision=result.get("decision"),
+                is_unknown=result.get("is_unknown", False),
+                novelty_score=result.get("novelty_score"),
+                calibrated_anomaly_score=result.get("calibrated_anomaly_score"),
+                reason_codes=result.get("reason_codes", []),
+            )
+            alert_payload = {
+                "id": alert_id, "ts": flow_dict["ts"], "device_id": flow_dict["device_id"],
+                "device_type": flow_dict.get("device_type"), "src_ip": flow_dict["src_ip"],
+                "dst_ip": flow_dict["dst_ip"], "attack_type": attack_type,
+                "mitre": result["mitre"], "severity": result["severity"],
+                "gate_score": result["gate_score"], "confidence_tier": result["confidence_tier"],
+                "top_features": result["top_features"],
+                "shap_values": result.get("shap_values", []),
+                "shap_base_value": result.get("shap_base_value"),
+                "decision": result.get("decision"),
+                "is_unknown": result.get("is_unknown", False),
+                "novelty_score": result.get("novelty_score"),
+                "calibrated_anomaly_score": result.get("calibrated_anomaly_score"),
+                "reason_codes": result.get("reason_codes", []),
+            }
+            await manager.broadcast({"type": "alert", "data": alert_payload})
 
     return {
         "flagged": result.get("is_flagged", False),
         "gate_score": result.get("gate_score"),
         "anomaly_score": result.get("anomaly_score"),
+        "calibrated_anomaly_score": result.get("calibrated_anomaly_score"),
+        "novelty_score": result.get("novelty_score"),
+        "decision": result.get("decision"),
+        "is_unknown": result.get("is_unknown", False),
+        "reason_codes": result.get("reason_codes", []),
         "alert": alert_payload,
         "warning": result.get("error"),
     }

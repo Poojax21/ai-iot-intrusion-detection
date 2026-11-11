@@ -51,6 +51,11 @@ class AlertOut(BaseModel):
     top_features: list
     shap_values: Optional[List[Any]] = None
     shap_base_value: Optional[float] = None
+    decision: Optional[str] = Field(None, description="Triage decision: benign | known_attack | unknown_suspicious | uncertain")
+    is_unknown: Optional[bool] = Field(False, description="True if classified as unknown suspicious")
+    novelty_score: Optional[float] = Field(None, description="Novelty distance factor relative to known class boundaries")
+    calibrated_anomaly_score: Optional[float] = Field(None, description="Calibrated ECDF percentile of anomaly score")
+    reason_codes: Optional[List[str]] = Field(default_factory=list, description="Triage reason codes")
     raw_flow: dict
 
 

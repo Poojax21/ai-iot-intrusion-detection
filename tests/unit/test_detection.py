@@ -42,7 +42,9 @@ def test_attack_flagged_after_grace_period(sample_benign_flow, sample_ddos_flow)
     assert res_attack["gate_score"] > engine.gate_threshold
     assert "attack_type" in res_attack
     assert "mitre" in res_attack
-    assert res_attack["attack_type"] in ["ddos", "unclassified_anomaly", "port_scan", "brute_force", "mirai_beacon"]
+    assert res_attack["attack_type"] in [
+        "ddos", "unclassified_anomaly", "unknown_suspicious", "port_scan", "brute_force", "mirai_beacon"
+    ]
     assert "shap_values" in res_attack
     assert len(res_attack["shap_values"]) > 0
     first_shap = res_attack["shap_values"][0]

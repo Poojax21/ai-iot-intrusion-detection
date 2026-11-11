@@ -339,7 +339,7 @@
 
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 14px;
     margin-bottom: 16px;
   }
@@ -683,6 +683,11 @@
       <div class="label">Alerts raised</div>
       <div class="value" id="metric-alerts">0</div>
       <div class="detail">Only flows that cross the gate or anomaly threshold make it here.</div>
+    </div>
+    <div class="metric-card" style="background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), rgba(14, 24, 41, 0.95)); border-color: rgba(168, 85, 247, 0.35);">
+      <div class="label" style="color: #c084fc;">Zero-Day / Unknown</div>
+      <div class="value" id="metric-unknown" style="color: #d8b4fe;">0</div>
+      <div class="detail">Open-Set triage of novel attacks unseen in training.</div>
     </div>
     <div class="metric-card warn">
       <div class="label">Flag rate</div>
@@ -1262,7 +1267,15 @@ function renderAlertRow(alert, isNew) {
 
   cells.forEach((value, index) => {
     const cell = document.createElement('td');
-    if (index === 3) {
+    if (index === 2 && (alert.is_unknown || alert.attack_type === 'unknown_suspicious')) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.5); padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px;';
+      badge.textContent = '⚡ ZERO-DAY (NOVEL)';
+      if (alert.novelty_score) {
+        badge.title = `Novelty: ${alert.novelty_score}x radius. Reasons: ${(alert.reason_codes || []).join(', ')}`;
+      }
+      cell.appendChild(badge);
+    } else if (index === 3) {
       const sev = document.createElement('span');
       sev.className = severityClass(value);
       sev.textContent = value;
@@ -1424,6 +1437,8 @@ async function loadStats() {
 
   document.getElementById('metric-flows').textContent = totalFlows.toLocaleString();
   document.getElementById('metric-alerts').textContent = totalAlerts.toLocaleString();
+  const unkEl = document.getElementById('metric-unknown');
+  if (unkEl) unkEl.textContent = (Number(stats.unknown_alerts) || 0).toLocaleString();
   document.getElementById('metric-rate').textContent = `${flagRate.toFixed(1)}%`;
   renderAttackMix(stats.alerts_by_type || {});
 }

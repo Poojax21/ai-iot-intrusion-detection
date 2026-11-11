@@ -62,13 +62,46 @@ def init_db(db_path: Path | str | None = None):
             last_seen REAL
         );
         """)
-        # Migrate existing DBs created before SHAP columns existed.
+        # Migrate existing DBs created before SHAP and Open-Set columns existed.
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(alerts)").fetchall()}
         if "shap_values" not in cols:
             conn.execute("ALTER TABLE alerts ADD COLUMN shap_values TEXT")
         if "shap_base_value" not in cols:
             conn.execute("ALTER TABLE alerts ADD COLUMN shap_base_value REAL")
+        if "decision" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN decision TEXT")
+        if "is_unknown" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN is_unknown INTEGER DEFAULT 0")
+        if "novelty_score" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN novelty_score REAL")
+        if "calibrated_anomaly_score" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN calibrated_anomaly_score REAL")
+        if "reason_codes" not in cols:
+            conn.execute("ALTER TABLE alerts ADD COLUMN reason_codes TEXT")
         conn.commit()
+
+
+_suppression_lock = threading.Lock()
+_recent_alerts: dict[tuple[str, str], float] = {}
+
+
+def should_suppress_alert(device_id: str, attack_type: str, ts: float, window_sec: float = 5.0) -> bool:
+    """
+    Suppresses duplicate alerts for the same device and attack within window_sec.
+    Prevents alert storms while preserving first-alert visibility.
+    """
+    key = (device_id, attack_type)
+    with _suppression_lock:
+        last_ts = _recent_alerts.get(key)
+        if last_ts is not None and (ts - last_ts) < window_sec:
+            return True
+        _recent_alerts[key] = ts
+        # Evict stale entries older than 60s
+        if len(_recent_alerts) > 500:
+            stale_keys = [k for k, t in _recent_alerts.items() if (ts - t) > 60.0]
+            for k in stale_keys:
+                del _recent_alerts[k]
+        return False
 
 
 def record_flow(flow: dict, gate_score: float, is_flagged: bool):
@@ -90,17 +123,24 @@ def record_flow(flow: dict, gate_score: float, is_flagged: bool):
 def record_alert(flow: dict, attack_type: str, mitre: str, severity: str,
                   gate_score: float, anomaly_score: float, confidence_tier: str,
                   top_features: list, shap_values: list = None,
-                  shap_base_value: float = None) -> int:
+                  shap_base_value: float = None,
+                  decision: str = None, is_unknown: bool = False,
+                  novelty_score: float = None, calibrated_anomaly_score: float = None,
+                  reason_codes: list = None) -> int:
     with _lock, get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO alerts (ts, device_id, device_type, src_ip, dst_ip, attack_type, mitre,
                                     severity, gate_score, anomaly_score, confidence_tier,
-                                    top_features, raw_flow, shap_values, shap_base_value)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                    top_features, raw_flow, shap_values, shap_base_value,
+                                    decision, is_unknown, novelty_score, calibrated_anomaly_score,
+                                    reason_codes)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (flow["ts"], flow["device_id"], flow.get("device_type"), flow["src_ip"], flow["dst_ip"],
              attack_type, mitre, severity, gate_score, anomaly_score, confidence_tier,
              json.dumps(top_features), json.dumps(flow),
-             json.dumps(shap_values or []), shap_base_value),
+             json.dumps(shap_values or []), shap_base_value,
+             decision, int(is_unknown), novelty_score, calibrated_anomaly_score,
+             json.dumps(reason_codes or [])),
         )
         _touch_device(conn, flow, bump_alert=True)
         conn.commit()
@@ -139,6 +179,11 @@ def list_alerts(limit=100):
                 d["shap_values"] = json.loads(d.get("shap_values") or "[]")
             except Exception:
                 d["shap_values"] = []
+            try:
+                d["reason_codes"] = json.loads(d.get("reason_codes") or "[]")
+            except Exception:
+                d["reason_codes"] = []
+            d["is_unknown"] = bool(d.get("is_unknown", 0))
             # shap_base_value already a REAL column; may be None for old rows.
             out.append(d)
         return out
@@ -154,11 +199,15 @@ def get_stats():
     with get_conn() as conn:
         total_flows = conn.execute("SELECT COUNT(*) c FROM flows").fetchone()["c"]
         total_alerts = conn.execute("SELECT COUNT(*) c FROM alerts").fetchone()["c"]
+        unknown_alerts = conn.execute(
+            "SELECT COUNT(*) c FROM alerts WHERE is_unknown=1 OR attack_type='unknown_suspicious'"
+        ).fetchone()["c"]
         by_type = conn.execute(
             "SELECT attack_type, COUNT(*) c FROM alerts GROUP BY attack_type"
         ).fetchall()
         return {
             "total_flows": total_flows,
             "total_alerts": total_alerts,
+            "unknown_alerts": unknown_alerts,
             "alerts_by_type": {r["attack_type"]: r["c"] for r in by_type},
         }

@@ -1,0 +1,67 @@
+{
+  "known_metrics": {
+    "accuracy": 0.9147,
+    "macro_f1": 0.7785,
+    "fpr_on_benign": 0.0933,
+    "per_class": {
+      "benign": {
+        "precision": 1.0,
+        "recall": 0.9066596748820136,
+        "f1-score": 0.9510451045104511,
+        "support": 1907.0
+      },
+      "ddos": {
+        "precision": 1.0,
+        "recall": 0.9367088607594937,
+        "f1-score": 0.9673202614379085,
+        "support": 79.0
+      },
+      "mirai_beacon": {
+        "precision": 0.9743589743589743,
+        "recall": 0.9743589743589743,
+        "f1-score": 0.9743589743589743,
+        "support": 78.0
+      },
+      "port_scan": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 106.0
+      },
+      "unknown": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 0.0
+      },
+      "accuracy": 0.9147465437788018,
+      "macro avg": {
+        "precision": 0.7948717948717949,
+        "recall": 0.7635455020000963,
+        "f1-score": 0.7785448680614668,
+        "support": 2170.0
+      },
+      "weighted avg": {
+        "precision": 0.9990783410138249,
+        "recall": 0.9147465437788018,
+        "f1-score": 0.9548669654170622,
+        "support": 2170.0
+      }
+    }
+  },
+  "unknown_metrics": {
+    "unknown_detection_rate_recall": 1.0,
+    "unknown_precision": 0.3042,
+    "false_unknown_rate_benign": 0.0923,
+    "false_rejection_rate_known": 0.0266,
+    "auroc_novelty": 0.8828,
+    "auprc_novelty": 0.3239
+  },
+  "operational": {
+    "mean_latency_ms": 146.014,
+    "throughput_samples_sec": 6.8,
+    "total_samples": 2250,
+    "known_samples": 2170,
+    "unknown_samples": 80
+  }
+}

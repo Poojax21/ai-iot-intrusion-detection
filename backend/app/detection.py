@@ -30,6 +30,14 @@ from .features import (
 )
 from .config import settings
 
+try:
+    from training.open_set.classifier import OpenSetClassifier, OpenSetDecisionOutcome
+    OPEN_SET_AVAILABLE = True
+except ImportError:
+    OPEN_SET_AVAILABLE = False
+    OpenSetClassifier = None
+    OpenSetDecisionOutcome = None
+
 MODEL_DIR = settings.MODEL_DIR
 GRACE_PERIOD_FLOWS = settings.GRACE_PERIOD_FLOWS
 
@@ -45,6 +53,7 @@ class DetectionEngine:
         self._load_models()
 
     def _load_models(self):
+        self.open_set_classifier = None
         try:
             self.scaler = joblib.load(self.model_dir / "feature_scaler.pkl")
             self.anomaly_model = joblib.load(self.model_dir / "anomaly_model.pkl")
@@ -68,6 +77,19 @@ class DetectionEngine:
             self.scaler = self.anomaly_model = self.gate_model = self.multiclass_model = None
             self.gate_threshold = 0.5
 
+        # Optional Phase 3: Open-Set Classifier Loading
+        if OPEN_SET_AVAILABLE and getattr(settings, "ENABLE_OPEN_SET", True):
+            # If a custom model_dir was provided, look for open_set_v1 inside that directory
+            if self.model_dir != MODEL_DIR:
+                open_set_dir = self.model_dir / "open_set_v1"
+            else:
+                open_set_dir = getattr(settings, "OPEN_SET_MODEL_DIR", self.model_dir / "open_set_v1")
+            if open_set_dir and Path(open_set_dir).exists() and (Path(open_set_dir) / "open_set_metadata.json").exists():
+                try:
+                    self.open_set_classifier = OpenSetClassifier.load(open_set_dir)
+                except Exception:
+                    self.open_set_classifier = None
+
     def _device_state(self, device_id: str) -> DeviceState:
         if device_id not in self.device_states:
             self.device_states[device_id] = DeviceState()
@@ -77,7 +99,7 @@ class DetectionEngine:
         """Returns a dict with gate_score, anomaly_score, is_flagged, and
         (if flagged) attack_type/mitre/severity/confidence_tier/top_features/
         shap_values/shap_base_value."""
-        if not self.models_loaded:
+        if not self.models_loaded and self.open_set_classifier is None:
             return {
                 "error": "models_not_trained",
                 "gate_score": 0.0, "anomaly_score": 0.0, "is_flagged": False,
@@ -88,24 +110,92 @@ class DetectionEngine:
             vec = build_feature_vector(flow, state)
             flow_count = state.flow_count
 
+        in_grace_period = flow_count <= self.grace_period_flows
+
+        # Path A: Open-Set Detection Engine (Phase 3)
+        if self.open_set_classifier is not None:
+            dec = self.open_set_classifier.predict_sample(vec, feature_names=FEATURE_COLUMNS)
+            gate_score = dec.gate_score
+            anomaly_score = dec.raw_anomaly_score
+            calibrated_anomaly = dec.calibrated_anomaly_score
+            novelty_score = dec.novelty_score
+
+            is_flagged = (not in_grace_period) and (
+                dec.outcome in (OpenSetDecisionOutcome.KNOWN_ATTACK, OpenSetDecisionOutcome.UNKNOWN_SUSPICIOUS)
+            )
+
+            result = {
+                "gate_score": gate_score,
+                "anomaly_score": anomaly_score,
+                "calibrated_anomaly_score": calibrated_anomaly,
+                "novelty_score": novelty_score,
+                "is_flagged": bool(is_flagged),
+                "in_grace_period": in_grace_period,
+                "feature_vector": vec,
+                "decision": dec.outcome.value,
+                "is_unknown": dec.is_unknown,
+                "reason_codes": dec.reason_codes,
+            }
+
+            if is_flagged:
+                X = np.array([vec])
+                X_s = self.scaler.transform(X) if self.scaler is not None else self.open_set_classifier.scaler.transform(X)
+
+                if dec.outcome == OpenSetDecisionOutcome.UNKNOWN_SUSPICIOUS:
+                    attack_type = "unknown_suspicious"
+                    mitre = "T1204 (Zero-Day / Novel Vector - Open-Set Anomaly)"
+                    confidence = dec.confidence
+                    tier = "medium" if confidence >= 0.70 else "low"
+                    severity = "warning"
+                else:
+                    attack_type = dec.predicted_class or "unclassified_anomaly"
+                    mitre = MITRE_MAP.get(attack_type, "N/A")
+                    confidence = dec.confidence
+                    if confidence >= 0.85 and gate_score >= 0.9:
+                        tier = "high"
+                        severity = "critical"
+                    elif confidence >= 0.6:
+                        tier = "medium"
+                        severity = "warning"
+                    else:
+                        tier = "low"
+                        severity = "info"
+
+                result.update({
+                    "attack_type": attack_type,
+                    "mitre": mitre,
+                    "severity": severity,
+                    "confidence_tier": tier,
+                    "confidence": confidence,
+                    "top_features": self._top_features(vec),
+                    "shap_values": self._shap_explain(X_s, vec),
+                    "shap_base_value": self._shap_base_value(X_s),
+                    "shap_method": "ablation_vs_scaler_mean",
+                })
+
+            return result
+
+        # Path B: Baseline V1 Fallback
         X = np.array([vec])
         X_s = self.scaler.transform(X)
 
         gate_score = float(self.gate_model.predict_proba(X_s)[0, 1])
         anomaly_score = float(-self.anomaly_model.score_samples(X_s)[0])
-        # anomaly threshold: flag top ~5% most anomalous by the training-time contamination setting;
-        # simple fixed cutoff kept in sync with the notebook's IsolationForest(contamination=0.05)
         anomaly_flag = self.anomaly_model.predict(X_s)[0] == -1
 
-        in_grace_period = flow_count <= self.grace_period_flows
         is_flagged = (not in_grace_period) and ((gate_score >= self.gate_threshold) or anomaly_flag)
 
         result = {
             "gate_score": gate_score,
             "anomaly_score": anomaly_score,
+            "calibrated_anomaly_score": 0.0,
+            "novelty_score": 0.0,
             "is_flagged": bool(is_flagged),
             "in_grace_period": in_grace_period,
             "feature_vector": vec,
+            "decision": "known_attack" if is_flagged else "benign",
+            "is_unknown": False,
+            "reason_codes": [],
         }
 
         if is_flagged:
