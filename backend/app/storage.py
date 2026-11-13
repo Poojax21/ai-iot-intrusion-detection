@@ -294,6 +294,25 @@ def _touch_device(conn, flow: dict, bump_alert: bool,
         )
 
 
+def list_flows(limit=100, is_flagged: Optional[bool] = None, org_id: Optional[str] = None):
+    with _lock, db_session() as conn:
+        query = "SELECT * FROM flows"
+        clauses = []
+        params = []
+        if org_id:
+            clauses.append("organization_id=?")
+            params.append(org_id)
+        if is_flagged is not None:
+            clauses.append("is_flagged=?")
+            params.append(1 if is_flagged else 0)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY id DESC LIMIT ?"
+        params.append(limit)
+        rows = conn.execute(query, tuple(params)).fetchall()
+        return [dict(r) for r in rows]
+
+
 def list_alerts(limit=100, org_id: Optional[str] = None, device_id: Optional[str] = None, severity: Optional[str] = None):
     with _lock, db_session() as conn:
         query = "SELECT * FROM alerts"
@@ -436,7 +455,7 @@ def list_incidents(status: Optional[str] = None, limit: int = 500, org_id: Optio
             params.append(status)
         if clauses:
             query += " WHERE " + " AND ".join(clauses)
-        query += " ORDER BY last_seen DESC LIMIT ?"
+        query += " ORDER BY id DESC LIMIT ?"
         params.append(limit)
         rows = conn.execute(query, tuple(params)).fetchall()
         out = []

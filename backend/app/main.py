@@ -347,6 +347,16 @@ async def ingest_flow(
     }
 
 
+@app.get("/api/flows")
+def get_flows(
+    limit: int = 100,
+    is_flagged: Optional[bool] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    org_id = current_user.organization_id if current_user else None
+    return storage.list_flows(limit=limit, is_flagged=is_flagged, org_id=org_id)
+
+
 @app.get("/api/alerts")
 def get_alerts(
     limit: int = 100,
