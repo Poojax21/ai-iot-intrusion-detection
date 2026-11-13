@@ -33,12 +33,23 @@ class Settings(BaseSettings):
         default="pahredaar-insecure-dev-secret-key-change-in-prod-32b",
         description="JWT and secret signing key",
     )
+    JWT_ALGORITHM: str = Field(default="HS256", description="JWT signing algorithm")
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="Access token expiration in minutes")
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, description="Refresh token expiration in days")
 
     # Storage & Persistence
     DB_PATH: Path = Field(
         default=BASE_DIR / "iot_ids.db",
         description="Path to SQLite database file",
     )
+    DATABASE_URL: str = Field(
+        default=f"sqlite+aiosqlite:///{BASE_DIR / 'iot_ids.db'}",
+        description="Async database connection URL (postgresql+asyncpg://... or sqlite+aiosqlite:///...)",
+    )
+    DB_POOL_SIZE: int = Field(default=10, description="Database connection pool size")
+    DB_MAX_OVERFLOW: int = Field(default=20, description="Maximum overflow connections in pool")
+    DB_POOL_TIMEOUT: float = Field(default=30.0, description="Connection pool timeout in seconds")
+    DB_POOL_RECYCLE: int = Field(default=1800, description="Connection recycle interval in seconds")
 
     # Models & ML Settings
     MODEL_DIR: Path = Field(

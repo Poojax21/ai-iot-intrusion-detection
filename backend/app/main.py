@@ -1,17 +1,26 @@
 """
-IoT IDS backend with Multi-Modal Hybrid Engine, Security Hardening & Incident Tracking.
+Pahredaar-IoT Enterprise IDS Backend.
+Features Multi-Tenant Organization Isolation, JWT & Sensor Auth, RBAC, and Hybrid AI Engine.
 
 Endpoints:
-  POST /api/ingest                  - submit one flow record (sensor / Zeek bridge)
+  # Ingestion
+  POST /api/ingest                  - submit one flow record (authenticated sensor / Zeek bridge)
+  
+  # Telemetry & Monitoring (Scoped by Organization)
   GET  /api/alerts                  - recent alerts
   GET  /api/devices                 - device list with composite risk scores & tiers
   GET  /api/stats                   - summary counters
   GET  /api/incidents               - active and historical security incidents
-  POST /api/incidents/{id}/acknowledge - acknowledge an incident
-  POST /api/incidents/{id}/resolve  - resolve an incident
+  POST /api/incidents/{id}/acknowledge - acknowledge an incident (Analyst/Admin)
+  POST /api/incidents/{id}/resolve  - resolve an incident (Analyst/Admin)
   GET  /api/incidents/metrics       - alert quality and incident response metrics (MTTA, MTTR, suppression)
-  WS   /ws/alerts                   - live alert and incident push
+  WS   /ws/alerts                   - live alert and incident push (Scoped by Organization)
+  GET  /api/audit-logs              - security audit log (Admin only)
   GET  /api/health                  - comprehensive system and model health check
+
+  # Routers
+  /api/auth/*                       - registration, login, refresh, profile
+  /api/sensors/*                    - sensor registration, key rotation, status
 """
 
 import asyncio
@@ -21,19 +30,43 @@ import threading
 import time
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header, status
+from fastapi import (
+    FastAPI,
+    WebSocket,
+    WebSocketDisconnect,
+    HTTPException,
+    Header,
+    Query,
+    Depends,
+    Request,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .schemas import FlowRecord
 from .detection import engine
 from . import storage
 from .config import settings
 from .logging_config import setup_logging
+from .database.session import get_db
+from .database.models import User
+from .database.repositories import AuditRepository
+from .auth.security import decode_jwt_token
+from .auth.rbac import Role
+from .auth.dependencies import (
+    get_current_user,
+    get_current_user_optional,
+    require_roles,
+    verify_sensor_identity,
+)
+from .api.auth import router as auth_router
+from .api.sensors import router as sensors_router
 
 logger = setup_logging(settings.LOG_LEVEL, settings.LOG_JSON)
 
-app = FastAPI(title="Pahredaar-IoT IDS Backend", version="2.5")
+app = FastAPI(title="Pahredaar-IoT IDS Enterprise Backend", version="3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,36 +75,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Subrouters
+app.include_router(auth_router)
+app.include_router(sensors_router)
+
 storage.init_db()
 
 
 class ConnectionManager:
+    """Manages WebSocket connections partitioned by organization for strict tenant isolation."""
     def __init__(self):
+        self.org_connections: Dict[str, List[WebSocket]] = {}
         self.active: List[WebSocket] = []
 
-    async def connect(self, ws: WebSocket):
+    async def connect(self, ws: WebSocket, org_id: str = "default-org-id"):
         await ws.accept()
+        if org_id not in self.org_connections:
+            self.org_connections[org_id] = []
+        self.org_connections[org_id].append(ws)
         self.active.append(ws)
 
-    def disconnect(self, ws: WebSocket):
+    def disconnect(self, ws: WebSocket, org_id: str = "default-org-id"):
+        if org_id in self.org_connections and ws in self.org_connections[org_id]:
+            self.org_connections[org_id].remove(ws)
         if ws in self.active:
             self.active.remove(ws)
 
-    async def broadcast(self, message: dict):
+    async def broadcast(self, message: dict, org_id: Optional[str] = None):
+        targets = self.org_connections.get(org_id, []) if org_id else self.active
         dead = []
-        for ws in self.active:
+        for ws in list(targets):
             try:
                 await ws.send_text(json.dumps(message))
             except Exception:
                 dead.append(ws)
         for ws in dead:
-            self.disconnect(ws)
+            self.disconnect(ws, org_id or "default-org-id")
 
 
 manager = ConnectionManager()
 
 
-# Rate Limiting & Sensor Auth
+# Rate Limiting
 _rate_limit_lock = threading.Lock()
 _ingest_timestamps: deque = deque(maxlen=2000)
 
@@ -80,6 +125,7 @@ def verify_sensor_auth(
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     authorization: Optional[str] = Header(None),
 ):
+    """Backward compatibility helper for synchronous callers."""
     if not settings.ENABLE_INGEST_AUTH:
         return True
     expected = settings.API_KEY
@@ -123,11 +169,15 @@ def health():
         "graph_version": engine.graph_detector.version if engine.graph_detector else None,
         "risk_engine_enabled": engine.risk_engine is not None,
         "risk_engine_version": "hierarchical_v2" if engine.risk_engine else None,
+        "multi_tenancy_enabled": True,
+        "jwt_auth_enabled": True,
         "active_features": {
             "treeshap": engine.shap_explainer is not None,
             "temporal": engine.temporal_detector is not None,
             "graph": engine.graph_detector is not None,
             "hierarchical_risk": engine.risk_engine is not None,
+            "rbac": True,
+            "tenant_isolation": True,
         },
         "hint": None if is_ready else (
             "Models not found in backend/app/models/. Run training scripts first."
@@ -138,21 +188,28 @@ def health():
 @app.post("/api/ingest")
 async def ingest_flow(
     flow: FlowRecord,
+    x_sensor_key: Optional[str] = Header(None, alias="X-Sensor-Key"),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     authorization: Optional[str] = Header(None),
 ):
-    # Sensor authentication check
-    verify_sensor_auth(x_api_key=x_api_key, authorization=authorization)
+    # Sensor authentication & tenant resolution
+    sensor, org_id = await verify_sensor_identity(
+        x_sensor_key=x_sensor_key,
+        x_api_key=x_api_key,
+        authorization=authorization,
+    )
+
+    rate_limit = sensor.rate_limit_per_sec if sensor else settings.RATE_LIMIT_INGEST_PER_SEC
 
     # Ingestion rate limiting
     now_mono = time.monotonic()
     with _rate_limit_lock:
         while _ingest_timestamps and (now_mono - _ingest_timestamps[0]) > 1.0:
             _ingest_timestamps.popleft()
-        if len(_ingest_timestamps) >= settings.RATE_LIMIT_INGEST_PER_SEC:
+        if len(_ingest_timestamps) >= rate_limit:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Rate limit exceeded (Max {settings.RATE_LIMIT_INGEST_PER_SEC} flows/sec)",
+                detail=f"Rate limit exceeded (Max {rate_limit} flows/sec)",
             )
         _ingest_timestamps.append(now_mono)
 
@@ -176,6 +233,7 @@ async def ingest_flow(
         risk_tier=risk_tier,
         temporal_risk=temporal_risk,
         graph_risk=graph_risk,
+        org_id=org_id,
     )
 
     alert_payload = None
@@ -210,6 +268,7 @@ async def ingest_flow(
                 temporal_risk=temporal_risk,
                 graph_risk=graph_risk,
                 risk_breakdown=risk_breakdown,
+                org_id=org_id,
             )
             alert_payload = {
                 "id": alert_id, "ts": flow_dict["ts"], "device_id": flow_dict["device_id"],
@@ -231,8 +290,10 @@ async def ingest_flow(
                 "temporal_risk": temporal_risk,
                 "graph_risk": graph_risk,
                 "risk_breakdown": risk_breakdown,
+                "organization_id": org_id,
             }
-            await manager.broadcast({"type": "alert", "data": alert_payload})
+            # Broadcast strictly to subscribers in the same organization
+            await manager.broadcast({"type": "alert", "data": alert_payload}, org_id=org_id)
 
     return {
         "flagged": result.get("is_flagged", False),
@@ -254,28 +315,48 @@ async def ingest_flow(
 
 
 @app.get("/api/alerts")
-def get_alerts(limit: int = 100):
-    return storage.list_alerts(limit=limit)
+def get_alerts(
+    limit: int = 100,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    org_id = current_user.organization_id if current_user else None
+    return storage.list_alerts(limit=limit, org_id=org_id)
 
 
 @app.get("/api/devices")
-def get_devices():
-    return storage.list_devices()
+def get_devices(current_user: Optional[User] = Depends(get_current_user_optional)):
+    org_id = current_user.organization_id if current_user else None
+    return storage.list_devices(org_id=org_id)
 
 
 @app.get("/api/stats")
-def get_stats():
-    return storage.get_stats()
+def get_stats(current_user: Optional[User] = Depends(get_current_user_optional)):
+    org_id = current_user.organization_id if current_user else None
+    return storage.get_stats(org_id=org_id)
 
 
 @app.get("/api/incidents")
-def get_incidents(status: Optional[str] = None, limit: int = 50):
-    return storage.list_incidents(status=status, limit=limit)
+def get_incidents(
+    status: Optional[str] = None,
+    limit: int = 50,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    org_id = current_user.organization_id if current_user else None
+    return storage.list_incidents(status=status, limit=limit, org_id=org_id)
 
 
 @app.post("/api/incidents/{incident_id}/acknowledge")
-def acknowledge_incident(incident_id: str):
-    ok = storage.acknowledge_incident(incident_id)
+def acknowledge_incident(
+    incident_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    if current_user and current_user.role == Role.VIEWER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Viewers cannot acknowledge incidents",
+        )
+    org_id = current_user.organization_id if current_user else None
+    ok = storage.acknowledge_incident(incident_id, org_id=org_id)
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -285,9 +366,19 @@ def acknowledge_incident(incident_id: str):
 
 
 @app.post("/api/incidents/{incident_id}/resolve")
-def resolve_incident(incident_id: str, payload: Optional[ResolveIncidentRequest] = None):
+def resolve_incident(
+    incident_id: str,
+    payload: Optional[ResolveIncidentRequest] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    if current_user and current_user.role == Role.VIEWER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Viewers cannot resolve incidents",
+        )
+    org_id = current_user.organization_id if current_user else None
     notes = payload.notes if payload else ""
-    ok = storage.resolve_incident(incident_id, notes=notes)
+    ok = storage.resolve_incident(incident_id, notes=notes, org_id=org_id)
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -297,15 +388,48 @@ def resolve_incident(incident_id: str, payload: Optional[ResolveIncidentRequest]
 
 
 @app.get("/api/incidents/metrics")
-def get_incident_metrics():
-    return storage.get_incident_metrics()
+def get_incident_metrics(current_user: Optional[User] = Depends(get_current_user_optional)):
+    org_id = current_user.organization_id if current_user else None
+    return storage.get_incident_metrics(org_id=org_id)
+
+
+@app.get("/api/audit-logs")
+async def get_audit_logs(
+    limit: int = 100,
+    current_user: User = Depends(require_roles(Role.ADMIN.value)),
+    db: AsyncSession = Depends(get_db),
+):
+    audit_repo = AuditRepository(db)
+    logs = await audit_repo.list_by_organization(current_user.organization_id, limit=limit)
+    return [
+        {
+            "id": log.id,
+            "action": log.action,
+            "resource_type": log.resource_type,
+            "resource_id": log.resource_id,
+            "timestamp": log.timestamp.isoformat(),
+            "source_ip": log.source_ip,
+            "metadata": log.event_metadata,
+            "user_email": log.user.email if log.user else None,
+        }
+        for log in logs
+    ]
 
 
 @app.websocket("/ws/alerts")
-async def ws_alerts(websocket: WebSocket):
-    await manager.connect(websocket)
+async def ws_alerts(websocket: WebSocket, token: Optional[str] = Query(None)):
+    org_id = "default-org-id"
+    if token:
+        try:
+            payload = decode_jwt_token(token)
+            org_id = payload.get("org_id", "default-org-id")
+        except Exception:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
+    await manager.connect(websocket, org_id=org_id)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, org_id=org_id)

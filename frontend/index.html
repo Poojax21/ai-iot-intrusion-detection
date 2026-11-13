@@ -693,6 +693,7 @@
       <p>Watch the simulated fleet stream flows into the backend, surface alerts in real time, and inspect how the per-device risk profile changes as the attack mix shifts.</p>
     </div>
     <div class="status-stack">
+      <div id="auth-status" class="pill" title="Phase 6 Multi-Tenant Session"><span class="dot ok"></span><strong id="auth-role-label">Role: Analyst</strong> &middot; <span id="auth-org-label">default-org</span></div>
       <div id="conn-status" class="pill"><span class="dot"></span><strong>connecting</strong></div>
       <div id="model-status" class="pill">Checking models…</div>
       <div id="last-refresh" class="pill">Refreshing…</div>
@@ -710,15 +711,20 @@
       </div>
     </div>
     <div class="hero-card config-card">
-      <h2>Connection</h2>
+      <h2>Connection & Enterprise Auth</h2>
       <div class="config-grid">
         <div class="field">
           <label for="backend-url">Backend URL</label>
           <input id="backend-url" value="http://localhost:8000" spellcheck="false" />
         </div>
+        <div class="field">
+          <label for="jwt-token">JWT Access Token (Optional)</label>
+          <input id="jwt-token" type="password" placeholder="Bearer eyJhbGciOi..." spellcheck="false" />
+        </div>
         <div class="button-row">
           <button id="reconnect-btn" type="button">Reconnect</button>
           <button id="default-btn" type="button" class="secondary">Use local default</button>
+          <button id="clear-token-btn" type="button" class="secondary">Clear Token</button>
         </div>
       </div>
       <p class="subtle" style="margin-top:12px;">start.sh also serves this page on <span id="frontend-url">http://127.0.0.1:4173</span> while the simulator streams traffic into the backend.</p>
@@ -955,6 +961,7 @@ const TRAFFIC_PRESETS = {
 };
 const state = {
   backend: localStorage.getItem(STORAGE_KEY) || DEFAULT_BACKEND,
+  token: localStorage.getItem('pahredaar_jwt_token') || '',
   ws: null,
   reconnectTimer: null,
   health: null,
@@ -985,6 +992,9 @@ function apiUrl(path) {
 function websocketUrl() {
   const url = new URL('/ws/alerts', `${state.backend}/`);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  if (state.token) {
+    url.searchParams.set('token', state.token);
+  }
   return url.toString();
 }
 
@@ -1530,12 +1540,31 @@ function renderAttackMix(alertsByType) {
   });
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
+async function fetchJson(url, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (state.token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${state.token}`;
+  }
+  const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
   }
   return response.json();
+}
+
+async function loadUserContext() {
+  if (!state.token) {
+    document.getElementById('auth-role-label').textContent = 'Role: Analyst (Dev)';
+    document.getElementById('auth-org-label').textContent = 'default-org';
+    return;
+  }
+  try {
+    const user = await fetchJson(apiUrl('/api/auth/me'));
+    document.getElementById('auth-role-label').textContent = `Role: ${user.role}`;
+    document.getElementById('auth-org-label').textContent = user.organization_id || 'default-org';
+  } catch (err) {
+    document.getElementById('auth-role-label').textContent = 'Role: Invalid Token';
+  }
 }
 
 async function loadHealth() {
@@ -1874,7 +1903,7 @@ async function loadStats() {
 }
 
 async function refreshDashboard() {
-  const results = await Promise.allSettled([loadHealth(), loadAlerts(), loadDevices(), loadStats(), loadIncidents()]);
+  const results = await Promise.allSettled([loadHealth(), loadAlerts(), loadDevices(), loadStats(), loadIncidents(), loadUserContext()]);
   if (results.some((result) => result.status === 'fulfilled')) {
     setRefreshLabel(`Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
   }
@@ -1929,12 +1958,26 @@ function updateBackend(nextBackend) {
 
 function reconnect() {
   updateBackend(document.getElementById('backend-url').value);
+  const tokenVal = document.getElementById('jwt-token').value.trim();
+  state.token = tokenVal;
+  if (tokenVal) {
+    localStorage.setItem('pahredaar_jwt_token', tokenVal);
+  } else {
+    localStorage.removeItem('pahredaar_jwt_token');
+  }
   if (state.ws) {
     try { state.ws.close(); } catch (error) { console.debug(error); }
   }
   refreshDashboard();
   connectWebSocket();
 }
+
+document.getElementById('clear-token-btn').addEventListener('click', () => {
+  document.getElementById('jwt-token').value = '';
+  state.token = '';
+  localStorage.removeItem('pahredaar_jwt_token');
+  reconnect();
+});
 
 document.getElementById('reconnect-btn').addEventListener('click', reconnect);
 document.getElementById('default-btn').addEventListener('click', () => {
@@ -1958,6 +2001,9 @@ document.getElementById('traffic-burst-btn').addEventListener('click', () => {
 });
 
 updateBackend(state.backend);
+if (state.token) {
+  document.getElementById('jwt-token').value = state.token;
+}
 state.traffic.fleet = makeTrafficFleet();
 state.traffic.mode = document.getElementById('traffic-mode').value;
 setTrafficModeLabel(state.traffic.mode);

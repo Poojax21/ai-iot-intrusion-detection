@@ -1,77 +1,137 @@
-# Pahredaar-IoT — Production Deployment & Operations Architecture
+# Pahredaar-IoT — Enterprise Deployment & Operations Architecture
 
-**Date:** 2026-11-11  
-**Architecture:** Edge Security Gateway / Central SOC Collector  
+**Version:** Phase 6 Enterprise  
+**Architecture:** Enterprise Multi-Tenant IoT Security Platform  
 
 ---
 
 ## 1. Deployment Topologies
 
-Pahredaar-IoT supports two deployment topologies:
+Pahredaar-IoT supports two production deployment topologies:
 
-### Topology 1: Standalone Smart Gateway (Edge Deployment)
-Ideal for branch offices, smart homes, or isolated OT/ICS environments:
+### Topology 1: Standalone Gateway / Development Edge
+Ideal for local prototyping, branch offices, smart homes, or isolated OT/ICS environments:
 ```
 [IoT Devices: Cameras / Plugs / Sensors]
                  │
                  ▼
-       [Local Router / Switch]
-                 │ (SPAN / Mirror Port)
+       [Local Router / Switch] (SPAN / Mirror Port)
+                 │
                  ▼
        [Zeek Network Sensor]
-                 │ (Local pipe / conn.log)
+                 │ (Pipe / JSON stream / X-Sensor-Key)
                  ▼
     [Pahredaar-IoT Edge Box]
     ├── Ingestion API (FastAPI)
-    ├── Multi-Modal AI Engine
-    ├── Local Storage (SQLite WAL)
+    ├── Multi-Modal AI Engine (TreeSHAP + LSTM + Graph + Open-Set)
+    ├── Local Database (SQLite + aiosqlite / WAL Mode)
     └── Dashboard UI (Port 4173)
 ```
 
-### Topology 2: Distributed Multi-Sensor Collector
-Ideal for enterprise campus networks:
+### Topology 2: Distributed Multi-Tenant Enterprise Cluster
+Ideal for enterprise campus networks, managed security service providers (MSSPs), and cloud SOCs:
 ```
-[Subnet A Sensor] ──┐
-[Subnet B Sensor] ──┼──> [Pahredaar-IoT Central Appliance]
+[Subnet A Sensor] ──┐ (X-Sensor-Key: pds_...)
+[Subnet B Sensor] ──┼──> [Pahredaar-IoT Ingestion & API Cluster]
 [Subnet C Sensor] ──┘         │
-                              ├── Token-Authenticated /api/ingest
+                              ├── JWT / Role-Based Authorization
+                              ├── Multi-Tenant Scoping (organization_id)
                               ├── Hybrid ML Evaluation
-                              └── Live WebSocket Broadcast to SOC
+                              ├── Async Database Pool (PostgreSQL 16 + asyncpg)
+                              └── Partitioned WebSocket Alert Broadcast to SOC Analysts
 ```
 
 ---
 
-## 2. Health & Diagnostic Diagnostics
+## 2. Docker Compose Enterprise Stack
 
-The `/api/health` endpoint provides comprehensive diagnostic state:
-```json
-{
-  "status": "ok",
-  "api_health": "healthy",
-  "database_health": "healthy",
-  "models_loaded": true,
-  "open_set_enabled": true,
-  "open_set_version": "open_set_v1",
-  "temporal_enabled": true,
-  "temporal_version": "temporal_v1",
-  "graph_enabled": true,
-  "graph_version": "graph_v1",
-  "risk_engine_enabled": true,
-  "risk_engine_version": "hierarchical_v2",
-  "active_features": {
-    "treeshap": true,
-    "temporal": true,
-    "graph": true,
-    "hierarchical_risk": true
-  }
-}
+A reference production `docker-compose.yml` configuration:
+
+```yaml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pahredaar-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: pahredaar_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_master_password}
+      POSTGRES_DB: pahredaar_iot
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pahredaar_admin -d pahredaar_iot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pahredaar-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pahredaar_admin:${DB_PASSWORD:-secure_master_password}@db:5432/pahredaar_iot
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 15
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      ENABLE_INGEST_AUTH: "true"
+      SENSOR_RATE_LIMIT_PER_SEC: 100
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: node:20-alpine
+    container_name: pahredaar-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run build && npx serve -s dist -l 4173"
+    ports:
+      - "4173:4173"
+
+volumes:
+  pgdata:
 ```
 
 ---
 
-## 3. Production Hardening Checklist
+## 3. Database Migration Procedures
 
-1. **Explicit CORS**: Update `CORS_ORIGINS` in `.env` from `["*"]` to exact host domains.
-2. **Sensor Authentication**: Set `ENABLE_INGEST_AUTH=true` and issue distinct `API_KEY` secrets.
-3. **Database Maintenance**: SQLite runs in WAL (Write-Ahead Logging) mode. Automate daily vacuuming and online backups.
-4. **Log Retention**: Implement a log rotation schedule on `storage.py` flows table (prune flows $> 30$ days old).
+### Running Schema Migrations (Alembic)
+To upgrade schema to latest revision:
+```bash
+# Set target database URL
+export DATABASE_URL="postgresql+asyncpg://pahredaar_admin:password@localhost:5432/pahredaar_iot"
+
+# Apply migrations
+alembic upgrade head
+```
+
+### Migrating Existing SQLite Database to PostgreSQL
+To execute non-destructive data transfer with reconciliation:
+```bash
+# Dry run first to verify schema and row counts
+python backend/scripts/migrate_sqlite_to_postgres.py --sqlite-path iot_ids.db --postgres-url postgresql+asyncpg://pahredaar_admin:password@localhost:5432/pahredaar_iot --dry-run
+
+# Execute live migration with batch streaming
+python backend/scripts/migrate_sqlite_to_postgres.py --sqlite-path iot_ids.db --postgres-url postgresql+asyncpg://pahredaar_admin:password@localhost:5432/pahredaar_iot --batch-size 1000
+```
+
+---
+
+## 4. Production Security Hardening
+
+1. **Secret Management:** Store `JWT_SECRET_KEY` and database credentials in HashiCorp Vault, AWS Secrets Manager, or Kubernetes Secrets.
+2. **Explicit CORS:** Set `CORS_ORIGINS` to trusted domains (e.g., `["https://soc.enterprise.local"]`).
+3. **Sensor Key Rotation:** Rotate edge sensor API keys quarterly via `POST /api/sensors/{id}/rotate-key`.
+4. **Audit Log Retention:** Persist `/api/audit-logs` records to external SIEM (Splunk, Elastic, Datadog) for regulatory compliance (SOC2, ISO 27001).

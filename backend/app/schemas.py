@@ -76,3 +76,83 @@ class DeviceOut(BaseModel):
     risk_tier: Optional[str] = Field("LOW", description="Hierarchical risk tier: LOW | ELEVATED | HIGH | CRITICAL")
     temporal_risk: Optional[float] = Field(0.0, description="Latest temporal sequence risk (0-100)")
     graph_risk: Optional[float] = Field(0.0, description="Latest graph communication risk (0-100)")
+
+
+# --- Phase 6: Authentication, RBAC & Multi-Tenant Schemas ---
+
+class UserRegister(BaseModel):
+    email: str = Field(..., description="User corporate email address")
+    password: str = Field(..., min_length=8, description="User password (min 8 characters with complexity)")
+    full_name: str = Field(..., min_length=2, description="User full display name")
+    organization_name: str = Field(..., min_length=2, description="Name of the organization/facility to join or create")
+    organization_slug: Optional[str] = Field(None, description="Optional unique tenant slug")
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in_sec: int
+
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    role: str
+    organization_id: str
+    organization_name: str
+    is_active: bool
+    permissions: List[str] = Field(default_factory=list)
+
+
+class SensorCreate(BaseModel):
+    sensor_name: str = Field(..., min_length=2, description="Display name for network probe")
+    sensor_identifier: str = Field(..., min_length=2, description="Unique sensor hostname or serial")
+    rate_limit_per_sec: int = Field(500, ge=1, le=5000, description="Rate limit allowance in flows/sec")
+
+
+class SensorCreateResponse(BaseModel):
+    id: str
+    sensor_name: str
+    sensor_identifier: str
+    api_key: str = Field(..., description="RAW API Key shown only once. Store securely.")
+    organization_id: str
+    rate_limit_per_sec: int
+
+
+class SensorOut(BaseModel):
+    id: str
+    sensor_name: str
+    sensor_identifier: str
+    is_active: bool
+    rate_limit_per_sec: int
+    last_seen: Optional[str] = None
+    created_at: str
+
+
+class SensorRotateKeyResponse(BaseModel):
+    id: str
+    sensor_identifier: str
+    api_key: str = Field(..., description="New RAW API Key shown only once.")
+    rotated_at: str
+
+
+class AuditEventOut(BaseModel):
+    id: int
+    action: str
+    resource_type: str
+    resource_id: Optional[str]
+    timestamp: str
+    source_ip: Optional[str]
+    metadata: dict
+
