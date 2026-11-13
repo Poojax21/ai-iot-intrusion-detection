@@ -240,8 +240,8 @@ async def ingest_flow(
         org_id=org_id,
     )
 
-    # Periodic stats broadcast over WebSocket
-    if len(_ingest_timestamps) % 2 == 0:
+    # Periodic stats broadcast over WebSocket on normal flows
+    if not (result.get("is_flagged") and "attack_type" in result) and len(_ingest_timestamps) % 2 == 0:
         st = storage.get_stats(org_id=org_id)
         await manager.broadcast({
             "type": "stats",

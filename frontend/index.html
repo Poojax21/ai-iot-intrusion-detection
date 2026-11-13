@@ -52,6 +52,25 @@ code{background:var(--bg);padding:2px 6px;border-radius:4px;word-break:break-all
 .scn{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer}.scn.sel{border-color:var(--accent);background:rgba(13,124,128,.08)}.scn h3{margin:0 0 2px;font-size:13.5px}.scn p{margin:0;color:var(--mute);font-size:12px}
 .consent{display:flex;gap:8px;align-items:flex-start;background:rgba(201,50,31,.08);border:1px solid var(--crit);border-radius:6px;padding:10px;font-size:12.5px}
 .warn{border-left:4px solid var(--high);padding:8px 10px;background:rgba(217,128,26,.08);border-radius:4px;font-size:12.5px}
+/* Topology & Segment Architecture Styles */
+.topo-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.topo-seg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-top:14px}
+.zone-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.zone-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px}
+.zone-title{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.zone-dev-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px}
+.topo-dev-item{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border-radius:6px;border:1px solid var(--line);background:var(--bg);cursor:pointer;transition:border-color .15s}
+.topo-dev-item:hover{border-color:var(--accent)}
+.topo-dev-item.alerting{border-color:var(--crit);background:rgba(200,50,31,0.06)}
+.dev-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dev-meta b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.dev-meta span{font-size:11px;color:var(--mute)}
+.dev-status-pill{font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;color:#fff;white-space:nowrap}
+.topo-view-toggle{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.topo-view-toggle button{all:unset;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:600;color:var(--mute);background:var(--panel)}
+.topo-view-toggle button.active{background:var(--accent);color:#fff}
+.canvas-wrap{position:relative;border-radius:8px;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
+.canvas-legend{position:absolute;bottom:10px;left:12px;display:flex;gap:12px;font-size:11.5px;color:var(--mute);background:rgba(18,48,58,0.78);backdrop-filter:blur(4px);padding:4px 10px;border-radius:4px;pointer-events:none}
 @media(max-width:760px){#app.on{flex-direction:column}nav{width:100%;flex-direction:row;overflow-x:auto;padding:8px}.brand,.org{display:none}nav button{white-space:nowrap}main{padding:14px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head><body>
@@ -84,7 +103,54 @@ code{background:var(--bg);padding:2px 6px;border-radius:4px;word-break:break-all
 
 <section class="tab" id="devices"><div class="card tbl"><table id="dtbl"></table></div><p class="note">Risk = 0.40 flow + 0.30 novelty + 0.20 temporal + 0.10 graph, as reported by the backend risk engine. Decays automatically when no new attacks are detected.</p></section>
 <section class="tab" id="incidents"><div class="grid kpis" id="ikpi"></div><div class="card tbl"><table id="itbl"></table></div><p class="note">Alerts on one device within the correlation window are grouped by the backend into a single incident.</p></section>
-<section class="tab" id="topology"><div class="card"><h2>Device communication map</h2><canvas id="cv" height="380"></canvas><p class="note">Pulses show live attack traffic reported by the backend. Red links mark suspected lateral movement.</p></div></section>
+<section class="tab" id="topology">
+<div class="grid kpis" id="topo-kpis" style="margin-bottom:12px">
+  <div class="card kpi"><b id="topo-total-nodes">0</b><span>Monitored Nodes</span></div>
+  <div class="card kpi"><b id="topo-active-zones">4</b><span>Network Zones</span></div>
+  <div class="card kpi"><b id="topo-alerting-nodes" style="color:var(--crit)">0</b><span>Under Attack / Flagged</span></div>
+  <div class="card kpi"><b id="topo-gw-status" style="color:var(--ok)">Online</b><span>Core Gateway (192.168.1.1)</span></div>
+</div>
+
+<div class="card" style="padding:10px 14px;margin-bottom:12px">
+  <div class="topo-header">
+    <div class="row2" style="margin:0">
+      <input id="topo-search" placeholder="Filter device ID or IP…" style="width:200px;font-size:12px;padding:5px 8px">
+      <select id="topo-zone-filter" style="font-size:12px;padding:5px 8px">
+        <option value="all">All Segments &amp; Devices</option>
+        <option value="camera">Video Surveillance (Cameras)</option>
+        <option value="temp_sensor">Environmental (Sensors)</option>
+        <option value="meter">Smart Grid &amp; Meters</option>
+        <option value="controller">Actuators &amp; Controllers</option>
+        <option value="flagged">Elevated Risk Only (&gt;35%)</option>
+      </select>
+    </div>
+    <div class="row2" style="margin:0">
+      <span class="note" style="margin-right:4px">View mode:</span>
+      <div class="topo-view-toggle">
+        <button id="topo-btn-graph" class="active">Radial Topology Graph</button>
+        <button id="topo-btn-zones">Zone Architecture Map</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="topo-graph-view" class="card" style="padding:12px;margin-bottom:12px">
+  <div class="canvas-wrap">
+    <canvas id="cv" height="440"></canvas>
+    <div class="canvas-legend">
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:4px"></i>Normal</span>
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--high);margin-right:4px"></i>Suspicious (&gt;35%)</span>
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--crit);margin-right:4px"></i>Under Attack (&gt;65%)</span>
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:4px"></i>Core Gateway</span>
+    </div>
+  </div>
+  <p class="note" style="margin-top:8px">Hover over any node for telemetry. Pulsing red lines indicate active attacks or lateral movement targeting that device.</p>
+</div>
+
+<div id="topo-zones-view" style="display:none;margin-bottom:12px">
+  <div class="topo-seg-grid" id="topo-zones-container"></div>
+</div>
+</section>
 
 <section class="tab" id="lab">
 <div class="warn" style="margin-bottom:12px">This runs <b>real network traffic</b> against a real target through your backend's traffic generator (e.g. an isolated lab segment or device simulator) — nothing here is faked in the browser. Only run scenarios against devices you own or are explicitly authorized to test.</div>
@@ -476,6 +542,8 @@ function render(){
         </tr>
       `).join("") || '<tr><td colspan=4 class="note">No sensor keys yet.</td></tr>');
   }
+
+  if (tab === "topology") renderTopology();
 }
 
 function renderAlerts(){
@@ -782,60 +850,425 @@ async function pollLabRun(id){
   }, 1200);
 }
 
-/* Topology canvas */
-const basePos = [[.5,.5],[.18,.25],[.82,.25],[.2,.78],[.8,.78],[.5,.1],[.5,.9]];
+/* =====================================================================================
+   TOPOLOGY & NETWORK ARCHITECTURE CONTROLLER
+   - Anti-Collision Radial Graph with Quad-Sector Partitioning & Animated Conduits
+   - Zone Architecture Map (Swimlane Security View)
+   - Dynamic Filtering, Subnet Aggregation, and Interactive Node Inspection
+===================================================================================== */
+let topoViewMode = "graph";
+let topoFilterCat = "all";
+let topoSearchQuery = "";
+
+function renderTopology(){
+  const total = S.devs.length;
+  const recentAlertMap = {};
+  S.alerts.slice(0, 40).forEach(a => {
+    const dev = a.device || a.device_id;
+    if (dev) recentAlertMap[dev] = a;
+  });
+
+  const flagged = S.devs.filter(d => (d.risk || d.risk_score || 0) >= 35 || recentAlertMap[d.name || d.device_id || d.id]);
+  
+  const elTotal = $("#topo-total-nodes");
+  const elAlerting = $("#topo-alerting-nodes");
+  if (elTotal) elTotal.textContent = total;
+  if (elAlerting) elAlerting.textContent = flagged.length;
+
+  // Group devices into 4 security zones
+  const zones = {
+    camera: { title: "Video Surveillance Zone", icon: "📹", desc: "Security Cameras & RTSP Streams", devs: [] },
+    temp_sensor: { title: "Environmental Telemetry Zone", icon: "🌡️", desc: "Temperature, Humidity & Pressure", devs: [] },
+    meter: { title: "Smart Grid & Power Zone", icon: "⚡", desc: "Smart Meters & Energy Monitors", devs: [] },
+    controller: { title: "Industrial Control & Actuators", icon: "🔒", desc: "Smart Locks, Valves & Switches", devs: [] }
+  };
+
+  S.devs.forEach(d => {
+    const t = (d.type || d.device_type || d.name || "").toLowerCase();
+    if (t.includes("cam") || t.includes("video")) zones.camera.devs.push(d);
+    else if (t.includes("meter") || t.includes("grid") || t.includes("power")) zones.meter.devs.push(d);
+    else if (t.includes("lock") || t.includes("actuator") || t.includes("switch") || t.includes("valve")) zones.controller.devs.push(d);
+    else zones.temp_sensor.devs.push(d);
+  });
+
+  const c = $("#topo-zones-container");
+  if (!c) return;
+
+  const q = topoSearchQuery.toLowerCase();
+  c.innerHTML = Object.values(zones).map(z => {
+    let devList = z.devs.filter(d => {
+      const devId = d.name || d.device_id || d.id;
+      const ip = d.ip || "";
+      const matchQ = !q || devId.toLowerCase().includes(q) || ip.toLowerCase().includes(q);
+      if (!matchQ) return false;
+      if (topoFilterCat === "flagged") return (d.risk || d.risk_score || 0) >= 35 || recentAlertMap[devId];
+      return true;
+    });
+
+    const devHtml = devList.map(d => {
+      const devId = d.name || d.device_id || d.id;
+      const alert = recentAlertMap[devId];
+      const isAlerting = Boolean(alert || (d.risk || d.risk_score || 0) >= 65);
+      const r = Math.round(d.risk || d.risk_score || 0);
+      const sevLabel = r >= 65 ? "Critical" : (r >= 35 ? "Warning" : "Normal");
+      const shortId = devId.length > 20 ? devId.slice(0, 18) + "…" : devId;
+      return `
+        <div class="topo-dev-item ${isAlerting ? 'alerting' : ''}" data-dev="${esc(devId)}" data-alert="${alert ? esc(alert.id) : ''}">
+          <div class="dev-meta">
+            <b>${esc(shortId)}</b>
+            <span>${esc(d.ip || "192.168.1.x")} · ${d.flow_count || 1} flows ${alert ? `· 🚨 ${esc(alert.type || alert.attack_type)}` : ''}</span>
+          </div>
+          <span class="dev-status-pill" style="background:${r>=65?'var(--crit)':(r>=35?'var(--high)':'var(--ok)')}">${r}% ${sevLabel}</span>
+        </div>
+      `;
+    }).join("") || '<p class="note" style="padding:10px 0">No matching devices in this zone.</p>';
+
+    return `
+      <div class="zone-card">
+        <div class="zone-head">
+          <div class="zone-title"><span>${z.icon}</span> <span>${z.title}</span></div>
+          <span class="pill">${z.devs.length} devices</span>
+        </div>
+        <span class="note">${z.desc}</span>
+        <div class="zone-dev-list">${devHtml}</div>
+      </div>
+    `;
+  }).join("");
+
+  c.querySelectorAll(".topo-dev-item").forEach(el => {
+    el.onclick = () => {
+      const alertId = el.dataset.alert;
+      const devId = el.dataset.dev;
+      if (alertId) openAlert(alertId);
+      else {
+        toast(`Device ${devId} is normal with no active incident.`);
+      }
+    };
+  });
+}
+
 function topo(){
   requestAnimationFrame(topo);
   const topoTab = $("#topology");
-  if (!topoTab || !topoTab.classList.contains("on")) return;
+  if (!topoTab || !topoTab.classList.contains("on") || topoViewMode !== "graph") return;
   const c = $("#cv");
   if (!c) return;
-  const w = c.clientWidth, h = 380, d = devicePixelRatio || 1;
-  c.width = w*d; c.height = h*d;
+
+  const w = c.clientWidth, h = 440, d = devicePixelRatio || 1;
+  if (!w) return;
+  c.width = w * d;
+  c.height = h * d;
   const x = c.getContext("2d");
   x.scale(d, d);
 
-  const st = getComputedStyle(document.documentElement), T = Date.now()/1000;
-  const pos = [basePos[0], ...S.devs.map((_, i) => basePos[(i%6)+1] || [.5,.5])];
-  const P = i => [pos[i][0]*w + (i ? Math.sin(T+i)*5 : 0), pos[i][1]*h + (i ? Math.cos(T*.8+i)*5 : 0)];
+  const st = getComputedStyle(document.documentElement);
+  const T = Date.now() / 1000;
+  const cx = w / 2, cy = h / 2;
 
-  S.devs.forEach((_, i) => {
-    const a = P(0), b = P(i+1);
-    x.strokeStyle = st.getPropertyValue("--line");
-    x.lineWidth = 1.5;
+  // Background
+  x.fillStyle = st.getPropertyValue("--panel");
+  x.fillRect(0, 0, w, h);
+
+  // Soft orbital radar lines
+  x.strokeStyle = st.getPropertyValue("--line");
+  x.lineWidth = 1;
+  x.setLineDash([4, 4]);
+  [100, 165].forEach(r => {
     x.beginPath();
-    x.moveTo(...a);
-    x.lineTo(...b);
+    x.arc(cx, cy, r, 0, Math.PI * 2);
     x.stroke();
   });
+  x.setLineDash([]);
 
-  const ns = [{name: "gateway", risk: 0, i: 0}, ...S.devs.map((d, i) => ({name: d.name || d.device_id, risk: d.risk || d.risk_score || 0, i: i+1}))];
-  ns.forEach(n => {
-    const p = P(n.i);
-    n.p = p;
-    const color = n.i ? rc(n.risk) : "var(--accent)";
-    x.fillStyle = color.startsWith("var") ? st.getPropertyValue(color.slice(4,-1)) : color;
-    x.beginPath();
-    x.arc(p[0], p[1], n.i ? 11 : 16, 0, 7);
-    x.fill();
-    x.fillStyle = st.getPropertyValue("--ink");
-    x.font = "12px sans-serif";
-    x.textAlign = "center";
-    x.fillText(n.name, p[0], p[1]+28);
+  // Filter devices
+  const q = topoSearchQuery.toLowerCase();
+  let devs = S.devs.filter(dev => {
+    const id = (dev.name || dev.device_id || dev.id || "").toLowerCase();
+    const ip = (dev.ip || "").toLowerCase();
+    const type = (dev.type || dev.device_type || "").toLowerCase();
+    const matchQ = !q || id.includes(q) || ip.includes(q);
+    if (!matchQ) return false;
+    if (topoFilterCat === "flagged") return (dev.risk || dev.risk_score || 0) >= 35;
+    if (topoFilterCat === "camera") return type.includes("cam") || type.includes("video");
+    if (topoFilterCat === "temp_sensor") return type.includes("temp") || type.includes("sensor");
+    if (topoFilterCat === "meter") return type.includes("meter") || type.includes("grid");
+    if (topoFilterCat === "controller") return type.includes("lock") || type.includes("actuator") || type.includes("switch");
+    return true;
   });
-  c._n = ns;
+
+  // 4 Quadrants / Sectors
+  const sectors = [
+    { name: "Surveillance", icon: "📹", start: 195, end: 255, devs: [] },
+    { name: "Environmental", icon: "🌡️", start: 285, end: 345, devs: [] },
+    { name: "Smart Grid", icon: "⚡", start: 15, end: 75, devs: [] },
+    { name: "Controllers", icon: "🔒", start: 105, end: 165, devs: [] }
+  ];
+
+  devs.forEach(d => {
+    const t = (d.type || d.device_type || d.name || "").toLowerCase();
+    if (t.includes("cam") || t.includes("video")) sectors[0].devs.push(d);
+    else if (t.includes("meter") || t.includes("grid") || t.includes("power")) sectors[2].devs.push(d);
+    else if (t.includes("lock") || t.includes("actuator") || t.includes("switch") || t.includes("valve")) sectors[3].devs.push(d);
+    else sectors[1].devs.push(d);
+  });
+
+  const recentAlertMap = {};
+  S.alerts.slice(0, 30).forEach(a => {
+    recentAlertMap[a.device || a.device_id] = a;
+  });
+
+  const nodes = [{
+    id: "gateway",
+    name: "Core Gateway",
+    ip: "192.168.1.1",
+    type: "gateway",
+    risk: 0,
+    x: cx,
+    y: cy,
+    isGateway: true
+  }];
+
+  // Arrange nodes inside sectors with guaranteed anti-collision
+  sectors.forEach(sec => {
+    const count = sec.devs.length;
+    if (!count) return;
+
+    // Show up to 8 distinct nodes per sector directly, with overflow pill if more
+    const maxShow = 8;
+    const toRender = sec.devs.slice(0, maxShow);
+    const overflow = count - toRender.length;
+
+    toRender.forEach((d, i) => {
+      // Stagger between inner ring (100px) and outer ring (165px)
+      const ring = (i % 2 === 0) ? 100 : 165;
+      const step = count > 1 ? (sec.end - sec.start) / Math.max(1, toRender.length - 1) : 0;
+      const deg = count === 1 ? (sec.start + sec.end) / 2 : sec.start + (i * step);
+      const rad = deg * (Math.PI / 180);
+
+      const nx = cx + Math.cos(rad) * ring;
+      const ny = cy + Math.sin(rad) * ring;
+      const devId = d.name || d.device_id || d.id;
+      const alert = recentAlertMap[devId];
+
+      nodes.push({
+        id: devId,
+        name: devId,
+        ip: d.ip || "192.168.1.x",
+        type: d.type || d.device_type || "IoT",
+        risk: d.risk || d.risk_score || 0,
+        flow_count: d.flow_count || 1,
+        alert: alert,
+        x: nx,
+        y: ny,
+        isGateway: false
+      });
+    });
+
+    if (overflow > 0) {
+      const rad = ((sec.start + sec.end) / 2) * (Math.PI / 180);
+      const nx = cx + Math.cos(rad) * 205;
+      const ny = cy + Math.sin(rad) * 205;
+      nodes.push({
+        id: "cluster_" + sec.name,
+        name: `+${overflow} more`,
+        ip: `${overflow} devices`,
+        type: sec.name,
+        risk: 0,
+        x: nx,
+        y: ny,
+        isCluster: true
+      });
+    }
+  });
+
+  // 1. Draw connecting conduits (Lines & animated traffic packets)
+  nodes.forEach(n => {
+    if (n.isGateway) return;
+    const hasAlert = Boolean(n.alert || n.risk >= 65);
+    x.beginPath();
+    x.moveTo(cx, cy);
+    x.lineTo(n.x, n.y);
+
+    if (hasAlert) {
+      x.strokeStyle = st.getPropertyValue("--crit");
+      x.lineWidth = 2.2;
+    } else {
+      x.strokeStyle = "rgba(13, 124, 128, 0.22)";
+      x.lineWidth = 1.2;
+    }
+    x.stroke();
+
+    // Data packet animations along line
+    const progress = ((T * (hasAlert ? 1.6 : 0.6) + (n.x * 0.05)) % 1);
+    const px = cx + (n.x - cx) * progress;
+    const py = cy + (n.y - cy) * progress;
+    x.beginPath();
+    x.arc(px, py, hasAlert ? 3.5 : 2, 0, Math.PI * 2);
+    x.fillStyle = hasAlert ? st.getPropertyValue("--crit") : st.getPropertyValue("--accent");
+    x.fill();
+  });
+
+  // 2. Draw Gateway Hub
+  const gwAura = Math.sin(T * 2.5) * 4 + 22;
+  x.beginPath();
+  x.arc(cx, cy, gwAura, 0, Math.PI * 2);
+  x.fillStyle = "rgba(13, 124, 128, 0.15)";
+  x.fill();
+
+  x.beginPath();
+  x.arc(cx, cy, 18, 0, Math.PI * 2);
+  x.fillStyle = st.getPropertyValue("--accent");
+  x.fill();
+
+  x.fillStyle = "#fff";
+  x.font = "bold 10px sans-serif";
+  x.textAlign = "center";
+  x.textBaseline = "middle";
+  x.fillText("GW", cx, cy);
+
+  // Gateway pill badge
+  x.fillStyle = "rgba(18, 48, 58, 0.88)";
+  x.beginPath();
+  x.roundRect ? x.roundRect(cx - 48, cy + 24, 96, 18, 4) : x.rect(cx - 48, cy + 24, 96, 18);
+  x.fill();
+  x.strokeStyle = st.getPropertyValue("--accent");
+  x.lineWidth = 1;
+  x.stroke();
+  x.fillStyle = "#cfe0e4";
+  x.font = "10.5px sans-serif";
+  x.fillText("192.168.1.1 (Core)", cx, cy + 33);
+
+  // 3. Draw Device Nodes
+  nodes.forEach(n => {
+    if (n.isGateway) return;
+
+    const hasAlert = Boolean(n.alert || n.risk >= 65);
+    const isWarn = n.risk >= 35 && !hasAlert;
+
+    // Glowing alert ring for infected nodes
+    if (hasAlert) {
+      const ringPulse = Math.sin(T * 4 + n.x) * 4 + 16;
+      x.beginPath();
+      x.arc(n.x, n.y, ringPulse, 0, Math.PI * 2);
+      x.strokeStyle = st.getPropertyValue("--crit");
+      x.lineWidth = 2;
+      x.stroke();
+    }
+
+    // Node body
+    x.beginPath();
+    x.arc(n.x, n.y, n.isCluster ? 9 : 11, 0, Math.PI * 2);
+    if (n.isCluster) {
+      x.fillStyle = st.getPropertyValue("--mute");
+    } else if (hasAlert) {
+      x.fillStyle = st.getPropertyValue("--crit");
+    } else if (isWarn) {
+      x.fillStyle = st.getPropertyValue("--high");
+    } else {
+      x.fillStyle = st.getPropertyValue("--ok");
+    }
+    x.fill();
+
+    // Node label pill with solid background (Zero smear!)
+    const cleanLabel = n.name.length > 12 ? n.name.slice(0, 10) + "…" : n.name;
+    const pillW = Math.max(56, cleanLabel.length * 6.5 + 14);
+    const pillH = 17;
+    const pillX = n.x - pillW / 2;
+    const pillY = n.y + 14;
+
+    x.fillStyle = "rgba(18, 48, 58, 0.88)";
+    x.beginPath();
+    x.roundRect ? x.roundRect(pillX, pillY, pillW, pillH, 4) : x.rect(pillX, pillY, pillW, pillH);
+    x.fill();
+    x.strokeStyle = hasAlert ? st.getPropertyValue("--crit") : st.getPropertyValue("--line");
+    x.lineWidth = 1;
+    x.stroke();
+
+    x.fillStyle = "#fff";
+    x.font = "10.5px sans-serif";
+    x.textAlign = "center";
+    x.textBaseline = "middle";
+    x.fillText(cleanLabel, n.x, pillY + pillH / 2);
+  });
+
+  c._nodes = nodes;
 }
 
-$("#cv").addEventListener("mousemove", e => {
-  const c = e.target, r = c.getBoundingClientRect(), mx = e.clientX-r.left, my = e.clientY-r.top;
-  const n = (c._n || []).find(n => Math.hypot(n.p[0]-mx, n.p[1]-my) < 16), t = $("#tip");
-  if (n && n.i){
-    t.style.display = "block";
-    t.style.left = e.clientX+12+"px";
-    t.style.top = e.clientY+12+"px";
-    t.textContent = n.name + " · risk " + n.risk;
-  } else t.style.display = "none";
-});
+// Tooltip and click interactions on canvas
+const cvEl = $("#cv");
+if (cvEl) {
+  cvEl.addEventListener("mousemove", e => {
+    const c = e.target, r = c.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    const n = (c._nodes || []).find(n => Math.hypot(n.x - mx, n.y - my) < 22);
+    const t = $("#tip");
+    if (n && !n.isGateway) {
+      t.style.display = "block";
+      t.style.left = e.clientX + 14 + "px";
+      t.style.top = e.clientY + 14 + "px";
+      t.innerHTML = `<b>${esc(n.name)}</b><br>${esc(n.ip)} · Type: ${esc(n.type)}<br>Risk: ${Math.round(n.risk)}% ${n.alert ? `<br><span style="color:var(--crit)">🚨 ${esc(n.alert.type || n.alert.attack_type)}</span>` : ""}`;
+    } else {
+      t.style.display = "none";
+    }
+  });
+
+  cvEl.addEventListener("click", e => {
+    const c = e.target, r = c.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    const n = (c._nodes || []).find(n => Math.hypot(n.x - mx, n.y - my) < 22);
+    if (n && !n.isGateway) {
+      if (n.alert) openAlert(n.alert.id);
+      else toast(`Device ${n.name} (${n.ip}) is normal.`);
+    }
+  });
+
+  cvEl.addEventListener("mouseleave", () => {
+    const t = $("#tip");
+    if (t) t.style.display = "none";
+  });
+}
+
+// View toggle and filter listeners
+const btnGraph = $("#topo-btn-graph");
+const btnZones = $("#topo-btn-zones");
+const viewGraph = $("#topo-graph-view");
+const viewZones = $("#topo-zones-view");
+
+if (btnGraph && btnZones) {
+  btnGraph.onclick = () => {
+    topoViewMode = "graph";
+    btnGraph.classList.add("active");
+    btnZones.classList.remove("active");
+    if (viewGraph) viewGraph.style.display = "block";
+    if (viewZones) viewZones.style.display = "none";
+  };
+
+  btnZones.onclick = () => {
+    topoViewMode = "zones";
+    btnZones.classList.add("active");
+    btnGraph.classList.remove("active");
+    if (viewGraph) viewGraph.style.display = "none";
+    if (viewZones) viewZones.style.display = "block";
+    renderTopology();
+  };
+}
+
+const inputSearch = $("#topo-search");
+if (inputSearch) {
+  inputSearch.addEventListener("input", e => {
+    topoSearchQuery = e.target.value.trim();
+    if (topoViewMode === "zones") renderTopology();
+  });
+}
+
+const selectFilter = $("#topo-zone-filter");
+if (selectFilter) {
+  selectFilter.addEventListener("change", e => {
+    topoFilterCat = e.target.value;
+    if (topoViewMode === "zones") renderTopology();
+  });
+}
+
 requestAnimationFrame(topo);
 
 /* Tabs setup */
