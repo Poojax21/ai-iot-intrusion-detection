@@ -91,6 +91,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+    organization: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -98,6 +99,8 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in_sec: int
+    user: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class TokenRefreshRequest(BaseModel):
@@ -116,8 +119,9 @@ class UserOut(BaseModel):
 
 
 class SensorCreate(BaseModel):
-    sensor_name: str = Field(..., min_length=2, description="Display name for network probe")
-    sensor_identifier: str = Field(..., min_length=2, description="Unique sensor hostname or serial")
+    sensor_name: Optional[str] = None
+    name: Optional[str] = None
+    sensor_identifier: Optional[str] = None
     rate_limit_per_sec: int = Field(500, ge=1, le=5000, description="Rate limit allowance in flows/sec")
 
 
@@ -128,6 +132,9 @@ class SensorCreateResponse(BaseModel):
     api_key: str = Field(..., description="RAW API Key shown only once. Store securely.")
     organization_id: str
     rate_limit_per_sec: int
+    name: Optional[str] = None
+    key: Optional[str] = None
+    prefix: Optional[str] = None
 
 
 class SensorOut(BaseModel):
@@ -138,6 +145,9 @@ class SensorOut(BaseModel):
     rate_limit_per_sec: int
     last_seen: Optional[str] = None
     created_at: str
+    name: Optional[str] = None
+    prefix: Optional[str] = None
+    status: Optional[str] = None
 
 
 class SensorRotateKeyResponse(BaseModel):

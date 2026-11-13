@@ -331,8 +331,67 @@ def list_alerts(limit=100, org_id: Optional[str] = None, device_id: Optional[str
             except Exception:
                 d["risk_breakdown"] = {}
             d["is_unknown"] = bool(d.get("is_unknown", 0))
+            d["device"] = d.get("device_id")
+            d["ip"] = d.get("src_ip")
+            d["type"] = d.get("attack_type")
+            d["confidence"] = float(d.get("gate_score", 0.0))
+            raw_sev = str(d.get("severity") or "info").lower()
+            if d.get("is_unknown"):
+                d["sev"] = "Zero-day"
+            elif raw_sev in ("critical", "high", "medium", "low"):
+                d["sev"] = raw_sev.capitalize()
+            else:
+                d["sev"] = "Medium"
+            # Maintain exact lowercase / raw severity for test assertions
+            d["severity"] = d.get("severity") or raw_sev
+            d["shap"] = [
+                {"feature": item.get("feature", "feature"), "value": float(item.get("contribution", item.get("value", 0.0)))}
+                for item in d.get("shap_values", []) if isinstance(item, dict)
+            ]
             out.append(d)
         return out
+
+
+def get_alert(alert_id: int, org_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    with _lock, db_session() as conn:
+        if org_id:
+            row = conn.execute("SELECT * FROM alerts WHERE id=? AND organization_id=?", (alert_id, org_id)).fetchone()
+        else:
+            row = conn.execute("SELECT * FROM alerts WHERE id=?", (alert_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["top_features"] = json.loads(d["top_features"])
+        d["raw_flow"] = json.loads(d["raw_flow"])
+        try:
+            d["shap_values"] = json.loads(d.get("shap_values") or "[]")
+        except Exception:
+            d["shap_values"] = []
+        try:
+            d["reason_codes"] = json.loads(d.get("reason_codes") or "[]")
+        except Exception:
+            d["reason_codes"] = []
+        try:
+            d["risk_breakdown"] = json.loads(d.get("risk_breakdown") or "{}")
+        except Exception:
+            d["risk_breakdown"] = {}
+        d["is_unknown"] = bool(d.get("is_unknown", 0))
+        d["device"] = d.get("device_id")
+        d["ip"] = d.get("src_ip")
+        d["type"] = d.get("attack_type")
+        d["confidence"] = float(d.get("gate_score", 0.0))
+        raw_sev = str(d.get("severity") or "info").lower()
+        if d.get("is_unknown"):
+            d["sev"] = "Zero-day"
+            d["severity"] = "Zero-day"
+        else:
+            d["sev"] = raw_sev.capitalize()
+            d["severity"] = raw_sev.capitalize()
+        d["shap"] = [
+            {"feature": item.get("feature", "feature"), "value": float(item.get("contribution", item.get("value", 0.0)))}
+            for item in d.get("shap_values", []) if isinstance(item, dict)
+        ]
+        return d
 
 
 def list_devices(org_id: Optional[str] = None):
@@ -341,7 +400,15 @@ def list_devices(org_id: Optional[str] = None):
             rows = conn.execute("SELECT * FROM devices WHERE organization_id=? ORDER BY risk_score DESC", (org_id,)).fetchall()
         else:
             rows = conn.execute("SELECT * FROM devices ORDER BY risk_score DESC").fetchall()
-        return [dict(r) for r in rows]
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["id"] = d.get("device_id")
+            d["name"] = d.get("device_id")
+            d["type"] = d.get("device_type", "IoT Node")
+            d["risk"] = round(float(d.get("risk_score", 0.0)))
+            out.append(d)
+        return out
 
 
 def get_device(device_id: str, org_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -372,7 +439,21 @@ def list_incidents(status: Optional[str] = None, limit: int = 500, org_id: Optio
         query += " ORDER BY last_seen DESC LIMIT ?"
         params.append(limit)
         rows = conn.execute(query, tuple(params)).fetchall()
-        return [dict(r) for r in rows]
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["id"] = d.get("incident_id") or str(d.get("id"))
+            d["device"] = d.get("device_id")
+            d["state"] = d.get("status")
+            raw_sev = str(d.get("severity", "medium")).lower()
+            d["severity"] = d.get("severity") or raw_sev
+            d["sev"] = raw_sev.capitalize()
+            d["opened_at"] = d.get("first_seen")
+            d["ack_at"] = d.get("acknowledged_at")
+            d["resolved_at"] = d.get("resolved_at")
+            d["alert_ids"] = list(range(d.get("alert_count", 1)))
+            out.append(d)
+        return out
 
 
 def acknowledge_incident(incident_id: str, ts: Optional[float] = None, org_id: Optional[str] = None) -> bool:

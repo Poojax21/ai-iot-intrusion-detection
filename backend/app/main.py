@@ -65,6 +65,7 @@ from .auth.dependencies import (
 )
 from .api.auth import router as auth_router
 from .api.sensors import router as sensors_router
+from .api.lab import router as lab_router
 
 logger = setup_logging(settings.LOG_LEVEL, settings.LOG_JSON)
 
@@ -80,6 +81,7 @@ app.add_middleware(
 # Include Subrouters
 app.include_router(auth_router)
 app.include_router(sensors_router)
+app.include_router(lab_router)
 
 storage.init_db()
 
@@ -238,6 +240,18 @@ async def ingest_flow(
         org_id=org_id,
     )
 
+    # Periodic stats broadcast over WebSocket
+    if len(_ingest_timestamps) % 2 == 0:
+        st = storage.get_stats(org_id=org_id)
+        await manager.broadcast({
+            "type": "stats",
+            "stats": {
+                "flows_per_sec": len(_ingest_timestamps),
+                "total_flows": st.get("total_flows", 0),
+                "total_alerts": st.get("total_alerts", 0),
+            }
+        }, org_id=org_id)
+
     alert_payload = None
     if result.get("is_flagged") and "attack_type" in result:
         attack_type = result["attack_type"]
@@ -294,8 +308,25 @@ async def ingest_flow(
                 "risk_breakdown": risk_breakdown,
                 "organization_id": org_id,
             }
+            alert_obj = dict(alert_payload)
+            alert_obj["id"] = alert_id
+            alert_obj["device"] = alert_payload["device_id"]
+            alert_obj["ip"] = alert_payload["src_ip"]
+            alert_obj["type"] = alert_payload["attack_type"]
+            raw_s = str(alert_payload.get("severity", "info")).lower()
+            if alert_payload.get("is_unknown"):
+                alert_obj["severity"] = "Zero-day"
+                alert_obj["sev"] = "Zero-day"
+            else:
+                alert_obj["severity"] = raw_s.capitalize()
+                alert_obj["sev"] = raw_s.capitalize()
+            alert_obj["confidence"] = float(alert_payload.get("gate_score", 0.0))
+            alert_obj["shap"] = [
+                {"feature": item.get("feature", "feature"), "value": float(item.get("contribution", item.get("value", 0.0)))}
+                for item in alert_payload.get("shap_values", []) if isinstance(item, dict)
+            ]
             # Broadcast strictly to subscribers in the same organization
-            await manager.broadcast({"type": "alert", "data": alert_payload}, org_id=org_id)
+            await manager.broadcast({"type": "alert", "alert": alert_obj, "data": alert_obj}, org_id=org_id)
 
     return {
         "flagged": result.get("is_flagged", False),
@@ -325,6 +356,20 @@ def get_alerts(
 ):
     org_id = current_user.organization_id if current_user else None
     return storage.list_alerts(limit=limit, org_id=org_id, device_id=device_id, severity=severity)
+
+
+@app.get("/api/alerts/{alert_id}")
+def get_alert_detail(alert_id: int, current_user: Optional[User] = Depends(get_current_user_optional)):
+    org_id = current_user.organization_id if current_user else None
+    a = storage.get_alert(alert_id, org_id=org_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return a
+
+
+@app.post("/api/alerts/{alert_id}/feedback")
+def submit_alert_feedback(alert_id: int, payload: dict, current_user: Optional[User] = Depends(get_current_user_optional)):
+    return {"status": "ok", "alert_id": alert_id, "feedback": payload}
 
 
 @app.get("/api/devices")
@@ -399,6 +444,21 @@ def resolve_incident(
             detail=f"Incident {incident_id} not found",
         )
     return {"status": "resolved", "incident_id": incident_id}
+
+
+@app.patch("/api/incidents/{incident_id}")
+def patch_incident(incident_id: str, payload: dict, current_user: Optional[User] = Depends(get_current_user_optional)):
+    org_id = current_user.organization_id if current_user else None
+    target_state = payload.get("state")
+    if target_state == "ACKNOWLEDGED":
+        storage.acknowledge_incident(incident_id, org_id=org_id)
+    elif target_state == "RESOLVED":
+        storage.resolve_incident(incident_id, notes=payload.get("notes", ""), org_id=org_id)
+    incs = storage.list_incidents(limit=200, org_id=org_id)
+    for inc in incs:
+        if inc.get("incident_id") == incident_id or str(inc.get("id")) == str(incident_id):
+            return inc
+    return {"id": incident_id, "state": target_state}
 
 
 @app.get("/api/incidents/metrics")

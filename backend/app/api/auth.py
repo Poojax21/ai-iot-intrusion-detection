@@ -105,6 +105,8 @@ async def register(payload: UserRegister, request: Request, db: AsyncSession = D
         refresh_token=raw_rt,
         token_type="bearer",
         expires_in_sec=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=user.email,
+        organization=user.organization.name if user.organization else (user.organization_id or "default-org"),
     )
 
 
@@ -170,6 +172,8 @@ async def login(payload: UserLogin, request: Request, db: AsyncSession = Depends
         refresh_token=raw_rt,
         token_type="bearer",
         expires_in_sec=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=user.email,
+        organization=user.organization.name if user.organization else (user.organization_id or "default-org"),
     )
 
 
