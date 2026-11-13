@@ -28,6 +28,8 @@ from collections import deque
 import json
 import threading
 import time
+import warnings
+warnings.filterwarnings("ignore")
 from typing import Any, Dict, List, Optional
 
 from fastapi import (
@@ -317,16 +319,27 @@ async def ingest_flow(
 @app.get("/api/alerts")
 def get_alerts(
     limit: int = 100,
+    device_id: Optional[str] = None,
+    severity: Optional[str] = None,
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     org_id = current_user.organization_id if current_user else None
-    return storage.list_alerts(limit=limit, org_id=org_id)
+    return storage.list_alerts(limit=limit, org_id=org_id, device_id=device_id, severity=severity)
 
 
 @app.get("/api/devices")
 def get_devices(current_user: Optional[User] = Depends(get_current_user_optional)):
     org_id = current_user.organization_id if current_user else None
     return storage.list_devices(org_id=org_id)
+
+
+@app.get("/api/devices/{device_id}")
+def get_device(device_id: str, current_user: Optional[User] = Depends(get_current_user_optional)):
+    org_id = current_user.organization_id if current_user else None
+    device = storage.get_device(device_id, org_id=org_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return device
 
 
 @app.get("/api/stats")
@@ -338,11 +351,12 @@ def get_stats(current_user: Optional[User] = Depends(get_current_user_optional))
 @app.get("/api/incidents")
 def get_incidents(
     status: Optional[str] = None,
-    limit: int = 50,
+    device_id: Optional[str] = None,
+    limit: int = 200,
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     org_id = current_user.organization_id if current_user else None
-    return storage.list_incidents(status=status, limit=limit, org_id=org_id)
+    return storage.list_incidents(status=status, limit=limit, org_id=org_id, device_id=device_id)
 
 
 @app.post("/api/incidents/{incident_id}/acknowledge")

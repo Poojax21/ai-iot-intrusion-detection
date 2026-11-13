@@ -294,12 +294,25 @@ def _touch_device(conn, flow: dict, bump_alert: bool,
         )
 
 
-def list_alerts(limit=100, org_id: Optional[str] = None):
+def list_alerts(limit=100, org_id: Optional[str] = None, device_id: Optional[str] = None, severity: Optional[str] = None):
     with _lock, db_session() as conn:
+        query = "SELECT * FROM alerts"
+        clauses = []
+        params = []
         if org_id:
-            rows = conn.execute("SELECT * FROM alerts WHERE organization_id=? ORDER BY id DESC LIMIT ?", (org_id, limit)).fetchall()
-        else:
-            rows = conn.execute("SELECT * FROM alerts ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            clauses.append("organization_id=?")
+            params.append(org_id)
+        if device_id:
+            clauses.append("device_id=?")
+            params.append(device_id)
+        if severity:
+            clauses.append("LOWER(severity)=?")
+            params.append(severity.lower())
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY id DESC LIMIT ?"
+        params.append(limit)
+        rows = conn.execute(query, tuple(params)).fetchall()
         out = []
         for r in rows:
             d = dict(r)
@@ -331,7 +344,16 @@ def list_devices(org_id: Optional[str] = None):
         return [dict(r) for r in rows]
 
 
-def list_incidents(status: Optional[str] = None, limit: int = 50, org_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_device(device_id: str, org_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    with _lock, db_session() as conn:
+        if org_id:
+            row = conn.execute("SELECT * FROM devices WHERE device_id=? AND organization_id=?", (device_id, org_id)).fetchone()
+        else:
+            row = conn.execute("SELECT * FROM devices WHERE device_id=?", (device_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def list_incidents(status: Optional[str] = None, limit: int = 500, org_id: Optional[str] = None, device_id: Optional[str] = None) -> List[Dict[str, Any]]:
     with _lock, db_session() as conn:
         query = "SELECT * FROM incidents"
         clauses = []
@@ -339,6 +361,9 @@ def list_incidents(status: Optional[str] = None, limit: int = 50, org_id: Option
         if org_id:
             clauses.append("organization_id=?")
             params.append(org_id)
+        if device_id:
+            clauses.append("device_id=?")
+            params.append(device_id)
         if status:
             clauses.append("status=?")
             params.append(status)

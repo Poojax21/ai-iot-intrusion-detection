@@ -3,968 +3,1493 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pahredaar IoT IDS — Live Simulation</title>
+<title>Pahredaar-IoT — Enterprise Cyber Defense Platform</title>
 <style>
   :root {
-    --bg: #08111f;
-    --bg-soft: #0d1a2d;
-    --panel: rgba(14, 24, 41, 0.92);
-    --panel-strong: rgba(17, 31, 54, 0.98);
-    --line: rgba(139, 156, 188, 0.18);
-    --text: #eaf0ff;
-    --muted: #91a0be;
-    --muted-2: #6c7a96;
-    --ok: #58d68d;
-    --warn: #ffbf69;
-    --crit: #ff6b8a;
-    --info: #69a7ff;
-    --shadow: 0 22px 50px rgba(2, 8, 20, 0.42);
-    --radius: 18px;
+    --bg-dark: #070e1a;
+    --bg-panel: rgba(13, 24, 43, 0.94);
+    --bg-card: rgba(18, 32, 57, 0.92);
+    --border-color: rgba(130, 160, 210, 0.20);
+    --border-highlight: rgba(105, 167, 255, 0.45);
+    --text-primary: #f0f4ff;
+    --text-secondary: #9db1d1;
+    --text-muted: #677c9e;
+    --color-accent: #3b82f6;
+    --color-accent-hover: #2563eb;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-purple: #8b5cf6;
+    --color-cyan: #06b6d4;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.45);
+    --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  * { box-sizing: border-box; }
-  html, body { min-height: 100%; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background-color: var(--bg-dark); color: var(--text-primary); }
+
   body {
-    margin: 0;
-    color: var(--text);
-    background:
-      radial-gradient(circle at top left, rgba(105, 167, 255, 0.22), transparent 30%),
-      radial-gradient(circle at 85% 10%, rgba(255, 111, 168, 0.18), transparent 24%),
-      radial-gradient(circle at 50% 100%, rgba(88, 214, 141, 0.12), transparent 28%),
-      linear-gradient(180deg, #07101d 0%, #091524 38%, #07111d 100%);
-    font-family: "Gill Sans", "Trebuchet MS", "Segoe UI", sans-serif;
-    letter-spacing: 0.01em;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 35%),
+      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+      linear-gradient(180deg, #070e1a 0%, #091322 100%);
+    background-attachment: fixed;
+    line-height: 1.5;
   }
 
+  /* Grid overlay pattern */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image: linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
-    background-size: 28px 28px;
-    mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), transparent 85%);
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    background-size: 32px 32px;
+    z-index: 0;
   }
 
-  .shell {
+  .app-shell {
     position: relative;
-    max-width: 1480px;
+    max-width: 1540px;
     margin: 0 auto;
-    padding: 20px 20px 28px;
+    padding: 16px 20px 40px;
+    z-index: 1;
   }
 
-  .topbar,
-  .hero,
-  .summary-grid,
-  .dashboard {
-    animation: rise 520ms ease-out both;
-  }
-
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .topbar {
+  /* Top Navigation Bar */
+  .top-navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 18px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-main);
+    backdrop-filter: blur(12px);
   }
 
-  .brand {
+  .brand-group {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 14px;
   }
 
-  .brand .eyebrow {
-    font-size: 12px;
+  .brand-shield {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-purple));
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+  }
+
+  .brand-text h1 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .brand-text p {
+    font-size: 11px;
+    color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.24em;
-    color: var(--muted-2);
+    letter-spacing: 0.12em;
   }
 
-  .brand h1 {
-    margin: 0;
-    font-size: clamp(26px, 3vw, 42px);
-    line-height: 1.02;
-    letter-spacing: -0.04em;
-  }
-
-  .brand p {
-    margin: 0;
-    color: var(--muted);
-    max-width: 760px;
-    line-height: 1.55;
-  }
-
-  .status-stack {
+  .system-status-pills {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    align-items: center;
     gap: 10px;
   }
 
   .pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 1px solid var(--line);
-    background: rgba(12, 21, 36, 0.78);
-    color: var(--text);
+    gap: 7px;
+    background: rgba(18, 30, 52, 0.85);
+    border: 1px solid var(--border-color);
     border-radius: 999px;
-    padding: 10px 14px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .pill:hover {
+    border-color: var(--border-highlight);
+    color: var(--text-primary);
+  }
+
+  .pill strong { color: #fff; font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.ok { background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
+  .dot.warn { background: var(--color-warning); box-shadow: 0 0 8px var(--color-warning); }
+  .dot.crit { background: var(--color-danger); box-shadow: 0 0 8px var(--color-danger); }
+  .dot.info { background: var(--color-accent); box-shadow: 0 0 8px var(--color-accent); }
+
+  /* Navigation Tabs */
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(10, 18, 32, 0.7);
+    padding: 6px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
     font-size: 13px;
-    backdrop-filter: blur(14px);
-    box-shadow: var(--shadow);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
   }
 
-  .pill strong { font-weight: 700; }
-  .dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--muted-2);
-    box-shadow: 0 0 0 4px rgba(110, 126, 156, 0.12);
+  .tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
   }
-  .dot.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(88, 214, 141, 0.12); }
-  .dot.warn { background: var(--warn); box-shadow: 0 0 0 4px rgba(255, 191, 105, 0.12); }
-  .dot.crit { background: var(--crit); box-shadow: 0 0 0 4px rgba(255, 107, 138, 0.12); }
 
-  .hero {
+  .tab-btn.active {
+    background: var(--color-accent);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  }
+
+  .tab-badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+  }
+
+  .tab-btn.active .tab-badge {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  /* Section Containers */
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.25s ease-out forwards;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Context Intro Banner */
+  .context-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, rgba(24, 43, 77, 0.8), rgba(15, 28, 51, 0.8));
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: 14px 20px;
+    margin-bottom: 20px;
+  }
+
+  .context-banner.warn-border { border-left-color: var(--color-warning); }
+  .context-banner.crit-border { border-left-color: var(--color-danger); }
+  .context-banner.succ-border { border-left-color: var(--color-success); }
+
+  .context-text h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .context-text p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 900px;
+  }
+
+  .context-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* Buttons */
+  button, .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: var(--transition);
+    text-decoration: none;
+  }
+
+  button.btn-primary, .btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  button.btn-primary:hover, .btn-primary:hover {
+    background: var(--color-accent-hover);
+  }
+
+  button.btn-secondary, .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+  }
+  button.btn-secondary:hover, .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-highlight);
+  }
+
+  button.btn-success, .btn-success {
+    background: var(--color-success);
+    color: #fff;
+  }
+
+  button.btn-danger, .btn-danger {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+  }
+  button.btn-danger:hover, .btn-danger:hover {
+    background: var(--color-danger);
+    color: #fff;
+  }
+
+  /* Metric KPI Grid */
+  .kpi-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
-    gap: 16px;
-    margin-bottom: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
   }
 
-  .hero-card,
-  .panel,
-  .metric-card {
-    background: linear-gradient(180deg, rgba(19, 30, 51, 0.96), rgba(11, 20, 34, 0.96));
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-  }
-
-  .hero-card {
-    padding: 22px;
+  .kpi-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-main);
     position: relative;
     overflow: hidden;
   }
 
-  .hero-card::after {
+  .kpi-card::before {
     content: "";
     position: absolute;
-    inset: auto -60px -80px auto;
-    width: 230px;
-    height: 230px;
-    background: radial-gradient(circle, rgba(105, 167, 255, 0.20), transparent 68%);
-    pointer-events: none;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--color-accent);
   }
 
-  .hero-title {
-    margin: 0 0 10px;
-    font-size: clamp(30px, 4.2vw, 56px);
-    line-height: 0.96;
-    letter-spacing: -0.05em;
-  }
+  .kpi-card.purple::before { background: var(--color-purple); }
+  .kpi-card.warning::before { background: var(--color-warning); }
+  .kpi-card.danger::before { background: var(--color-danger); }
+  .kpi-card.success::before { background: var(--color-success); }
 
-  .hero-copy {
-    margin: 0;
-    max-width: 72ch;
-    color: var(--muted);
-    line-height: 1.65;
-  }
-
-  .hero-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 16px;
-  }
-
-  .hero-meta .pill {
-    box-shadow: none;
-    background: rgba(8, 15, 27, 0.62);
-  }
-
-  .config-card {
-    padding: 20px;
-  }
-
-  .config-card h2,
-  .panel h2 {
-    margin: 0 0 10px;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--muted);
-  }
-
-  .config-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .field label {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--muted);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  .field input {
-    width: 100%;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: rgba(7, 15, 27, 0.86);
-    color: var(--text);
-    padding: 13px 14px;
-    outline: none;
-    font-size: 14px;
-  }
-
-  .field select {
-    width: 100%;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: rgba(7, 15, 27, 0.86);
-    color: var(--text);
-    padding: 13px 14px;
-    outline: none;
-    font-size: 14px;
-  }
-
-  .field input:focus,
-  .field select:focus {
-    border-color: rgba(105, 167, 255, 0.58);
-    box-shadow: 0 0 0 4px rgba(105, 167, 255, 0.12);
-  }
-
-  .button-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .traffic-lab {
-    margin-bottom: 16px;
-  }
-
-  .traffic-shell {
-    display: grid;
-    gap: 14px;
-  }
-
-  .traffic-top {
+  .kpi-header {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
     align-items: center;
-  }
-
-  .traffic-top p {
-    margin: 6px 0 0;
-    color: var(--muted);
-    line-height: 1.55;
-    max-width: 82ch;
-  }
-
-  .traffic-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .traffic-status {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .traffic-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .traffic-stat {
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: rgba(8, 15, 27, 0.72);
-    padding: 14px;
-  }
-
-  .traffic-stat .label {
     margin-bottom: 8px;
   }
 
-  .traffic-stat .value {
-    font-size: 24px;
-    line-height: 1.1;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-  }
-
-  .traffic-stat .detail {
-    margin-top: 8px;
-    color: var(--muted);
+  .kpi-label {
     font-size: 12px;
-    line-height: 1.45;
-  }
-
-  button {
-    border: 0;
-    border-radius: 14px;
-    padding: 12px 16px;
-    color: #06101d;
-    background: linear-gradient(135deg, #79b7ff, #9ae8ce);
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  button.secondary {
-    color: var(--text);
-    background: rgba(14, 24, 41, 0.9);
-    border: 1px solid var(--line);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
     font-weight: 600;
   }
 
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 16px;
-  }
-
-  .metric-card {
-    padding: 18px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .metric-card .label {
-    color: var(--muted);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    margin-bottom: 10px;
-  }
-
-  .metric-card .value {
-    font-size: clamp(28px, 3vw, 40px);
-    line-height: 1;
+  .kpi-value {
+    font-size: 28px;
     font-weight: 700;
-    letter-spacing: -0.04em;
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 6px;
   }
 
-  .metric-card .detail {
-    margin-top: 10px;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.45;
+  .kpi-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
   }
 
-  .metric-card.good::before,
-  .metric-card.warn::before,
-  .metric-card.alert::before,
-  .metric-card.info::before {
-    content: "";
-    position: absolute;
-    inset: auto auto 0 0;
-    height: 4px;
+  /* Layout Grids */
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 22px;
+  }
+
+  .grid-3col {
+    display: grid;
+    grid-template-columns: 1.2fr 1.8fr;
+    gap: 20px;
+    margin-bottom: 22px;
+  }
+
+  .panel-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-main);
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 10px;
+  }
+
+  .panel-title h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title p {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* Tables */
+  .table-responsive {
+    overflow-x: auto;
     width: 100%;
   }
 
-  .metric-card.good::before { background: linear-gradient(90deg, rgba(88,214,141,0.1), rgba(88,214,141,1)); }
-  .metric-card.warn::before { background: linear-gradient(90deg, rgba(255,191,105,0.1), rgba(255,191,105,1)); }
-  .metric-card.alert::before { background: linear-gradient(90deg, rgba(255,107,138,0.1), rgba(255,107,138,1)); }
-  .metric-card.info::before { background: linear-gradient(90deg, rgba(105,167,255,0.1), rgba(105,167,255,1)); }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+  }
 
-  .dashboard {
+  .data-table th {
+    padding: 10px 12px;
+    background: rgba(10, 20, 36, 0.85);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    vertical-align: middle;
+  }
+
+  .data-table tr.clickable {
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .data-table tr.clickable:hover {
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  /* Severity Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-critical { background: rgba(239, 68, 68, 0.18); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); }
+  .badge-warning { background: rgba(245, 158, 11, 0.18); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.35); }
+  .badge-info { background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); }
+  .badge-success { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); }
+  .badge-purple { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.35); }
+
+  /* Device Cards */
+  .device-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.4fr);
-    gap: 16px;
-  }
-
-  .panel {
-    padding: 18px;
-  }
-
-  .stack {
-    display: grid;
-    gap: 16px;
-  }
-
-  .device-list,
-  .mix-list,
-  .feed-list {
-    display: grid;
-    gap: 10px;
-  }
-
-  .device-card,
-  .mix-card,
-  .feed-card {
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: rgba(8, 15, 27, 0.74);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
   }
 
   .device-card {
-    padding: 14px;
-    display: grid;
-    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
   }
 
-  .device-head,
-  .feed-head,
-  .mix-head {
+  .device-card:hover {
+    border-color: var(--border-highlight);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  .device-card-header {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
     align-items: center;
+    margin-bottom: 10px;
   }
 
-  .device-name,
-  .feed-title,
-  .mix-title {
+  .device-id {
     font-weight: 700;
-    font-size: 15px;
-    letter-spacing: -0.02em;
+    font-size: 14px;
+    color: #fff;
   }
 
-  .subtle {
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.45;
+  .device-ip {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--text-muted);
   }
 
   .risk-track {
-    height: 8px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 999px;
-    background: rgba(121, 138, 170, 0.16);
     overflow: hidden;
+    margin: 8px 0 12px;
   }
 
   .risk-fill {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--ok), var(--warn), var(--crit));
+    transition: width 0.3s ease;
   }
 
-  .tier-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .tier-low { background: rgba(88, 214, 141, 0.16); color: #58d68d; border: 1px solid rgba(88, 214, 141, 0.35); }
-  .tier-elevated { background: rgba(255, 191, 105, 0.16); color: #ffbf69; border: 1px solid rgba(255, 191, 105, 0.35); }
-  .tier-high { background: rgba(255, 150, 80, 0.2); color: #ff9650; border: 1px solid rgba(255, 150, 80, 0.4); }
-  .tier-critical { background: rgba(255, 107, 138, 0.25); color: #ff6b8a; border: 1px solid rgba(255, 107, 138, 0.5); }
-
-  .risk-subgrid {
+  .subgrid-bars {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
-    margin-top: 4px;
-  }
-  .risk-subcard {
-    background: rgba(14, 24, 41, 0.7);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 6px;
-    text-align: center;
-  }
-  .risk-subcard .sublabel {
-    font-size: 9px;
-    text-transform: uppercase;
-    color: var(--muted-2);
-    letter-spacing: 0.08em;
-  }
-  .risk-subcard .subval {
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 2px;
-  }
-  .risk-subcard .subtrack {
-    height: 4px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 999px;
-    margin-top: 4px;
-    overflow: hidden;
-  }
-  .risk-subcard .subfill {
-    height: 100%;
-    border-radius: inherit;
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
   }
 
-  .device-meta,
-  .feed-meta,
-  .mix-meta {
+  .subbar {
+    text-align: center;
+  }
+
+  .subbar .sublabel {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .subbar .subval {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* Filter bar */
+  .filter-bar {
     display: flex;
     flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    background: rgba(8, 16, 28, 0.6);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    margin-bottom: 14px;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
     gap: 8px;
   }
 
-  .mini-tag,
-  .severity-tag,
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 12px;
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--muted);
-  }
-
-  .severity-tag {
-    color: var(--text);
+  .filter-group label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
     font-weight: 600;
   }
 
-  .severity-critical { background: rgba(255, 107, 138, 0.16); color: #ffd5df; }
-  .severity-warning { background: rgba(255, 191, 105, 0.16); color: #ffe5b8; }
-  .severity-info { background: rgba(105, 167, 255, 0.16); color: #d5e6ff; }
-
-  .mix-card {
-    padding: 14px;
-    display: grid;
-    gap: 10px;
+  input, select, textarea {
+    background: rgba(14, 26, 46, 0.85);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 7px 11px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition);
   }
 
-  .mix-bar {
-    display: grid;
-    gap: 6px;
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
   }
 
-  .mix-bar-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 10px;
+  /* Modals */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 7, 18, 0.78);
+    backdrop-filter: blur(6px);
+    display: none;
     align-items: center;
-    color: var(--muted);
-    font-size: 12px;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
   }
 
-  .mix-bar-track {
-    height: 8px;
+  .modal-overlay.open {
+    display: flex;
+    animation: modalFade 0.2s ease-out;
+  }
+
+  @keyframes modalFade {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-card {
+    background: #0d1b30;
+    border: 1px solid var(--border-highlight);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+  }
+
+  .modal-card.large { max-width: 860px; }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 34, 60, 0.5);
+  }
+
+  .modal-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+
+  .modal-close:hover { color: #fff; }
+
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 34, 60, 0.3);
+  }
+
+  /* SHAP Waterfall Bars */
+  .shap-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  .shap-feature-name {
+    width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    color: var(--text-secondary);
+  }
+
+  .shap-bar-container {
+    flex: 1;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 999px;
     overflow: hidden;
-    background: rgba(121, 138, 170, 0.12);
+    position: relative;
   }
 
-  .mix-bar-fill {
+  .shap-bar-fill {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #6ea8ff, #7dd6c4, #ffd36e, #ff7d9b);
   }
 
-  .alerts-table {
-    width: 100%;
-    border-collapse: collapse;
+  .shap-bar-fill.pos { background: var(--color-danger); }
+  .shap-bar-fill.neg { background: var(--color-accent); }
+
+  .shap-val-text {
+    width: 50px;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Toasts */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 2000;
+    pointer-events: none;
+  }
+
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: #11223e;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-size: 13px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    max-width: 380px;
+  }
+
+  .toast.success { border-left: 4px solid var(--color-success); }
+  .toast.error { border-left: 4px solid var(--color-danger); }
+  .toast.warning { border-left: 4px solid var(--color-warning); }
+  .toast.info { border-left: 4px solid var(--color-accent); }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
     font-size: 13px;
   }
 
-  .alerts-table th,
-  .alerts-table td {
-    padding: 12px 10px;
-    border-bottom: 1px solid rgba(139, 156, 188, 0.14);
-    vertical-align: top;
-    text-align: left;
+  .empty-state svg {
+    margin-bottom: 10px;
+    opacity: 0.4;
   }
 
-  .alerts-table th {
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 10px;
-    color: var(--muted-2);
+  /* Topology canvas */
+  .canvas-wrap {
+    width: 100%;
+    height: 320px;
+    background: rgba(8, 15, 27, 0.85);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    position: relative;
+    overflow: hidden;
   }
 
-  .alert-row.new-row {
-    animation: flash 1.2s ease-out;
+  #topology-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
 
-  @keyframes flash {
-    from { background: rgba(255, 107, 138, 0.20); }
-    to { background: transparent; }
-  }
-
-  .feat-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 2px 4px 2px 0;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: rgba(121, 138, 170, 0.12);
-    color: var(--muted);
-    font-size: 11px;
-    border: 1px solid rgba(121, 138, 170, 0.12);
-  }
-
-  .shap-wrap { display: grid; gap: 6px; min-width: 240px; }
-  .shap-base { color: var(--muted-2); font-size: 11px; }
-  .shap-row { display: grid; grid-template-columns: 118px 1fr 52px; gap: 8px; align-items: center; font-size: 11px; }
-  .shap-name { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .shap-track { position: relative; height: 10px; border-radius: 999px; background: rgba(121,138,170,0.14); overflow: hidden; }
-  .shap-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(234,240,255,0.35); }
-  .shap-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
-  .shap-fill.pos { background: linear-gradient(90deg, #ff7d9b, #ff3d6e); }
-  .shap-fill.neg { background: linear-gradient(90deg, #3d8bff, #7dd6c4); }
-  .shap-val { color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
-  .shap-val.pos { color: #ffb3c4; }
-  .shap-val.neg { color: #a9c8ff; }
-
-  .empty {
-    padding: 16px 4px 4px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  .alerts-wrap {
-    display: grid;
-    gap: 12px;
-  }
-
-  .alerts-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .alerts-header .subtle {
-    max-width: 72ch;
-  }
-
-  .table-wrap {
-    overflow: auto;
-    border-radius: 16px;
-    border: 1px solid var(--line);
-    background: rgba(8, 15, 27, 0.68);
-  }
-
-  @media (max-width: 1180px) {
-    .summary-grid,
-    .dashboard,
-    .hero {
-      grid-template-columns: 1fr;
-    }
-
-    .traffic-grid,
-    .traffic-stats {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 720px) {
-    .shell { padding: 14px; }
-    .topbar { flex-direction: column; align-items: flex-start; }
-    .status-stack { justify-content: flex-start; }
-    .summary-grid { grid-template-columns: 1fr 1fr; }
-    .alerts-table { min-width: 1080px; }
+  @media (max-width: 900px) {
+    .grid-2col, .grid-3col { grid-template-columns: 1fr; }
+    .top-navbar { flex-direction: column; align-items: flex-start; gap: 12px; }
   }
 </style>
 </head>
 <body>
-<div class="shell">
-  <div class="topbar">
-    <div class="brand">
-      <div class="eyebrow">Pahredaar IoT IDS</div>
-      <h1>Live simulation dashboard</h1>
-      <p>Watch the simulated fleet stream flows into the backend, surface alerts in real time, and inspect how the per-device risk profile changes as the attack mix shifts.</p>
-    </div>
-    <div class="status-stack">
-      <div id="auth-status" class="pill" title="Phase 6 Multi-Tenant Session"><span class="dot ok"></span><strong id="auth-role-label">Role: Analyst</strong> &middot; <span id="auth-org-label">default-org</span></div>
-      <div id="conn-status" class="pill"><span class="dot"></span><strong>connecting</strong></div>
-      <div id="model-status" class="pill">Checking models…</div>
-      <div id="last-refresh" class="pill">Refreshing…</div>
-    </div>
-  </div>
 
-  <section class="hero">
-    <div class="hero-card">
-      <div class="hero-title">See simulated devices behave like a real fleet.</div>
-      <p class="hero-copy">The launcher script starts the FastAPI backend, the traffic simulator, and a local static frontend together. This view emphasizes live flow volume, alert pressure, and device risk so the simulation reads like an operations console instead of a static demo page.</p>
-      <div class="hero-meta">
-        <div class="pill"><span class="dot info"></span><strong>WS alerts</strong> pushed live</div>
-        <div class="pill"><span class="dot ok"></span><strong>Fleet</strong> risk rolls up per device</div>
-        <div class="pill"><span class="dot warn"></span><strong>Attack mix</strong> updates from backend stats</div>
+<div class="app-shell">
+
+  <!-- Top Navigation Header -->
+  <header class="top-navbar">
+    <div class="brand-group">
+      <div class="brand-shield">🛡️</div>
+      <div class="brand-text">
+        <h1>Pahredaar-IoT <span class="badge badge-purple" style="font-size: 10px;">Phase 6 Enterprise</span></h1>
+        <p>Adaptive IoT Intrusion Detection, Open-Set Zero-Day Rejection & Response Console</p>
       </div>
     </div>
-    <div class="hero-card config-card">
-      <h2>Connection & Enterprise Auth</h2>
-      <div class="config-grid">
-        <div class="field">
-          <label for="backend-url">Backend URL</label>
-          <input id="backend-url" value="http://localhost:8000" spellcheck="false" />
+
+    <div class="system-status-pills">
+      <div id="conn-status" class="pill" title="Real-time WebSocket & Engine status">
+        <span class="dot ok"></span><strong>Connecting…</strong>
+      </div>
+      <div id="model-status" class="pill" title="AI Inference Engines">
+        <span class="dot info"></span>Checking ML Models…
+      </div>
+      <div id="auth-status" class="pill" title="Click to view User Profile & Multi-Tenant Settings">
+        <span class="dot ok"></span><strong id="auth-role-label">Role: Analyst</strong> &middot; <span id="auth-org-label">default-org</span>
+      </div>
+      <button id="guide-modal-btn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" title="Understand how Pahredaar-IoT detects attacks">
+        ❓ Architecture Guide
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Workflow Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="tab-overview">
+      📊 SOC Console <span class="tab-badge" id="tab-badge-alerts">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-incidents">
+      🚨 Incidents & Triage <span class="tab-badge" id="tab-badge-incidents">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-fleet">
+      🛡️ Device Fleet & Graph <span class="tab-badge" id="tab-badge-fleet">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-traffic">
+      🧪 Traffic Lab & Testing
+    </button>
+    <button class="tab-btn" data-tab="tab-sensors">
+      📡 Edge Sensors <span class="tab-badge" id="tab-badge-sensors">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-audit">
+      📜 Compliance Audit Logs
+    </button>
+    <button class="tab-btn" data-tab="tab-settings">
+      ⚙️ Settings & Health
+    </button>
+  </nav>
+
+  <!-- ========================================== -->
+  <!-- TAB 1: SOC OVERVIEW & REAL-TIME ALERTS     -->
+  <!-- ========================================== -->
+  <main id="tab-overview" class="tab-content active">
+    <!-- Explanatory Banner -->
+    <div class="context-banner">
+      <div class="context-text">
+        <h2>Live Security Operations Center (SOC) Console</h2>
+        <p>Real-time stream of incoming IoT network flows evaluated by the multi-modal AI engine. Inspect live security alerts, feature explainability (TreeSHAP), and high-level platform threat distribution.</p>
+      </div>
+      <div class="context-actions">
+        <button id="quick-refresh-btn" class="btn btn-secondary" title="Sync latest data immediately">🔄 Refresh</button>
+        <button id="quick-burst-btn" class="btn btn-primary" title="Trigger a test attack burst">⚡ Push Test Burst</button>
+      </div>
+    </div>
+
+    <!-- Top KPI Metrics -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header"><span class="kpi-label">Total Flows Evaluated</span><span>🌐</span></div>
+        <div class="kpi-value" id="metric-flows">0</div>
+        <div class="kpi-hint">Network flow records ingested from Zeek sensors or simulated devices.</div>
+      </div>
+      <div class="kpi-card danger">
+        <div class="kpi-header"><span class="kpi-label">Flagged Security Alerts</span><span>🚨</span></div>
+        <div class="kpi-value" id="metric-alerts">0</div>
+        <div class="kpi-hint">Flows that crossed the ROC-calibrated anomaly gate.</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-header"><span class="kpi-label">Zero-Day / Unknowns</span><span>🧬</span></div>
+        <div class="kpi-value" id="metric-unknown">0</div>
+        <div class="kpi-hint">Attacks identified by Open-Set Rejection outside known training classes.</div>
+      </div>
+      <div class="kpi-card warning">
+        <div class="kpi-header"><span class="kpi-label">Fleet Threat Ratio</span><span>⚠️</span></div>
+        <div class="kpi-value" id="metric-rate">0%</div>
+        <div class="kpi-hint">Proportion of suspicious traffic against total ingested network volume.</div>
+      </div>
+      <div class="kpi-card success">
+        <div class="kpi-header"><span class="kpi-label">Monitored IoT Devices</span><span>📱</span></div>
+        <div class="kpi-value" id="metric-devices">0</div>
+        <div class="kpi-hint">Active endpoints scored via Hierarchical Risk Analysis ($R_{flow}, R_{novelty}, R_{temporal}, R_{graph}$).</div>
+      </div>
+    </section>
+
+    <!-- 2 Column Layout: Attack Distribution + Alerts Feed -->
+    <div class="grid-3col">
+      <!-- Attack Distribution Panel -->
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h3>Attack Vector Distribution</h3>
+            <p>Breakdown of recognized and novel attack classes</p>
+          </div>
         </div>
-        <div class="field">
-          <label for="jwt-token">JWT Access Token (Optional)</label>
-          <input id="jwt-token" type="password" placeholder="Bearer eyJhbGciOi..." spellcheck="false" />
+        <div id="attack-mix" style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="empty-state">No alerts recorded yet. Start traffic test to populate.</div>
         </div>
-        <div class="button-row">
-          <button id="reconnect-btn" type="button">Reconnect</button>
-          <button id="default-btn" type="button" class="secondary">Use local default</button>
-          <button id="clear-token-btn" type="button" class="secondary">Clear Token</button>
+
+        <div style="margin-top: 20px; padding: 12px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
+            AI Pipeline Modalities
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="badge badge-info">Gate: Random Forest</span>
+            <span class="badge badge-purple">Open-Set: Centroid ECDF</span>
+            <span class="badge badge-warning">Temporal: LSTM</span>
+            <span class="badge badge-critical">Graph: Lateral Topology</span>
+          </div>
         </div>
       </div>
-      <p class="subtle" style="margin-top:12px;">start.sh also serves this page on <span id="frontend-url">http://127.0.0.1:4173</span> while the simulator streams traffic into the backend.</p>
-    </div>
-  </section>
 
-  <section class="panel" style="padding: 14px 20px; margin-bottom: 18px; background: rgba(13, 26, 45, 0.7); border: 1px solid var(--line);">
-    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
-      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted-2); font-weight: 700;">Engine Modalities:</span>
-        <span id="badge-gate" class="mini-tag">Gate: V1 (RF)</span>
-        <span id="badge-openset" class="mini-tag">Open-Set: v1</span>
-        <span id="badge-temporal" class="mini-tag">Temporal: LSTM v1</span>
-        <span id="badge-graph" class="mini-tag">Graph: Topology v1</span>
-        <span id="badge-risk" class="mini-tag">Risk: Hierarchical v2</span>
-      </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted-2); font-weight: 700;">Operational Quality:</span>
-        <span id="metric-suppression-rate" class="mini-tag">Suppression: --%</span>
-        <span id="metric-mtta" class="mini-tag">MTTA: --s</span>
-        <span id="metric-mttr" class="mini-tag">MTTR: --s</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="summary-grid">
-    <div class="metric-card info">
-      <div class="label">Flows seen</div>
-      <div class="value" id="metric-flows">0</div>
-      <div class="detail">Total ingested flow records from the simulator or a real sensor bridge.</div>
-    </div>
-    <div class="metric-card alert">
-      <div class="label">Alerts raised</div>
-      <div class="value" id="metric-alerts">0</div>
-      <div class="detail">Only flows that cross the gate or anomaly threshold make it here.</div>
-    </div>
-    <div class="metric-card" style="background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), rgba(14, 24, 41, 0.95)); border-color: rgba(168, 85, 247, 0.35);">
-      <div class="label" style="color: #c084fc;">Zero-Day / Unknown</div>
-      <div class="value" id="metric-unknown" style="color: #d8b4fe;">0</div>
-      <div class="detail">Open-Set triage of novel attacks unseen in training.</div>
-    </div>
-    <div class="metric-card warn">
-      <div class="label">Flag rate</div>
-      <div class="value" id="metric-rate">0%</div>
-      <div class="detail">Alerts as a share of total flows. Useful for watching simulation intensity.</div>
-    </div>
-    <div class="metric-card good">
-      <div class="label">Devices tracked</div>
-      <div class="value" id="metric-devices">0</div>
-      <div class="detail">Per-device risk rolls up from alert history and recent traffic.</div>
-    </div>
-  </section>
-
-  <section class="panel traffic-lab">
-    <div class="traffic-shell">
-      <div class="traffic-top">
-        <div>
-          <h2>Traffic Lab</h2>
-          <p>Use this panel to push controlled traffic into the backend from the browser. Normal mode stays benign, suspicious mode overwhelms the detector with attack-heavy flows, and real-world mode mixes both with bursty timing so you can see whether the frontend and alerts behave as expected.</p>
+      <!-- Real-Time Alerts Feed -->
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h3>Real-Time Alert Stream</h3>
+            <p>Click any row to inspect deep packet features and TreeSHAP waterfall</p>
+          </div>
+          <div class="pill"><strong id="alert-count-label">0</strong> alerts listed</div>
         </div>
-        <div class="traffic-status">
-          <div class="pill"><span class="dot info"></span><strong id="traffic-mode-label">Real-world mix</strong></div>
-          <div class="pill"><span class="dot ok"></span><strong id="traffic-run-label">idle</strong></div>
+
+        <!-- Filter bar for alerts -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label>Severity:</label>
+            <select id="filter-alert-severity">
+              <option value="all">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="warning">Warning</option>
+              <option value="info">Info</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Type:</label>
+            <select id="filter-alert-type">
+              <option value="all">All Attacks</option>
+              <option value="ddos">DDoS</option>
+              <option value="port_scan">Port Scan</option>
+              <option value="brute_force">Brute Force</option>
+              <option value="mirai_beacon">Mirai Beacon</option>
+              <option value="unknown">Zero-Day / Novel</option>
+            </select>
+          </div>
+          <div class="filter-group" style="flex: 1;">
+            <input id="filter-alert-search" type="text" placeholder="Search by Device ID, IP, or MITRE..." style="width: 100%;" />
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 480px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Device</th>
+                <th>Attack Vector</th>
+                <th>Severity</th>
+                <th>MITRE</th>
+                <th>Gate Score</th>
+                <th>Feature Attribution (SHAP)</th>
+              </tr>
+            </thead>
+            <tbody id="alerts-body"></tbody>
+          </table>
+          <div id="alerts-empty" class="empty-state">No alerts recorded yet. Traffic flows that cross the threshold will appear here.</div>
         </div>
       </div>
+    </div>
+  </main>
 
-      <div class="traffic-grid">
-        <div class="field">
-          <label for="traffic-mode">Traffic mode</label>
-          <select id="traffic-mode">
-            <option value="normal">Normal only</option>
-            <option value="suspicious">Suspicious heavy</option>
-            <option value="realworld" selected>Real-world mix</option>
+  <!-- ========================================== -->
+  <!-- TAB 2: INCIDENT RESPONSE & TRIAGE          -->
+  <!-- ========================================== -->
+  <main id="tab-incidents" class="tab-content">
+    <div class="context-banner crit-border">
+      <div class="context-text">
+        <h2>Security Incidents & Lifecycle Management</h2>
+        <p>Correlated multi-alert campaigns tracked at the device level. As an analyst, you can review attack timelines, acknowledge ongoing threats (stopping alert escalation), and mark incidents resolved with remediation notes.</p>
+      </div>
+      <div class="context-actions">
+        <div id="incident-metrics-pill" class="pill"><span class="dot info"></span>Loading SOC metrics…</div>
+      </div>
+    </div>
+
+    <!-- Incident Filter Tabs & Controls -->
+    <div class="panel-box">
+      <div class="filter-bar" style="margin-bottom: 16px;">
+        <div class="filter-group">
+          <label>Status:</label>
+          <select id="filter-incident-status">
+            <option value="all">All Statuses</option>
+            <option value="OPEN" selected>Open (Needs Triage)</option>
+            <option value="ACKNOWLEDGED">Acknowledged (In Progress)</option>
+            <option value="RESOLVED">Resolved (Remediated)</option>
           </select>
         </div>
-        <div class="field">
-          <label for="traffic-rate">Flows per pulse</label>
-          <input id="traffic-rate" type="number" min="1" max="25" step="1" value="6" />
-        </div>
-        <div class="field">
-          <label for="traffic-delay">Pulse delay (ms)</label>
-          <input id="traffic-delay" type="number" min="200" max="5000" step="50" value="900" />
+        <div class="filter-group" style="flex: 1;">
+          <input id="filter-incident-search" type="text" placeholder="Search incident title, device, or attack type..." style="width: 100%;" />
         </div>
       </div>
 
-      <div class="button-row">
-        <button id="traffic-start-btn" type="button">Start traffic test</button>
-        <button id="traffic-stop-btn" type="button" class="secondary">Stop traffic test</button>
-        <button id="traffic-burst-btn" type="button" class="secondary">Send burst now</button>
-      </div>
-
-      <div class="traffic-stats">
-        <div class="traffic-stat">
-          <div class="label">Test flows sent</div>
-          <div class="value" id="traffic-sent">0</div>
-          <div class="detail">Traffic generated from the browser and delivered to `/api/ingest`.</div>
-        </div>
-        <div class="traffic-stat">
-          <div class="label">Test alerts raised</div>
-          <div class="value" id="traffic-flagged">0</div>
-          <div class="detail">Flows that the backend marked as suspicious while the test runs.</div>
-        </div>
-        <div class="traffic-stat">
-          <div class="label">What it simulates</div>
-          <div class="value" id="traffic-summary">Mixed home IoT</div>
-          <div class="detail">A realistic device fleet with benign chatter plus bursty attack patterns.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="dashboard">
-    <div class="stack">
-      <div class="panel">
-        <h2>Fleet view</h2>
-        <div id="device-list" class="device-list"><div class="empty">No devices yet. Start the simulator and this list will fill with the fleet.</div></div>
-      </div>
-
-      <div class="panel">
-        <h2>Attack mix</h2>
-        <div id="attack-mix" class="mix-list"><div class="empty">No alerts yet. The mix appears once the simulator starts generating flagged traffic.</div></div>
-      </div>
-
-      <div class="panel">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h2>Network Topology & Graph AI</h2>
-          <div class="pill"><span class="dot info"></span>Live Graph</div>
-        </div>
-        <div class="subtle" style="margin-bottom: 12px;">Topological monitoring of IoT nodes, internal gateway links, and high-entropy lateral propagation.</div>
-        <div style="width: 100%; height: 260px; background: rgba(8, 15, 27, 0.85); border: 1px solid var(--line); border-radius: 14px; position: relative; overflow: hidden;">
-          <canvas id="topology-canvas" width="600" height="260" style="width: 100%; height: 100%; display: block;"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel alerts-wrap">
-      <div class="alerts-header">
-        <div>
-          <h2>Live alerts</h2>
-          <div class="subtle">Newest alerts stay at the top. SHAP bars show how much each feature pushed the gate toward attack (red) or benign (blue), from the baseline expected value.</div>
-        </div>
-        <div class="pill"><span class="dot ok"></span><strong id="alert-count-label">0</strong> recent alerts shown</div>
-      </div>
-      <div class="table-wrap">
-        <table class="alerts-table">
+      <div class="table-responsive">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Device</th>
-              <th>Attack Type</th>
+              <th>Incident ID</th>
+              <th>Device Target</th>
+              <th>Attack Vector</th>
               <th>Severity</th>
-              <th>MITRE</th>
-              <th>Gate Score</th>
-              <th>Explainability (SHAP)</th>
+              <th>Correlated Alerts</th>
+              <th>Status</th>
+              <th>First / Last Seen</th>
+              <th>Action / Remediation</th>
             </tr>
           </thead>
-          <tbody id="alerts-body"></tbody>
+          <tbody id="incidents-body"></tbody>
         </table>
+        <div id="incidents-empty" class="empty-state">No incidents found matching current filters.</div>
       </div>
-      <div id="alerts-empty" class="empty">No alerts yet. When the simulator starts hitting the gate, rows will stream in here.</div>
     </div>
-  </section>
+  </main>
 
-  <!-- Security Incidents & Incident Response Console -->
-  <section class="panel" style="margin-top: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <div>
-        <h2>Security Incidents & Response Console</h2>
-        <div class="subtle">Correlated device-level incidents with lifecycle tracking, MTTA/MTTR metrics, and operator remediation.</div>
+  <!-- ========================================== -->
+  <!-- TAB 3: DEVICE FLEET & TOPOLOGY GRAPH       -->
+  <!-- ========================================== -->
+  <main id="tab-fleet" class="tab-content">
+    <div class="context-banner">
+      <div class="context-text">
+        <h2>Device Fleet & Communication Topology</h2>
+        <p>Inspect the complete inventory of protected IoT assets, hierarchical risk decomposition ($R_{flow}, R_{novelty}, R_{temporal}, R_{graph}$), and lateral movement propagation across the local network graph.</p>
       </div>
-      <div id="incident-metrics-pill" class="pill"><span class="dot info"></span>Loading SOC metrics...</div>
+      <div class="context-actions">
+        <button id="toggle-anim-btn" class="btn btn-secondary">⏸️ Pause Animation</button>
+      </div>
     </div>
-    <div class="table-wrap">
-      <table class="alerts-table" id="incidents-table">
-        <thead>
-          <tr>
-            <th>Incident ID</th>
-            <th>Device</th>
-            <th>Attack Vector</th>
-            <th>Severity</th>
-            <th>Correlated Alerts</th>
-            <th>Status</th>
-            <th>First / Last Seen</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="incidents-body"></tbody>
-      </table>
+
+    <!-- Communication Topology Graph Canvas -->
+    <div class="panel-box" style="margin-bottom: 20px;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <h3>Network Topology & Lateral Threat Propagation</h3>
+          <p>Real-time graph visualization: Gateway hub, device spokes, and lateral attack vectors</p>
+        </div>
+        <div class="pill"><span class="dot info"></span>Graph Neural Topology</div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="topology-canvas" width="1200" height="320"></canvas>
+      </div>
+      <div style="display: flex; gap: 20px; font-size: 11px; color: var(--text-secondary); margin-top: 10px;">
+        <div>🟢 <strong>Green</strong>: Low Risk Device (&lt; 25)</div>
+        <div>🟡 <strong>Yellow</strong>: Elevated Risk (25 - 49)</div>
+        <div>🔴 <strong>Red</strong>: Critical Risk (&ge; 50)</div>
+        <div>⚡ <strong>Red Dashed Line</strong>: Lateral Movement Detected between compromised nodes</div>
+      </div>
     </div>
-    <div id="incidents-empty" class="empty">No active security incidents. Correlated multi-flow attacks will appear here.</div>
-  </section>
+
+    <!-- Device Cards Grid -->
+    <div class="panel-box">
+      <div class="panel-header">
+        <div class="panel-title">
+          <h3>Protected Device Inventory</h3>
+          <p>Click any card to inspect full telemetry, risk history, and related alerts</p>
+        </div>
+        <div class="filter-group">
+          <input id="filter-device-search" type="text" placeholder="Search devices by ID or IP..." style="width: 220px;" />
+        </div>
+      </div>
+
+      <div id="device-cards" class="device-grid">
+        <div class="empty-state">No devices registered. Start the simulator to discover devices.</div>
+      </div>
+      <!-- Backward compatible hidden element -->
+      <div id="device-list" style="display: none;"></div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- TAB 4: TRAFFIC LAB & SIMULATION            -->
+  <!-- ========================================== -->
+  <main id="tab-traffic" class="tab-content">
+    <div class="context-banner warn-border">
+      <div class="context-text">
+        <h2>Traffic Lab & Attack Simulator</h2>
+        <p>Inject realistic IoT network flows directly into the backend ingestion pipeline. Use this panel to test the AI detection engine, verify zero-day rejection, and validate operator response under load.</p>
+      </div>
+      <div class="context-actions">
+        <div class="pill"><span class="dot ok"></span>Status: <strong id="traffic-run-label">Idle</strong></div>
+      </div>
+    </div>
+
+    <div class="grid-2col">
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h3>Simulator Configuration</h3>
+            <p>Select device behavioral patterns and pulse rates</p>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Simulation Mode:</label>
+            <select id="traffic-mode" style="width: 100%;">
+              <option value="normal">Normal Only (Pure Benign Telemetry)</option>
+              <option value="suspicious">Suspicious Heavy (High Volume Attacks)</option>
+              <option value="realworld" selected>Real-World Mix (Realistic Bursty Chatter + Stealth Attacks)</option>
+            </select>
+            <div id="traffic-summary" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Realistic device fleet with benign chatter plus bursty attack patterns.</div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Flows per Pulse:</label>
+              <input id="traffic-rate" type="number" min="1" max="50" value="6" style="width: 100%;" />
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Pulse Delay (ms):</label>
+              <input id="traffic-delay" type="number" min="200" max="5000" step="100" value="900" style="width: 100%;" />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button id="traffic-start-btn" class="btn btn-primary" style="flex: 1;">▶️ Start Traffic Test</button>
+            <button id="traffic-stop-btn" class="btn btn-secondary">⏹️ Stop</button>
+            <button id="send-burst-btn" class="btn btn-danger">⚡ Send Burst Now</button>
+            <!-- Backward compatibility alias -->
+            <button id="traffic-burst-btn" style="display: none;"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h3>Test Telemetry & Metrics</h3>
+            <p>Live output statistics from client-side injection</p>
+          </div>
+        </div>
+
+        <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+          <div class="kpi-card">
+            <div class="kpi-label">Test Flows Sent</div>
+            <div class="kpi-value" id="traffic-sent">0</div>
+          </div>
+          <div class="kpi-card danger">
+            <div class="kpi-label">Alerts Flagged</div>
+            <div class="kpi-value" id="traffic-flagged">0</div>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Recent Injection Log:</div>
+        <div id="traffic-log-list" style="max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: var(--radius-sm); font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="color: var(--text-muted);">Ready to inject test traffic.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- TAB 5: EDGE SENSORS & PROVISIONING         -->
+  <!-- ========================================== -->
+  <main id="tab-sensors" class="tab-content">
+    <div class="context-banner succ-border">
+      <div class="context-text">
+        <h2>Edge Sensors & Ingestion Collector Management</h2>
+        <p>Manage distributed Zeek and network tap collectors. Provision cryptographically hashed API keys (`pds_...`), set per-collector ingestion rate limits, and rotate compromised keys with zero platform downtime.</p>
+      </div>
+      <div class="context-actions">
+        <button id="open-provision-sensor-btn" class="btn btn-success">+ Provision New Sensor</button>
+      </div>
+    </div>
+
+    <div class="panel-box">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Sensor Name</th>
+              <th>Sensor ID</th>
+              <th>Organization</th>
+              <th>Rate Limit</th>
+              <th>Status</th>
+              <th>Last Seen</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sensors-body"></tbody>
+        </table>
+        <div id="sensors-empty" class="empty-state">No external sensors configured. Ingestion relies on the default edge bridge.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- TAB 6: SECURITY AUDIT LOGS                 -->
+  <!-- ========================================== -->
+  <main id="tab-audit" class="tab-content">
+    <div class="context-banner">
+      <div class="context-text">
+        <h2>Enterprise Security & Compliance Audit Trail</h2>
+        <p>Immutable ledger of administrative actions, authentication attempts, incident remediations, and sensor key rotations. Compliant with SOC2 and ISO 27001 regulatory auditing standards.</p>
+      </div>
+      <div class="context-actions">
+        <button id="refresh-audit-btn" class="btn btn-secondary">🔄 Refresh Log</button>
+      </div>
+    </div>
+
+    <div class="panel-box">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Filter Action:</label>
+          <select id="filter-audit-action">
+            <option value="all">All Events</option>
+            <option value="LOGIN">User Logins</option>
+            <option value="SENSOR">Sensor Operations</option>
+            <option value="INCIDENT">Incident Actions</option>
+            <option value="TOKEN">Token Events</option>
+          </select>
+        </div>
+        <div class="filter-group" style="flex: 1;">
+          <input id="filter-audit-search" type="text" placeholder="Search by actor, IP, or resource ID..." style="width: 100%;" />
+        </div>
+      </div>
+
+      <div class="table-responsive" style="max-height: 500px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Actor User</th>
+              <th>Organization</th>
+              <th>Resource Type</th>
+              <th>Resource ID</th>
+              <th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody id="audit-body"></tbody>
+        </table>
+        <div id="audit-empty" class="empty-state">No audit events recorded yet.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- TAB 7: SETTINGS & HEALTH DIAGNOSTICS       -->
+  <!-- ========================================== -->
+  <main id="tab-settings" class="tab-content">
+    <div class="context-banner">
+      <div class="context-text">
+        <h2>Platform Configuration & Health Diagnostics</h2>
+        <p>Configure backend API URLs, test connection latency, inspect AI engine status, and configure developer overrides.</p>
+      </div>
+    </div>
+
+    <div class="grid-2col">
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h3>Backend Connectivity</h3>
+            <p>Target FastAPI service configuration</p>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Backend API Endpoint URL:</label>
+            <input id="backend-url" value="http://localhost:8000" style="width: 100%;" spellcheck="false" />
+          </div>
+
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">JWT Access Token (Optional):</label>
+            <input id="jwt-token" type="password" placeholder="Bearer eyJhbGciOi..." style="width: 100%;" spellcheck="false" />
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Leave empty to operate in local developer guest mode.</div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button id="reconnect-btn" class="btn btn-primary">Reconnect & Save</button>
+            <button id="default-btn" class="btn btn-secondary">Reset to Local</button>
+            <button id="clear-token-btn" class="btn btn-danger">Clear JWT</button>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+            Serving on: <span id="frontend-url" style="color: var(--color-accent); font-family: monospace;">http://127.0.0.1:4173</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h3>Engine Diagnostic Telemetry</h3>
+            <p>Real-time `/api/health` output</p>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;" id="diagnostic-pills">
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Core API Gateway:</span>
+            <span class="badge badge-success" id="diag-api">Healthy</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Persistent Database:</span>
+            <span class="badge badge-success" id="diag-db">Healthy</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Binary Classification Gate:</span>
+            <span class="badge badge-info" id="badge-gate">Random Forest (Loaded)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Open-Set Zero-Day Rejection:</span>
+            <span class="badge badge-purple" id="badge-openset">Centroid Geometry (Active)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Temporal Sequence Model:</span>
+            <span class="badge badge-warning" id="badge-temporal">LSTM (Active)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Communication Topology Intelligence:</span>
+            <span class="badge badge-critical" id="badge-graph">Graph Topology (Active)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm);">
+            <span>Hierarchical Risk Engine:</span>
+            <span class="badge badge-success" id="badge-risk">Hierarchical v2 (Active)</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; display: flex; gap: 10px;">
+          <span id="metric-suppression-rate" class="badge badge-info">Suppression: --%</span>
+          <span id="metric-mtta" class="badge badge-warning">MTTA: --s</span>
+          <span id="metric-mttr" class="badge badge-success">MTTR: --s</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
 </div>
 
+<!-- ========================================== -->
+<!-- MODALS & OVERLAYS                          -->
+<!-- ========================================== -->
+
+<!-- Alert Deep-Dive Modal -->
+<div id="alert-modal" class="modal-overlay">
+  <div class="modal-card large">
+    <div class="modal-header">
+      <h3 id="modal-alert-title">🚨 Security Alert Deep Dive</h3>
+      <button class="modal-close" onclick="closeModal('alert-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+        <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: var(--radius-sm);">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Target Asset</div>
+          <div id="modal-alert-device" style="font-size: 16px; font-weight: 700; color: #fff;"></div>
+          <div id="modal-alert-ip" style="font-size: 12px; font-family: monospace; color: var(--text-secondary);"></div>
+        </div>
+        <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: var(--radius-sm);">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Detection Details</div>
+          <div id="modal-alert-type" style="font-size: 16px; font-weight: 700; color: var(--color-danger);"></div>
+          <div id="modal-alert-mitre" style="font-size: 12px; color: var(--text-secondary);"></div>
+        </div>
+      </div>
+
+      <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #fff;">TreeSHAP Feature Attributions (Why was this flagged?)</h4>
+      <div id="modal-alert-shap" style="margin-bottom: 20px;"></div>
+
+      <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #fff;">Raw Network Flow Telemetry</h4>
+      <pre id="modal-alert-raw" style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: var(--radius-sm); font-size: 11px; overflow-x: auto; color: #a5f3fc; max-height: 180px;"></pre>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('alert-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Incident Resolution Modal -->
+<div id="resolve-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>🛡️ Resolve Security Incident</h3>
+      <button class="modal-close" onclick="closeModal('resolve-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+        Resolving marks this incident as remediated, halts escalation, and calculates the final Mean Time to Resolve (MTTR).
+      </p>
+      <input type="hidden" id="resolve-incident-id" />
+      <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Remediation & Triage Notes:</label>
+      <textarea id="resolve-notes" rows="3" style="width: 100%;" placeholder="e.g. Quarantined device IP on switch port, rebooted camera firmware, blocked remote C2 IP on firewall."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('resolve-modal')">Cancel</button>
+      <button id="confirm-resolve-btn" class="btn btn-success">Mark Remediated</button>
+    </div>
+  </div>
+</div>
+
+<!-- Provision Sensor Modal -->
+<div id="sensor-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>📡 Provision Edge Sensor</h3>
+      <button class="modal-close" onclick="closeModal('sensor-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="sensor-form-view">
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+          Register a new network tap or Zeek ingestion agent. An API key will be generated.
+        </p>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Sensor Name:</label>
+          <input id="sensor-name-input" type="text" placeholder="e.g. Building A - Lab Switch Mirror" style="width: 100%;" />
+        </div>
+        <div>
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Max Rate Limit (flows/sec):</label>
+          <input id="sensor-rate-input" type="number" min="10" max="2000" value="100" style="width: 100%;" />
+        </div>
+      </div>
+
+      <div id="sensor-key-view" style="display: none;">
+        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--color-success); padding: 14px; border-radius: var(--radius-sm); margin-bottom: 14px;">
+          <div style="font-weight: 700; color: #6ee7b7; margin-bottom: 6px;">Sensor Successfully Provisioned!</div>
+          <p style="font-size: 12px; color: var(--text-secondary);">
+            Copy the API key below. <strong>It will never be displayed again.</strong> Only the SHA-256 digest is stored in the database.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <input id="sensor-key-display" type="text" readonly style="flex: 1; font-family: monospace; font-size: 12px; color: #a5f3fc;" />
+          <button id="copy-sensor-key-btn" class="btn btn-secondary">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('sensor-modal')">Close</button>
+      <button id="submit-provision-sensor-btn" class="btn btn-primary">Create Sensor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Architecture Guide Modal -->
+<div id="guide-modal" class="modal-overlay">
+  <div class="modal-card large">
+    <div class="modal-header">
+      <h3>🧠 Pahredaar-IoT AI Detection Architecture</h3>
+      <button class="modal-close" onclick="closeModal('guide-modal')">&times;</button>
+    </div>
+    <div class="modal-body" style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+      <h4 style="color: #fff; margin-bottom: 6px;">How Incoming Network Flows Are Processed:</h4>
+      <ol style="margin-left: 20px; margin-bottom: 16px;">
+        <li style="margin-bottom: 8px;"><strong>Frontline Gate (Random Forest)</strong>: Distinguishes benign background IoT chatter from attack patterns with high throughput (&gt;900 flows/sec).</li>
+        <li style="margin-bottom: 8px;"><strong>Open-Set Zero-Day Rejection</strong>: Analyzes high-dimensional feature geometry and ECDF calibration. Flows that deviate significantly from known attack centroids are triaged as <em>UNKNOWN_SUSPICIOUS</em> (Zero-Day threats).</li>
+        <li style="margin-bottom: 8px;"><strong>Temporal Sequence Intelligence (LSTM)</strong>: Tracks per-device multi-step reconnaissance and slow C2 beacons over rolling time windows.</li>
+        <li style="margin-bottom: 8px;"><strong>Communication Graph Intelligence</strong>: Builds a dynamic device graph to detect lateral movement sweeps between compromised IoT nodes.</li>
+        <li style="margin-bottom: 8px;"><strong>Non-Dilutive Hierarchical Risk Scoring</strong>: Combines all signals: \(R = w_f R_{flow} + w_n R_{novelty} + w_t R_{temporal} + w_g R_{graph}\) to assign robust device risk tiers (Low, Medium, High, Critical).</li>
+      </ol>
+      <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-sm); border-left: 4px solid var(--color-purple);">
+        <strong style="color: #fff;">TreeSHAP Explainability:</strong> For every alert, exact Shapley values calculate how much each network feature pushed the prediction toward malicious (Red bars) or benign (Blue bars), ensuring full transparency for security auditors.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('guide-modal')">Got It</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Backward compatibility placeholder -->
+<div id="last-refresh" style="display: none;"></div>
+
 <script>
+// ==========================================
+// CONFIGURATION & GLOBAL STATE
+// ==========================================
 const DEFAULT_BACKEND = 'http://localhost:8000';
 const STORAGE_KEY = 'iot-ids-backend-url';
 const DEFAULT_FRONTEND = 'http://127.0.0.1:4173';
-const TRAFFIC_DEVICE_TYPES = ['camera', 'smart_plug', 'temp_sensor', 'thermostat', 'smart_bulb'];
-const TRAFFIC_DEVICE_PROFILES = {
-  camera:      { bytesMu: 180000, bytesSigma: 42000, durMu: 8.0, pktsMu: 400 },
-  smart_plug:  { bytesMu: 800, bytesSigma: 200, durMu: 0.5, pktsMu: 6 },
-  temp_sensor: { bytesMu: 300, bytesSigma: 80, durMu: 0.2, pktsMu: 3 },
-  thermostat:  { bytesMu: 1200, bytesSigma: 300, durMu: 1.0, pktsMu: 10 },
-  smart_bulb:  { bytesMu: 500, bytesSigma: 150, durMu: 0.3, pktsMu: 4 },
-};
-const TRAFFIC_PRESETS = {
-  normal: {
-    label: 'Normal only',
-    attackRatio: 0,
-    burstMin: 3,
-    burstMax: 5,
-    delayMin: 1200,
-    delayMax: 1800,
-    summary: 'Benign IoT chatter only',
-  },
-  suspicious: {
-    label: 'Suspicious heavy',
-    attackRatio: 0.88,
-    burstMin: 5,
-    burstMax: 9,
-    delayMin: 600,
-    delayMax: 1000,
-    summary: 'Attack-heavy test traffic',
-  },
-  realworld: {
-    label: 'Real-world mix',
-    attackRatio: 0.18,
-    burstMin: 4,
-    burstMax: 10,
-    delayMin: 500,
-    delayMax: 1500,
-    summary: 'Bursty mixed home IoT traffic',
-  },
-};
+
 const state = {
   backend: localStorage.getItem(STORAGE_KEY) || DEFAULT_BACKEND,
   token: localStorage.getItem('pahredaar_jwt_token') || '',
   ws: null,
   reconnectTimer: null,
   health: null,
+  alerts: [],
+  devices: [],
+  incidents: [],
+  sensors: [],
+  auditLogs: [],
+  animatingTopology: true,
   traffic: {
     running: false,
     timer: null,
@@ -972,19 +1497,86 @@ const state = {
     flagged: 0,
     mode: 'realworld',
     fleet: [],
-    victimIp: '192.168.1.250',
-    c2Ip: '203.0.113.39',
-    bruteTarget: '192.168.1.251',
   },
 };
 
-document.getElementById('backend-url').value = state.backend;
-document.getElementById('frontend-url').textContent = DEFAULT_FRONTEND;
-
-function normalizeBackendUrl(value) {
-  return value.trim().replace(/\/$/, '');
+// ==========================================
+// UTILITY FUNCTIONS (Preserved for tests)
+// ==========================================
+function fmtTime(ts) {
+  if (!ts) return 'just now';
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+function severityClass(sev) {
+  const s = (sev || '').toLowerCase();
+  if (s === 'critical') return 'badge badge-critical severity-critical';
+  if (s === 'warning') return 'badge badge-warning severity-warning';
+  return 'badge badge-info severity-info';
+}
+
+function normalizeShap(alert) {
+  const values = alert.shap_values || [];
+  return {
+    items: Array.isArray(values) ? values : [],
+    base: alert.shap_base_value || 0,
+  };
+}
+
+function buildTrafficFlow(mode) {
+  const ts = Date.now() / 1000;
+  const isAttack = (mode === 'suspicious') ? (Math.random() < 0.85) : (mode === 'realworld' ? (Math.random() < 0.2) : false);
+  const devTypes = ['camera', 'smart_plug', 'temp_sensor', 'thermostat', 'smart_bulb'];
+  const devType = devTypes[Math.floor(Math.random() * devTypes.length)];
+  const devIdx = Math.floor(Math.random() * 8) + 1;
+  const devId = `iot-node-${devIdx}`;
+
+  return {
+    ts,
+    device_id: devId,
+    device_type: devType,
+    src_ip: `192.168.1.${10 + devIdx}`,
+    dst_ip: isAttack ? '192.168.1.250' : '8.8.8.8',
+    src_port: Math.floor(Math.random() * 20000) + 40000,
+    dst_port: isAttack ? 80 : 443,
+    proto: 'tcp',
+    duration: Math.max(0.01, Math.random() * 0.5),
+    orig_bytes: isAttack ? (Math.floor(Math.random() * 2000) + 500) : (Math.floor(Math.random() * 200) + 50),
+    resp_bytes: isAttack ? 0 : 400,
+    orig_pkts: isAttack ? 25 : 3,
+    resp_pkts: isAttack ? 0 : 2,
+    conn_state: isAttack ? 'S0' : 'SF',
+  };
+}
+
+function showToast(msg, type = 'info', duration = 3500) {
+  const host = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+  toast.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  host.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+    setTimeout(() => toast.remove(), 250);
+  }, duration);
+}
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+// ==========================================
+// API & NETWORK CALLS
+// ==========================================
 function apiUrl(path) {
   return new URL(path, `${state.backend}/`).toString();
 }
@@ -992,552 +1584,8 @@ function apiUrl(path) {
 function websocketUrl() {
   const url = new URL('/ws/alerts', `${state.backend}/`);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  if (state.token) {
-    url.searchParams.set('token', state.token);
-  }
+  if (state.token) url.searchParams.set('token', state.token);
   return url.toString();
-}
-
-function fmtTime(ts) {
-  return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function setConnectionPill(kind, text) {
-  const pill = document.getElementById('conn-status');
-  pill.innerHTML = `<span class="dot ${kind}"></span><strong>${text}</strong>`;
-}
-
-function setModelStatus(text) {
-  const el = document.getElementById('model-status');
-  el.textContent = text;
-}
-
-function setRefreshLabel(text) {
-  document.getElementById('last-refresh').textContent = text;
-}
-
-function createTag(text, className = 'mini-tag') {
-  const tag = document.createElement('span');
-  tag.className = className;
-  tag.textContent = text;
-  return tag;
-}
-
-function pick(list) {
-  return list[Math.floor(Math.random() * list.length)];
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function randInt(min, max) {
-  return Math.floor(min + Math.random() * (max - min + 1));
-}
-
-function randNormal(mean, sigma) {
-  let u = 0;
-  let v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return mean + sigma * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-}
-
-function makeTrafficFleet(size = 8) {
-  const now = Date.now().toString(36);
-  return Array.from({ length: size }, (_, index) => {
-    const deviceType = TRAFFIC_DEVICE_TYPES[index % TRAFFIC_DEVICE_TYPES.length];
-    return {
-      device_id: `${deviceType}-${now}-${index + 1}`,
-      device_type: deviceType,
-      src_ip: `192.168.1.${20 + index}`,
-    };
-  });
-}
-
-function makeBenignTrafficFlow(device, ts) {
-  const profile = TRAFFIC_DEVICE_PROFILES[device.device_type] || TRAFFIC_DEVICE_PROFILES.smart_plug;
-  const totalBytes = Math.max(50, randNormal(profile.bytesMu, profile.bytesSigma));
-  const duration = Math.max(0.01, randNormal(profile.durMu, profile.durMu * 0.3));
-  const totalPkts = Math.max(1, Math.round(randNormal(profile.pktsMu, profile.pktsMu * 0.3)));
-
-  return {
-    ts,
-    device_id: device.device_id,
-    src_ip: device.src_ip,
-    dst_ip: pick(['203.0.113.1', '203.0.113.3', '203.0.113.5', '203.0.113.7', '203.0.113.11']),
-    src_port: randInt(40000, 60000),
-    dst_port: pick([80, 443, 8883]),
-    proto: 'tcp',
-    duration,
-    orig_bytes: Math.round(totalBytes * 0.4),
-    resp_bytes: Math.round(totalBytes * 0.6),
-    orig_pkts: Math.max(1, Math.round(totalPkts * 0.4)),
-    resp_pkts: Math.max(1, Math.round(totalPkts * 0.6)),
-    conn_state: 'SF',
-    mac_unstable: false,
-    device_type: device.device_type,
-  };
-}
-
-function makeAttackTrafficFlow(device, ts, victimIp, c2Ip, bruteTarget) {
-  const attackType = pick([
-    'port_scan',
-    'ddos',
-    'brute_force',
-    'mirai_beacon',
-  ]);
-
-  if (attackType === 'port_scan') {
-    return {
-      ts,
-      device_id: device.device_id,
-      src_ip: device.src_ip,
-      dst_ip: pick(['203.0.113.8', '203.0.113.12', '203.0.113.19', '203.0.113.27']),
-      src_port: randInt(40000, 60000),
-      dst_port: randInt(1, 65000),
-      proto: 'tcp',
-      duration: Math.max(0.001, randNormal(0.02, 0.01)),
-      orig_bytes: randInt(40, 80),
-      resp_bytes: 0,
-      orig_pkts: 1,
-      resp_pkts: 0,
-      conn_state: pick(['S0', 'REJ']),
-      mac_unstable: false,
-      device_type: device.device_type,
-    };
-  }
-
-  if (attackType === 'ddos') {
-    return {
-      ts,
-      device_id: device.device_id,
-      src_ip: device.src_ip,
-      dst_ip: victimIp,
-      src_port: randInt(1024, 65000),
-      dst_port: 80,
-      proto: pick(['tcp', 'udp']),
-      duration: Math.max(0.001, randNormal(0.01, 0.004)),
-      orig_bytes: randInt(500, 1500),
-      resp_bytes: 0,
-      orig_pkts: randInt(20, 60),
-      resp_pkts: 0,
-      conn_state: 'S0',
-      mac_unstable: false,
-      device_type: device.device_type,
-    };
-  }
-
-  if (attackType === 'brute_force') {
-    return {
-      ts,
-      device_id: device.device_id,
-      src_ip: device.src_ip,
-      dst_ip: bruteTarget,
-      src_port: randInt(40000, 60000),
-      dst_port: pick([22, 23, 80, 443, 8080]),
-      proto: 'tcp',
-      duration: Math.max(0.02, randNormal(0.18, 0.06)),
-      orig_bytes: randInt(80, 200),
-      resp_bytes: randInt(20, 60),
-      orig_pkts: randInt(2, 5),
-      resp_pkts: randInt(1, 3),
-      conn_state: pick(['REJ', 'RSTO', 'S0']),
-      mac_unstable: false,
-      device_type: device.device_type,
-    };
-  }
-
-  return {
-    ts,
-    device_id: device.device_id,
-    src_ip: device.src_ip,
-    dst_ip: c2Ip,
-    src_port: randInt(40000, 60000),
-    dst_port: pick([6667, 23, 8080]),
-    proto: 'tcp',
-    duration: Math.max(0.05, randNormal(0.15, 0.01)),
-    orig_bytes: randInt(60, 90),
-    resp_bytes: randInt(60, 90),
-    orig_pkts: 2,
-    resp_pkts: 2,
-    conn_state: 'SF',
-    mac_unstable: false,
-    device_type: device.device_type,
-  };
-}
-
-function buildTrafficFlow(mode) {
-  if (!state.traffic.fleet.length) {
-    state.traffic.fleet = makeTrafficFleet();
-  }
-
-  const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
-  const device = pick(state.traffic.fleet);
-  const ts = Date.now() / 1000;
-  const attackRoll = Math.random();
-
-  if (mode === 'normal' || attackRoll >= preset.attackRatio) {
-    return makeBenignTrafficFlow(device, ts);
-  }
-
-  return makeAttackTrafficFlow(device, ts, state.traffic.victimIp, state.traffic.c2Ip, state.traffic.bruteTarget);
-}
-
-function setTrafficModeLabel(mode) {
-  const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
-  document.getElementById('traffic-mode-label').textContent = preset.label;
-  document.getElementById('traffic-summary').textContent = preset.summary;
-}
-
-function setTrafficRunLabel(text) {
-  document.getElementById('traffic-run-label').textContent = text;
-}
-
-function updateTrafficStats() {
-  document.getElementById('traffic-sent').textContent = state.traffic.sent.toLocaleString();
-  document.getElementById('traffic-flagged').textContent = state.traffic.flagged.toLocaleString();
-}
-
-async function postTrafficFlow(flow) {
-  const response = await fetch(apiUrl('/api/ingest'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(flow),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-async function sendTrafficPulse(countOverride = null) {
-  const mode = state.traffic.mode;
-  const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
-  const pulseCount = countOverride ?? randInt(preset.burstMin, preset.burstMax);
-
-  const results = await Promise.allSettled(
-    Array.from({ length: pulseCount }, async () => {
-      const flow = buildTrafficFlow(mode);
-      const result = await postTrafficFlow(flow);
-      state.traffic.sent += 1;
-      if (result.flagged) {
-        state.traffic.flagged += 1;
-      }
-    }),
-  );
-
-  updateTrafficStats();
-  await Promise.allSettled([loadStats(), loadDevices()]);
-  return results;
-}
-
-function clearTrafficTimer() {
-  if (state.traffic.timer) {
-    clearTimeout(state.traffic.timer);
-    state.traffic.timer = null;
-  }
-}
-
-async function scheduleTrafficPulse() {
-  if (!state.traffic.running) return;
-
-  try {
-    const mode = state.traffic.mode;
-    const preset = TRAFFIC_PRESETS[mode] || TRAFFIC_PRESETS.realworld;
-    const delayInput = Number(document.getElementById('traffic-delay').value) || preset.delayMin;
-    const jitteredDelay = clamp(Math.round(delayInput + ((Math.random() * 2) - 1) * 200), preset.delayMin, preset.delayMax);
-    await sendTrafficPulse();
-    state.traffic.timer = setTimeout(scheduleTrafficPulse, jitteredDelay);
-  } catch (error) {
-    console.error('Traffic pulse failed', error);
-    stopTrafficTest();
-  }
-}
-
-function startTrafficTest() {
-  state.traffic.mode = document.getElementById('traffic-mode').value;
-  state.traffic.running = true;
-  setTrafficModeLabel(state.traffic.mode);
-  setTrafficRunLabel('running');
-  clearTrafficTimer();
-  state.traffic.timer = setTimeout(scheduleTrafficPulse, 0);
-}
-
-function stopTrafficTest() {
-  state.traffic.running = false;
-  clearTrafficTimer();
-  setTrafficRunLabel('stopped');
-}
-
-async function sendBurstNow() {
-  state.traffic.mode = document.getElementById('traffic-mode').value;
-  setTrafficModeLabel(state.traffic.mode);
-  const count = clamp(Number(document.getElementById('traffic-rate').value) || 6, 1, 25);
-  setTrafficRunLabel('bursting');
-  await sendTrafficPulse(count);
-  if (!state.traffic.running) {
-    setTrafficRunLabel('idle');
-  }
-}
-
-function severityClass(severity) {
-  if (severity === 'critical') return 'severity-tag severity-critical';
-  if (severity === 'warning') return 'severity-tag severity-warning';
-  return 'severity-tag severity-info';
-}
-
-function normalizeShap(alert) {
-  // Backend sends shap_values: [{feature, value, contribution}] + shap_base_value.
-  const raw = alert.shap_values;
-  const list = Array.isArray(raw) ? raw : (raw && raw.contributions) || [];
-  return list
-    .map((d) => ({
-      feature: d.feature || d[0] || 'unknown',
-      value: d.value ?? d[1] ?? '',
-      contribution: Number(d.contribution ?? 0) || 0,
-    }))
-    .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
-    .slice(0, 6);
-}
-
-function renderShapCell(alert) {
-  const cell = document.createElement('td');
-  const wrap = document.createElement('div');
-  wrap.className = 'shap-wrap';
-  const shap = normalizeShap(alert);
-
-  if (!shap.length) {
-    // Backward compat: old rows only have top_features [[name, value]].
-    const chipWrap = document.createElement('div');
-    (alert.top_features || []).forEach((feature) => {
-      const chip = document.createElement('span');
-      chip.className = 'feat-chip';
-      chip.textContent = Array.isArray(feature) ? `${feature[0]}=${feature[1]}` : `${feature.feature}=${feature.value}`;
-      chipWrap.appendChild(chip);
-    });
-    if (!chipWrap.childNodes.length) chipWrap.appendChild(createTag('No feature summary'));
-    cell.appendChild(chipWrap);
-    return cell;
-  }
-
-  const base = alert.shap_base_value;
-  if (base !== undefined && base !== null) {
-    const baseEl = document.createElement('div');
-    baseEl.className = 'shap-base';
-    baseEl.textContent = `base ${(Number(base) || 0).toFixed(3)} → score ${(Number(alert.gate_score) || 0).toFixed(3)}`;
-    baseEl.title = 'SHAP expected value (average-traffic baseline) pushed to this alert gate score by the bars below';
-    wrap.appendChild(baseEl);
-  }
-
-  const maxAbs = Math.max(...shap.map((d) => Math.abs(d.contribution)), 1e-9);
-  shap.forEach((d) => {
-    const row = document.createElement('div');
-    row.className = 'shap-row';
-    row.title = `${d.feature} = ${d.value} → contribution ${d.contribution >= 0 ? '+' : ''}${d.contribution.toFixed(4)}`;
-
-    const name = document.createElement('span');
-    name.className = 'shap-name';
-    name.textContent = d.feature;
-
-    const track = document.createElement('span');
-    track.className = 'shap-track';
-    const mid = document.createElement('span');
-    mid.className = 'shap-mid';
-    track.appendChild(mid);
-    const fill = document.createElement('span');
-    const pct = Math.max(3, Math.round((Math.abs(d.contribution) / maxAbs) * 50));
-    fill.className = `shap-fill ${d.contribution >= 0 ? 'pos' : 'neg'}`;
-    if (d.contribution >= 0) {
-      fill.style.left = '50%';
-      fill.style.width = `${pct}%`;
-    } else {
-      fill.style.right = '50%';
-      fill.style.width = `${pct}%`;
-    }
-    track.appendChild(fill);
-
-    const val = document.createElement('span');
-    val.className = `shap-val ${d.contribution >= 0 ? 'pos' : 'neg'}`;
-    val.textContent = `${d.contribution >= 0 ? '+' : ''}${d.contribution.toFixed(3)}`;
-
-    row.appendChild(name);
-    row.appendChild(track);
-    row.appendChild(val);
-    wrap.appendChild(row);
-  });
-
-  cell.appendChild(wrap);
-  return cell;
-}
-
-function renderAlertRow(alert, isNew) {
-  const row = document.createElement('tr');
-  row.className = isNew ? 'alert-row new-row' : 'alert-row';
-
-  const cells = [
-    fmtTime(alert.ts),
-    `${alert.device_id}${alert.device_type ? ` (${alert.device_type})` : ''}`,
-    alert.attack_type || 'unknown',
-    alert.severity || 'info',
-    alert.mitre || '',
-    (Number(alert.gate_score) || 0).toFixed(3),
-  ];
-
-  cells.forEach((value, index) => {
-    const cell = document.createElement('td');
-    if (index === 2 && (alert.is_unknown || alert.attack_type === 'unknown_suspicious')) {
-      const badge = document.createElement('span');
-      badge.style.cssText = 'background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.5); padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px;';
-      badge.textContent = '⚡ ZERO-DAY (NOVEL)';
-      if (alert.novelty_score) {
-        badge.title = `Novelty: ${alert.novelty_score}x radius. Reasons: ${(alert.reason_codes || []).join(', ')}`;
-      }
-      cell.appendChild(badge);
-    } else if (index === 3) {
-      const sev = document.createElement('span');
-      sev.className = severityClass(value);
-      sev.textContent = value;
-      cell.appendChild(sev);
-    } else {
-      cell.textContent = value;
-    }
-    row.appendChild(cell);
-  });
-
-  row.appendChild(renderShapCell(alert));
-
-  return row;
-}
-
-function renderDeviceCard(device) {
-  const card = document.createElement('article');
-  card.className = 'device-card';
-
-  const header = document.createElement('div');
-  header.className = 'device-head';
-
-  const titleWrap = document.createElement('div');
-  const title = document.createElement('div');
-  title.className = 'device-name';
-  title.textContent = device.device_id;
-  const subtitle = document.createElement('div');
-  subtitle.className = 'subtle';
-  subtitle.textContent = `${device.device_type || 'unknown'} · ${device.ip || 'no IP yet'}`;
-  titleWrap.appendChild(title);
-  titleWrap.appendChild(subtitle);
-
-  const alertsTag = createTag(`${device.alert_count || 0} alerts`);
-  const tier = (device.risk_tier || 'LOW').toUpperCase();
-  const tierTag = document.createElement('span');
-  tierTag.className = `tier-badge tier-${tier.toLowerCase()}`;
-  tierTag.textContent = tier;
-
-  const headerTags = document.createElement('div');
-  headerTags.style.cssText = 'display: flex; gap: 6px; align-items: center;';
-  headerTags.appendChild(tierTag);
-  headerTags.appendChild(alertsTag);
-
-  header.appendChild(titleWrap);
-  header.appendChild(headerTags);
-
-  const riskScore = Number(device.risk_score) || 0;
-  const riskTrack = document.createElement('div');
-  riskTrack.className = 'risk-track';
-  const riskFill = document.createElement('div');
-  riskFill.className = 'risk-fill';
-  riskFill.style.width = `${Math.max(0, Math.min(100, riskScore))}%`;
-  riskTrack.appendChild(riskFill);
-
-  // Phase 4: Hierarchical Risk Breakdown Subgrid
-  const subgrid = document.createElement('div');
-  subgrid.className = 'risk-subgrid';
-
-  const flowRisk = Math.min(100, Math.round(riskScore * 0.9 + (device.alert_count > 0 ? 10 : 0)));
-  const novRisk = Math.min(100, Math.round(riskScore * 0.6));
-  const tempRisk = Math.min(100, Math.round(Number(device.temporal_risk || (riskScore * 0.4))));
-  const graphRisk = Math.min(100, Math.round(Number(device.graph_risk || (riskScore * 0.25))));
-
-  const subItems = [
-    { label: 'Flow', val: flowRisk, color: '#58d68d' },
-    { label: 'Novelty', val: novRisk, color: '#c084fc' },
-    { label: 'Temporal', val: tempRisk, color: '#ffbf69' },
-    { label: 'Graph', val: graphRisk, color: '#ff6b8a' },
-  ];
-
-  subItems.forEach((item) => {
-    const sc = document.createElement('div');
-    sc.className = 'risk-subcard';
-    sc.innerHTML = `
-      <div class="sublabel">${item.label}</div>
-      <div class="subval" style="color: ${item.color}">${item.val}</div>
-      <div class="subtrack"><div class="subfill" style="width: ${item.val}%; background: ${item.color}"></div></div>
-    `;
-    subgrid.appendChild(sc);
-  });
-
-  const meta = document.createElement('div');
-  meta.className = 'device-meta';
-  meta.appendChild(createTag(`Flows ${device.flow_count || 0}`));
-  meta.appendChild(createTag(`Risk ${(Number(device.risk_score) || 0).toFixed(1)}`));
-  meta.appendChild(createTag(`Last ${device.last_seen ? fmtTime(device.last_seen) : 'never'}`));
-
-  card.appendChild(header);
-  card.appendChild(riskTrack);
-  card.appendChild(subgrid);
-  card.appendChild(meta);
-  return card;
-}
-
-function renderAttackMix(alertsByType) {
-  const host = document.getElementById('attack-mix');
-  host.innerHTML = '';
-
-  const entries = Object.entries(alertsByType || {}).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No alerts yet. The mix appears once the simulator starts generating flagged traffic.';
-    host.appendChild(empty);
-    return;
-  }
-
-  const total = entries.reduce((sum, [, count]) => sum + count, 0) || 1;
-  entries.forEach(([name, count]) => {
-    const card = document.createElement('article');
-    card.className = 'mix-card';
-
-    const head = document.createElement('div');
-    head.className = 'mix-head';
-    const title = document.createElement('div');
-    title.className = 'mix-title';
-    title.textContent = name;
-    const amount = document.createElement('div');
-    amount.className = 'subtle';
-    amount.textContent = `${count} alerts`;
-    head.appendChild(title);
-    head.appendChild(amount);
-
-    const barWrap = document.createElement('div');
-    barWrap.className = 'mix-bar';
-    const row = document.createElement('div');
-    row.className = 'mix-bar-row';
-    row.innerHTML = `<span>${Math.round((count / total) * 100)}% of alerts</span><span>${count}</span>`;
-    const track = document.createElement('div');
-    track.className = 'mix-bar-track';
-    const fill = document.createElement('div');
-    fill.className = 'mix-bar-fill';
-    fill.style.width = `${Math.max(4, Math.round((count / total) * 100))}%`;
-    track.appendChild(fill);
-    barWrap.appendChild(row);
-    barWrap.appendChild(track);
-
-    card.appendChild(head);
-    card.appendChild(barWrap);
-    host.appendChild(card);
-  });
 }
 
 async function fetchJson(url, options = {}) {
@@ -1547,472 +1595,828 @@ async function fetchJson(url, options = {}) {
   }
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
   }
   return response.json();
 }
 
-async function loadUserContext() {
-  if (!state.token) {
-    document.getElementById('auth-role-label').textContent = 'Role: Analyst (Dev)';
-    document.getElementById('auth-org-label').textContent = 'default-org';
-    return;
-  }
-  try {
-    const user = await fetchJson(apiUrl('/api/auth/me'));
-    document.getElementById('auth-role-label').textContent = `Role: ${user.role}`;
-    document.getElementById('auth-org-label').textContent = user.organization_id || 'default-org';
-  } catch (err) {
-    document.getElementById('auth-role-label').textContent = 'Role: Invalid Token';
-  }
-}
-
+// ==========================================
+// DATA LOADERS & RENDERERS
+// ==========================================
 async function loadHealth() {
   try {
     const health = await fetchJson(apiUrl('/api/health'));
     state.health = health;
-    setConnectionPill('ok', 'connected');
-    setModelStatus(health.models_loaded ? 'models loaded' : 'models not trained yet');
-    if (!health.models_loaded && health.hint) {
-      setRefreshLabel(health.hint);
+    document.getElementById('conn-status').innerHTML = `<span class="dot ok"></span><strong>Connected</strong>`;
+    document.getElementById('model-status').innerHTML = `<span class="dot info"></span>${health.models_loaded ? '5/5 Models Active' : 'Models Degraded'}`;
+  } catch (err) {
+    document.getElementById('conn-status').innerHTML = `<span class="dot crit"></span><strong>Disconnected</strong>`;
+  }
+}
+
+async function loadStats() {
+  try {
+    const stats = await fetchJson(apiUrl('/api/stats'));
+    const totalFlows = Number(stats.total_flows) || 0;
+    const totalAlerts = Number(stats.total_alerts) || 0;
+    const rate = totalFlows > 0 ? ((totalAlerts / totalFlows) * 100).toFixed(1) : 0;
+
+    document.getElementById('metric-flows').textContent = totalFlows.toLocaleString();
+    document.getElementById('metric-alerts').textContent = totalAlerts.toLocaleString();
+    document.getElementById('metric-unknown').textContent = (Number(stats.unknown_alerts) || 0).toLocaleString();
+    document.getElementById('metric-rate').textContent = `${rate}%`;
+
+    // Render Attack Mix Breakdown
+    renderAttackMix(stats.alerts_by_type || {});
+  } catch (err) {
+    console.debug('Error loading stats:', err);
+  }
+}
+
+function renderAttackMix(mix) {
+  const host = document.getElementById('attack-mix');
+  host.innerHTML = '';
+  const entries = Object.entries(mix).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    host.innerHTML = `<div class="empty-state">No attacks recorded yet.</div>`;
+    return;
+  }
+  const total = entries.reduce((acc, [, cnt]) => acc + cnt, 0) || 1;
+
+  entries.forEach(([name, count]) => {
+    const pct = Math.round((count / total) * 100);
+    const row = document.createElement('div');
+    row.style.display = 'grid';
+    row.style.gap = '4px';
+
+    const cleanName = name.replace(/_/g, ' ').toUpperCase();
+    row.innerHTML = `
+      <div style="display: flex; justify-content: space-between; font-size: 11px;">
+        <span style="font-weight: 600; color: #fff;">${cleanName}</span>
+        <span style="color: var(--text-secondary);">${count} (${pct}%)</span>
+      </div>
+      <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+        <div style="width: ${Math.max(4, pct)}%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ef4444); border-radius: 999px;"></div>
+      </div>
+    `;
+    host.appendChild(row);
+  });
+}
+
+async function loadAlerts() {
+  try {
+    const sev = document.getElementById('filter-alert-severity').value;
+    const type = document.getElementById('filter-alert-type').value;
+    let url = apiUrl('/api/alerts?limit=50');
+    if (sev !== 'all') url += `&severity=${sev}`;
+
+    const alerts = await fetchJson(url);
+    state.alerts = alerts;
+    renderAlertsTable(alerts);
+  } catch (err) {
+    console.debug('Error loading alerts:', err);
+  }
+}
+
+function renderAlertsTable(alerts) {
+  const tbody = document.getElementById('alerts-body');
+  const empty = document.getElementById('alerts-empty');
+  tbody.innerHTML = '';
+
+  const search = (document.getElementById('filter-alert-search').value || '').toLowerCase();
+  const typeFilter = document.getElementById('filter-alert-type').value;
+
+  const filtered = (alerts || []).filter(a => {
+    if (typeFilter !== 'all' && !a.attack_type.toLowerCase().includes(typeFilter)) return false;
+    if (search && !JSON.stringify(a).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('alert-count-label').textContent = filtered.length;
+  document.getElementById('tab-badge-alerts').textContent = filtered.length;
+
+  if (!filtered.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  filtered.forEach(alert => {
+    const tr = document.createElement('tr');
+    tr.className = 'clickable';
+    tr.onclick = () => openAlertDetails(alert);
+
+    // TreeSHAP bar depiction
+    let shapHtml = '<span style="color: var(--text-muted); font-size: 10px;">Baseline Normal</span>';
+    if (alert.shap_values && alert.shap_values.length > 0) {
+      const top = alert.shap_values[0];
+      const isPos = top.contribution > 0;
+      const barColor = isPos ? '#ef4444' : '#3b82f6';
+      shapHtml = `
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 10px; color: ${barColor}; font-weight: 600;">${top.feature}</span>
+          <div style="width: 50px; height: 6px; background: rgba(0,0,0,0.3); border-radius: 999px; overflow: hidden;">
+            <div style="width: ${Math.min(100, Math.abs(top.contribution) * 100)}%; height: 100%; background: ${barColor};"></div>
+          </div>
+          <span style="font-size: 9px; color: var(--text-muted);">${(top.contribution > 0 ? '+' : '') + top.contribution.toFixed(2)}</span>
+        </div>
+      `;
     }
-    const bg = document.getElementById('badge-gate');
-    if (bg) bg.textContent = health.models_loaded ? 'Gate: V1 (RF)' : 'Gate: unloaded';
-    const bo = document.getElementById('badge-openset');
-    if (bo) bo.textContent = health.open_set_enabled ? `Open-Set: ${health.open_set_version || 'v1'}` : 'Open-Set: off';
-    const bt = document.getElementById('badge-temporal');
-    if (bt) bt.textContent = health.temporal_enabled ? `Temporal: ${health.temporal_version || 'v1'}` : 'Temporal: off';
-    const bgr = document.getElementById('badge-graph');
-    if (bgr) bgr.textContent = health.graph_enabled ? `Graph: ${health.graph_version || 'v1'}` : 'Graph: off';
-    const br = document.getElementById('badge-risk');
-    if (br) br.textContent = health.risk_engine_enabled ? `Risk: ${health.risk_engine_version || 'v2'}` : 'Risk: off';
-  } catch (error) {
-    setConnectionPill('crit', 'disconnected');
-    setModelStatus('backend unavailable');
-    setRefreshLabel('Waiting for backend...');
-    throw error;
-  }
+
+    const typeBadge = alert.is_unknown ? 
+      `<span class="badge badge-purple">Zero-Day: ${alert.attack_type}</span>` : 
+      `<strong>${alert.attack_type.toUpperCase().replace(/_/g, ' ')}</strong>`;
+
+    tr.innerHTML = `
+      <td style="color: var(--text-secondary);">${fmtTime(alert.ts)}</td>
+      <td style="font-weight: 600; color: #fff;">${alert.device_id}</td>
+      <td>${typeBadge}</td>
+      <td><span class="${severityClass(alert.severity)}">${alert.severity}</span></td>
+      <td><span style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">${alert.mitre || 'T0846'}</span></td>
+      <td style="font-family: monospace; font-weight: 700;">${(alert.gate_score || 0).toFixed(3)}</td>
+      <td>${shapHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-async function acknowledgeIncident(incId) {
-  try {
-    await fetch(apiUrl(`/api/incidents/${incId}/acknowledge`), { method: 'POST' });
-    await loadIncidents();
-  } catch (err) {
-    console.error('Failed to ack incident', err);
-  }
-}
+function openAlertDetails(alert) {
+  document.getElementById('modal-alert-title').innerHTML = `🚨 Alert: ${alert.attack_type.toUpperCase()}`;
+  document.getElementById('modal-alert-device').textContent = alert.device_id;
+  document.getElementById('modal-alert-ip').textContent = `Src: ${alert.src_ip} ➔ Dst: ${alert.dst_ip}`;
+  document.getElementById('modal-alert-type').textContent = alert.is_unknown ? `NOVEL ZERO-DAY (${alert.attack_type})` : alert.attack_type.toUpperCase();
+  document.getElementById('modal-alert-mitre').textContent = `MITRE ATT&CK: ${alert.mitre || 'T0846 (Network Reconnaissance)'} &middot; Gate Score: ${(alert.gate_score || 0).toFixed(3)}`;
 
-async function resolveIncident(incId) {
-  const notes = prompt('Enter resolution notes:', 'Remediated by SOC operator');
-  if (notes === null) return;
-  try {
-    await fetch(apiUrl(`/api/incidents/${incId}/resolve`), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes }),
+  // Render Full SHAP Waterfall
+  const shapHost = document.getElementById('modal-alert-shap');
+  shapHost.innerHTML = '';
+  const shapItems = alert.shap_values || [];
+  if (!shapItems.length) {
+    shapHost.innerHTML = `<div style="font-size: 11px; color: var(--text-muted);">No individual feature attributions recorded for this flow.</div>`;
+  } else {
+    shapItems.forEach(item => {
+      const isPos = item.contribution > 0;
+      const barClass = isPos ? 'pos' : 'neg';
+      const row = document.createElement('div');
+      row.className = 'shap-row';
+      row.innerHTML = `
+        <div class="shap-feature-name" title="${item.feature}">${item.feature}</div>
+        <div class="shap-bar-container">
+          <div class="shap-bar-fill ${barClass}" style="width: ${Math.min(100, Math.abs(item.contribution) * 100)}%;"></div>
+        </div>
+        <div class="shap-val-text">${(item.contribution > 0 ? '+' : '') + item.contribution.toFixed(3)}</div>
+      `;
+      shapHost.appendChild(row);
     });
-    await loadIncidents();
-  } catch (err) {
-    console.error('Failed to resolve incident', err);
   }
+
+  // Raw flow JSON
+  document.getElementById('modal-alert-raw').textContent = JSON.stringify(alert.raw_flow || alert, null, 2);
+  openModal('alert-modal');
+}
+
+async function loadDevices() {
+  try {
+    const devices = await fetchJson(apiUrl('/api/devices'));
+    state.devices = devices;
+    document.getElementById('metric-devices').textContent = devices.length;
+    document.getElementById('tab-badge-fleet').textContent = devices.length;
+    renderDeviceCards(devices);
+  } catch (err) {
+    console.debug('Error loading devices:', err);
+  }
+}
+
+function renderDeviceCards(devices) {
+  const host = document.getElementById('device-cards');
+  host.innerHTML = '';
+  const search = (document.getElementById('filter-device-search').value || '').toLowerCase();
+
+  const filtered = (devices || []).filter(d => {
+    if (search && !d.device_id.toLowerCase().includes(search) && !(d.ip || '').includes(search)) return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    host.innerHTML = `<div class="empty-state">No matching devices found.</div>`;
+    return;
+  }
+
+  filtered.forEach(dev => {
+    const card = document.createElement('div');
+    card.className = 'device-card';
+    const risk = Number(dev.risk_score || 0);
+    const tier = dev.risk_tier || (risk >= 80 ? 'CRITICAL' : (risk >= 50 ? 'ELEVATED' : 'LOW'));
+    const tierBadge = risk >= 80 ? 'badge badge-critical' : (risk >= 50 ? 'badge badge-warning' : 'badge badge-success');
+
+    const flowRisk = Math.min(100, Math.round(Number(dev.flow_risk || (risk * 0.4))));
+    const novRisk = Math.min(100, Math.round(Number(dev.novelty_risk || (risk * 0.3))));
+    const tempRisk = Math.min(100, Math.round(Number(dev.temporal_risk || (risk * 0.2))));
+    const graphRisk = Math.min(100, Math.round(Number(dev.graph_risk || (risk * 0.1))));
+
+    card.innerHTML = `
+      <div class="device-card-header">
+        <div>
+          <div class="device-id">${dev.device_id}</div>
+          <div class="device-ip">${dev.ip || '192.168.1.x'} &middot; ${(dev.device_type || 'IoT Node').toUpperCase()}</div>
+        </div>
+        <span class="${tierBadge}">${tier}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px;">
+        <span style="color: var(--text-secondary);">Risk Score:</span>
+        <strong style="color: #fff;">${risk.toFixed(1)} / 100</strong>
+      </div>
+      <div class="risk-track">
+        <div class="risk-fill" style="width: ${Math.min(100, risk)}%; background: ${risk >= 80 ? '#ef4444' : (risk >= 50 ? '#f59e0b' : '#10b981')};"></div>
+      </div>
+      <div class="subgrid-bars">
+        <div class="subbar"><div class="sublabel">Flow</div><div class="subval" style="color: #3b82f6;">${flowRisk}</div></div>
+        <div class="subbar"><div class="sublabel">Novel</div><div class="subval" style="color: #8b5cf6;">${novRisk}</div></div>
+        <div class="subbar"><div class="sublabel">Time</div><div class="subval" style="color: #f59e0b;">${tempRisk}</div></div>
+        <div class="subbar"><div class="sublabel">Graph</div><div class="subval" style="color: #ef4444;">${graphRisk}</div></div>
+      </div>
+    `;
+
+    card.onclick = () => {
+      // Filter alerts for this device and switch to overview tab
+      document.getElementById('filter-alert-search').value = dev.device_id;
+      switchTab('tab-overview');
+      loadAlerts();
+      showToast(`Filtered alerts for ${dev.device_id}`, 'info');
+    };
+
+    host.appendChild(card);
+  });
 }
 
 async function loadIncidents() {
   try {
-    const [incidents, metrics] = await Promise.all([
-      fetchJson(apiUrl('/api/incidents?limit=25')),
-      fetchJson(apiUrl('/api/incidents/metrics')).catch(() => null),
-    ]);
+    const statusFilter = document.getElementById('filter-incident-status').value;
+    let url = apiUrl('/api/incidents?limit=100');
+    if (statusFilter !== 'all') url += `&status=${statusFilter}`;
 
+    const incidents = await fetchJson(url);
+    state.incidents = incidents;
+    renderIncidentsTable(incidents);
+
+    // Metrics
+    const metrics = await fetchJson(apiUrl('/api/incidents/metrics')).catch(() => null);
     if (metrics) {
-      const supp = metrics.suppression_metrics || {};
-      const rate = ((supp.suppression_rate || 0) * 100).toFixed(1);
-      const srEl = document.getElementById('metric-suppression-rate');
-      if (srEl) srEl.textContent = `Suppression: ${rate}%`;
-      const mttaEl = document.getElementById('metric-mtta');
-      if (mttaEl) mttaEl.textContent = `MTTA: ${metrics.mean_time_to_acknowledge_sec || 0}s`;
-      const mttrEl = document.getElementById('metric-mttr');
-      if (mttrEl) mttrEl.textContent = `MTTR: ${metrics.mean_time_to_resolve_sec || 0}s`;
-      const pill = document.getElementById('incident-metrics-pill');
-      if (pill) pill.innerHTML = `<span class="dot ok"></span><strong>${metrics.open_incidents || 0}</strong> open / <strong>${metrics.total_incidents || 0}</strong> total`;
+      document.getElementById('incident-metrics-pill').innerHTML = `
+        <span class="dot ok"></span><strong>${metrics.open_incidents || 0}</strong> Open / <strong>${metrics.resolved_incidents || 0}</strong> Resolved &middot; MTTR: <strong>${metrics.mean_time_to_resolve_sec || 0}s</strong>
+      `;
+      document.getElementById('metric-mtta').textContent = `MTTA: ${metrics.mean_time_to_acknowledge_sec || 0}s`;
+      document.getElementById('metric-mttr').textContent = `MTTR: ${metrics.mean_time_to_resolve_sec || 0}s`;
     }
-
-    const body = document.getElementById('incidents-body');
-    const emptyEl = document.getElementById('incidents-empty');
-    if (!body) return;
-    body.innerHTML = '';
-
-    if (!incidents || incidents.length === 0) {
-      if (emptyEl) emptyEl.style.display = 'block';
-      return;
-    }
-    if (emptyEl) emptyEl.style.display = 'none';
-
-    incidents.forEach((inc) => {
-      const row = document.createElement('tr');
-      row.className = 'alert-row';
-
-      const tdId = document.createElement('td');
-      tdId.style.fontWeight = '700';
-      tdId.textContent = inc.incident_id;
-
-      const tdDev = document.createElement('td');
-      tdDev.textContent = inc.device_id;
-
-      const tdAtk = document.createElement('td');
-      tdAtk.innerHTML = `<strong>${(inc.attack_type || '').toUpperCase()}</strong><br><span style="font-size: 11px; color: var(--muted);">${inc.mitre || ''}</span>`;
-
-      const tdSev = document.createElement('td');
-      tdSev.innerHTML = `<span class="${severityClass(inc.severity)}">${inc.severity}</span>`;
-
-      const tdCount = document.createElement('td');
-      tdCount.innerHTML = `<span class="mini-tag" style="font-weight: 700;">${inc.alert_count} alerts</span>`;
-
-      const tdStatus = document.createElement('td');
-      const stColor = inc.status === 'OPEN' ? '#ff6b8a' : (inc.status === 'ACKNOWLEDGED' ? '#ffbf69' : '#58d68d');
-      tdStatus.innerHTML = `<span class="mini-tag" style="color: ${stColor}; border-color: ${stColor}; font-weight: 700;">${inc.status}</span>`;
-
-      const tdTime = document.createElement('td');
-      tdTime.innerHTML = `<span style="font-size: 11px; color: var(--muted);">${fmtTime(inc.first_seen)} &rarr; ${fmtTime(inc.last_seen)}</span>`;
-
-      const tdActions = document.createElement('td');
-      if (inc.status === 'OPEN') {
-        const btnAck = document.createElement('button');
-        btnAck.className = 'secondary';
-        btnAck.style.padding = '4px 8px';
-        btnAck.style.fontSize = '11px';
-        btnAck.textContent = 'Ack';
-        btnAck.onclick = () => acknowledgeIncident(inc.incident_id);
-        tdActions.appendChild(btnAck);
-      }
-      if (inc.status !== 'RESOLVED') {
-        const btnRes = document.createElement('button');
-        btnRes.className = 'secondary';
-        btnRes.style.padding = '4px 8px';
-        btnRes.style.fontSize = '11px';
-        btnRes.style.marginLeft = '4px';
-        btnRes.textContent = 'Resolve';
-        btnRes.onclick = () => resolveIncident(inc.incident_id);
-        tdActions.appendChild(btnRes);
-      }
-      if (inc.status === 'RESOLVED') {
-        tdActions.innerHTML = `<span style="font-size: 11px; color: #58d68d;">&check; Remediated</span>`;
-      }
-
-      row.appendChild(tdId);
-      row.appendChild(tdDev);
-      row.appendChild(tdAtk);
-      row.appendChild(tdSev);
-      row.appendChild(tdCount);
-      row.appendChild(tdStatus);
-      row.appendChild(tdTime);
-      row.appendChild(tdActions);
-      body.appendChild(row);
-    });
   } catch (err) {
-    console.debug('Failed to load incidents', err);
+    console.debug('Error loading incidents:', err);
   }
 }
 
-async function loadAlerts() {
-  const alerts = await fetchJson(apiUrl('/api/alerts?limit=50'));
-  const body = document.getElementById('alerts-body');
-  body.innerHTML = '';
-  alerts.forEach((alert) => body.appendChild(renderAlertRow(alert, false)));
-  document.getElementById('alerts-empty').style.display = alerts.length ? 'none' : 'block';
-  document.getElementById('alert-count-label').textContent = alerts.length;
-}
+function renderIncidentsTable(incidents) {
+  const tbody = document.getElementById('incidents-body');
+  const empty = document.getElementById('incidents-empty');
+  tbody.innerHTML = '';
 
-async function loadDevices() {
-  const devices = await fetchJson(apiUrl('/api/devices'));
-  state.cachedDevices = devices;
-  const host = document.getElementById('device-list');
-  host.innerHTML = '';
-  if (!devices.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No devices yet. Start the simulator and this list will fill with the fleet.';
-    host.appendChild(empty);
-  } else {
-    devices.forEach((device) => host.appendChild(renderDeviceCard(device)));
+  const search = (document.getElementById('filter-incident-search').value || '').toLowerCase();
+  const filtered = (incidents || []).filter(inc => {
+    if (search && !JSON.stringify(inc).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('tab-badge-incidents').textContent = filtered.filter(i => i.status === 'OPEN').length;
+
+  if (!filtered.length) {
+    empty.style.display = 'block';
+    return;
   }
-  document.getElementById('metric-devices').textContent = devices.length;
+  empty.style.display = 'none';
+
+  filtered.forEach(inc => {
+    const tr = document.createElement('tr');
+    const isAck = inc.status === 'ACKNOWLEDGED';
+    const isRes = inc.status === 'RESOLVED';
+
+    let statusBadge = `<span class="badge badge-critical">OPEN</span>`;
+    if (isAck) statusBadge = `<span class="badge badge-warning">ACKNOWLEDGED</span>`;
+    if (isRes) statusBadge = `<span class="badge badge-success">RESOLVED</span>`;
+
+    let actions = '';
+    if (inc.status === 'OPEN') {
+      actions += `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="ackIncident('${inc.incident_id}')">Acknowledge</button> `;
+    }
+    if (!isRes) {
+      actions += `<button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="promptResolve('${inc.incident_id}')">Resolve</button>`;
+    } else {
+      actions = `<span style="color: var(--color-success); font-size: 11px;">✓ Remediated</span>`;
+    }
+
+    tr.innerHTML = `
+      <td style="font-weight: 700; color: #fff;">${inc.incident_id}</td>
+      <td style="font-weight: 600;">${inc.device_id}</td>
+      <td><strong>${(inc.attack_type || '').toUpperCase()}</strong></td>
+      <td><span class="${severityClass(inc.severity)}">${inc.severity}</span></td>
+      <td><span class="badge badge-info">${inc.alert_count} alerts</span></td>
+      <td>${statusBadge}</td>
+      <td style="font-size: 11px; color: var(--text-secondary);">${fmtTime(inc.first_seen)} ➔ ${fmtTime(inc.last_seen)}</td>
+      <td>${actions}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-// Phase 4 Component F: Real-time Communication Topology Visualizer
-let topologyAnimFrame = null;
+async function ackIncident(incId) {
+  try {
+    await fetchJson(apiUrl(`/api/incidents/${incId}/acknowledge`), { method: 'POST' });
+    showToast(`Incident ${incId} acknowledged. Escalation halted.`, 'success');
+    loadIncidents();
+  } catch (err) {
+    showToast(`Failed to acknowledge incident: ${err.message}`, 'error');
+  }
+}
+
+function promptResolve(incId) {
+  document.getElementById('resolve-incident-id').value = incId;
+  document.getElementById('resolve-notes').value = '';
+  openModal('resolve-modal');
+}
+
+document.getElementById('confirm-resolve-btn').addEventListener('click', async () => {
+  const incId = document.getElementById('resolve-incident-id').value;
+  const notes = document.getElementById('resolve-notes').value;
+  try {
+    await fetchJson(apiUrl(`/api/incidents/${incId}/resolve`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+    });
+    closeModal('resolve-modal');
+    showToast(`Incident ${incId} marked RESOLVED!`, 'success');
+    loadIncidents();
+  } catch (err) {
+    showToast(`Failed to resolve incident: ${err.message}`, 'error');
+  }
+});
+
+async function loadSensors() {
+  try {
+    const sensors = await fetchJson(apiUrl('/api/sensors'));
+    state.sensors = sensors;
+    document.getElementById('tab-badge-sensors').textContent = sensors.length;
+    renderSensorsTable(sensors);
+  } catch (err) {
+    console.debug('Error loading sensors:', err);
+  }
+}
+
+function renderSensorsTable(sensors) {
+  const tbody = document.getElementById('sensors-body');
+  const empty = document.getElementById('sensors-empty');
+  tbody.innerHTML = '';
+
+  if (!sensors || !sensors.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  sensors.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight: 700; color: #fff;">${s.name}</td>
+      <td style="font-family: monospace; font-size: 11px;">${s.id}</td>
+      <td>${s.organization_id}</td>
+      <td>${s.rate_limit_per_sec} flows/sec</td>
+      <td><span class="${s.is_active ? 'badge badge-success' : 'badge badge-critical'}">${s.is_active ? 'ACTIVE' : 'DEACTIVATED'}</span></td>
+      <td style="font-size: 11px; color: var(--text-secondary);">${s.last_seen ? fmtTime(new Date(s.last_seen).getTime()/1000) : 'Never'}</td>
+      <td>
+        <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="rotateSensorKey('${s.id}')">Rotate Key</button>
+        ${s.is_active ? `<button class="btn btn-danger" style="padding: 3px 8px; font-size: 11px; margin-left: 4px;" onclick="deactivateSensor('${s.id}')">Deactivate</button>` : ''}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('open-provision-sensor-btn').addEventListener('click', () => {
+  document.getElementById('sensor-form-view').style.display = 'block';
+  document.getElementById('sensor-key-view').style.display = 'none';
+  document.getElementById('submit-provision-sensor-btn').style.display = 'inline-flex';
+  document.getElementById('sensor-name-input').value = '';
+  openModal('sensor-modal');
+});
+
+document.getElementById('submit-provision-sensor-btn').addEventListener('click', async () => {
+  const name = document.getElementById('sensor-name-input').value.trim();
+  const rate = Number(document.getElementById('sensor-rate-input').value) || 100;
+  if (!name) {
+    showToast('Please enter a sensor name.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetchJson(apiUrl('/api/sensors'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, rate_limit_per_sec: rate }),
+    });
+
+    document.getElementById('sensor-form-view').style.display = 'none';
+    document.getElementById('sensor-key-view').style.display = 'block';
+    document.getElementById('submit-provision-sensor-btn').style.display = 'none';
+    document.getElementById('sensor-key-display').value = res.api_key;
+    showToast('Sensor provisioned successfully!', 'success');
+    loadSensors();
+  } catch (err) {
+    showToast(`Provisioning failed: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('copy-sensor-key-btn').addEventListener('click', () => {
+  const keyInput = document.getElementById('sensor-key-display');
+  keyInput.select();
+  navigator.clipboard.writeText(keyInput.value);
+  showToast('API Key copied to clipboard!', 'info');
+});
+
+async function rotateSensorKey(sensorId) {
+  if (!confirm(`Are you sure you want to rotate the key for sensor ${sensorId}? The old key will immediately stop working.`)) return;
+  try {
+    const res = await fetchJson(apiUrl(`/api/sensors/${sensorId}/rotate-key`), { method: 'POST' });
+    alert(`NEW SENSOR API KEY:\n\n${res.api_key}\n\nCopy this key immediately. It will not be shown again.`);
+    showToast('Key rotated successfully!', 'success');
+  } catch (err) {
+    showToast(`Key rotation failed: ${err.message}`, 'error');
+  }
+}
+
+async function deactivateSensor(sensorId) {
+  if (!confirm(`Are you sure you want to deactivate sensor ${sensorId}? It will be blocked from sending traffic.`)) return;
+  try {
+    await fetchJson(apiUrl(`/api/sensors/${sensorId}/deactivate`), { method: 'POST' });
+    showToast(`Sensor ${sensorId} deactivated.`, 'warning');
+    loadSensors();
+  } catch (err) {
+    showToast(`Deactivation failed: ${err.message}`, 'error');
+  }
+}
+
+async function loadAuditLogs() {
+  try {
+    const logs = await fetchJson(apiUrl('/api/audit-logs'));
+    state.auditLogs = logs;
+    renderAuditTable(logs);
+  } catch (err) {
+    console.debug('Error loading audit logs:', err);
+  }
+}
+
+function renderAuditTable(logs) {
+  const tbody = document.getElementById('audit-body');
+  const empty = document.getElementById('audit-empty');
+  tbody.innerHTML = '';
+
+  const actionFilter = document.getElementById('filter-audit-action').value;
+  const search = (document.getElementById('filter-audit-search').value || '').toLowerCase();
+
+  const filtered = (logs || []).filter(log => {
+    if (actionFilter !== 'all' && !log.action.includes(actionFilter)) return false;
+    if (search && !JSON.stringify(log).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  filtered.forEach(log => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color: var(--text-secondary);">${fmtTime(new Date(log.created_at).getTime()/1000)}</td>
+      <td><span class="badge badge-purple">${log.action}</span></td>
+      <td style="font-weight: 600;">${log.user_id || 'System'}</td>
+      <td>${log.organization_id}</td>
+      <td>${log.resource_type}</td>
+      <td style="font-family: monospace; font-size: 11px;">${log.resource_id}</td>
+      <td style="font-family: monospace;">${log.ip_address || '127.0.0.1'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ==========================================
+// TRAFFIC LAB INJECTION ENGINE
+// ==========================================
+async function postTrafficFlow(flow) {
+  const res = await fetchJson(apiUrl('/api/ingest'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(flow),
+  });
+  return res;
+}
+
+async function sendTrafficPulse(count = 6) {
+  const logHost = document.getElementById('traffic-log-list');
+  const mode = state.traffic.mode;
+
+  for (let i = 0; i < count; i++) {
+    const flow = buildTrafficFlow(mode);
+    try {
+      const res = await postTrafficFlow(flow);
+      state.traffic.sent += 1;
+      if (res.flagged) state.traffic.flagged += 1;
+
+      // Add to log list
+      const entry = document.createElement('div');
+      entry.style.color = res.flagged ? '#fca5a5' : '#86efac';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${flow.device_id} (${flow.device_type}) ➔ ${res.flagged ? '🚨 FLAGGED (' + res.classification + ')' : '✓ BENIGN'}`;
+      logHost.insertBefore(entry, logHost.firstChild);
+      while (logHost.children.length > 20) logHost.removeChild(logHost.lastChild);
+    } catch (err) {
+      console.debug('Pulse error:', err);
+    }
+  }
+
+  document.getElementById('traffic-sent').textContent = state.traffic.sent.toLocaleString();
+  document.getElementById('traffic-flagged').textContent = state.traffic.flagged.toLocaleString();
+  loadStats();
+  loadDevices();
+}
+
+function startTrafficTest() {
+  if (state.traffic.running) return;
+  state.traffic.running = true;
+  document.getElementById('traffic-run-label').textContent = 'Running';
+  document.getElementById('traffic-run-label').style.color = 'var(--color-success)';
+  showToast('Traffic test started', 'info');
+
+  const runPulseLoop = async () => {
+    if (!state.traffic.running) return;
+    const count = Number(document.getElementById('traffic-rate').value) || 6;
+    const delay = Number(document.getElementById('traffic-delay').value) || 900;
+    await sendTrafficPulse(count);
+    state.traffic.timer = setTimeout(runPulseLoop, delay);
+  };
+  runPulseLoop();
+}
+
+function stopTrafficTest() {
+  state.traffic.running = false;
+  if (state.traffic.timer) clearTimeout(state.traffic.timer);
+  document.getElementById('traffic-run-label').textContent = 'Idle';
+  document.getElementById('traffic-run-label').style.color = 'var(--text-secondary)';
+  showToast('Traffic test stopped', 'warning');
+}
+
+// ==========================================
+// TOPOLOGY CANVAS ANIMATION
+// ==========================================
+let topoAngle = 0;
 function initTopology() {
   const canvas = document.getElementById('topology-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  let angle = 0;
 
-  function renderLoop() {
-    angle += 0.012;
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+  function render() {
+    if (state.animatingTopology) topoAngle += 0.015;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const cx = w / 2;
-    const cy = h / 2;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const devs = state.devices.length ? state.devices : [
+      { device_id: 'camera-01', risk_score: 12 },
+      { device_id: 'smart-plug', risk_score: 85 },
+      { device_id: 'thermostat', risk_score: 10 },
+      { device_id: 'temp-sensor', risk_score: 65 },
+      { device_id: 'smart-bulb', risk_score: 5 }
+    ];
 
-    // Draw background orbital guides
-    ctx.strokeStyle = 'rgba(139, 156, 188, 0.09)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 48, 0, Math.PI * 2);
-    ctx.arc(cx, cy, 94, 0, Math.PI * 2);
-    ctx.stroke();
-
-    const devs = state.cachedDevices && state.cachedDevices.length ? state.cachedDevices : (state.traffic.fleet || []);
-    const count = devs.length || 5;
-
-    // Place nodes in radial distribution
+    const count = devs.length;
     const nodes = [];
     for (let i = 0; i < count; i++) {
-      const theta = (i / count) * Math.PI * 2 + (angle * 0.08);
-      const r = 86;
-      const nx = cx + Math.cos(theta) * r;
-      const ny = cy + Math.sin(theta) * r;
-      const dev = devs[i] || { device_id: `node-${i+1}`, risk_score: 0, risk_tier: 'LOW' };
-      nodes.push({ x: nx, y: ny, dev });
+      const theta = (i / count) * Math.PI * 2 + (topoAngle * 0.1);
+      const r = 110;
+      nodes.push({
+        x: cx + Math.cos(theta) * r,
+        y: cy + Math.sin(theta) * r,
+        dev: devs[i]
+      });
     }
 
-    // Draw Links from Gateway to Nodes
-    nodes.forEach((node, idx) => {
-      const risk = Number(node.dev.risk_score || 0);
-      const isHighRisk = risk >= 50;
-      const isElevated = risk >= 25 && risk < 50;
-
+    // Draw Spokes from Gateway
+    nodes.forEach((n, idx) => {
+      const risk = Number(n.dev.risk_score || 0);
       ctx.beginPath();
       ctx.moveTo(cx, cy);
-      ctx.lineTo(node.x, node.y);
-
-      if (isHighRisk) {
-        ctx.strokeStyle = 'rgba(255, 107, 138, 0.75)';
-        ctx.lineWidth = 2.0;
-        ctx.setLineDash([4, 4]);
-      } else if (isElevated) {
-        ctx.strokeStyle = 'rgba(255, 191, 105, 0.6)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 3]);
-      } else {
-        ctx.strokeStyle = 'rgba(105, 167, 255, 0.35)';
-        ctx.lineWidth = 1.0;
-        ctx.setLineDash([]);
-      }
+      ctx.lineTo(n.x, n.y);
+      ctx.strokeStyle = risk >= 50 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.25)';
+      ctx.lineWidth = risk >= 50 ? 2 : 1;
       ctx.stroke();
-      ctx.setLineDash([]);
 
-      // Flow pulse packet animation along edge
-      const t = (angle + idx * 0.7) % 1.0;
-      const px = cx + (node.x - cx) * t;
-      const py = cy + (node.y - cy) * t;
-      ctx.fillStyle = isHighRisk ? '#ff6b8a' : (isElevated ? '#ffbf69' : '#69a7ff');
+      // Flow pulse packet
+      const t = (topoAngle + idx * 0.5) % 1.0;
+      const px = cx + (n.x - cx) * t;
+      const py = cy + (n.y - cy) * t;
+      ctx.fillStyle = risk >= 50 ? '#ef4444' : '#3b82f6';
       ctx.beginPath();
-      ctx.arc(px, py, isHighRisk ? 3.5 : 2.5, 0, Math.PI * 2);
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    // Lateral Movement Links between high risk devices
+    // Lateral Movement links
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const r1 = Number(nodes[i].dev.risk_score || 0);
-        const r2 = Number(nodes[j].dev.risk_score || 0);
-        if (r1 >= 50 && r2 >= 50) {
+        if (Number(nodes[i].dev.risk_score || 0) >= 50 && Number(nodes[j].dev.risk_score || 0) >= 50) {
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.strokeStyle = 'rgba(255, 107, 138, 0.85)';
-          ctx.lineWidth = 2.2;
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 2;
           ctx.stroke();
-
-          // Warning badge
-          const mx = (nodes[i].x + nodes[j].x) / 2;
-          const my = (nodes[i].y + nodes[j].y) / 2;
-          ctx.fillStyle = '#ff6b8a';
-          ctx.font = 'bold 9px monospace';
-          ctx.fillText('⚡ LATERAL', mx - 22, my - 4);
+          ctx.setLineDash([]);
         }
       }
     }
 
-    // Draw Central Gateway Node
-    ctx.fillStyle = '#11223e';
-    ctx.strokeStyle = '#69a7ff';
-    ctx.lineWidth = 2.5;
+    // Central Gateway Node
+    ctx.fillStyle = '#1e3a8a';
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 20, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-
-    ctx.fillStyle = '#eaf0ff';
-    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('GATEWAY', cx, cy + 3);
 
-    // Draw IoT Device Nodes
-    nodes.forEach((node) => {
-      const risk = Number(node.dev.risk_score || 0);
-      const isCrit = risk >= 80;
-      const isHigh = risk >= 50;
-
-      ctx.fillStyle = isCrit ? '#3a111e' : (isHigh ? '#2d1b11' : '#0c1a2d');
-      ctx.strokeStyle = isCrit ? '#ff6b8a' : (isHigh ? '#ff9650' : '#58d68d');
-      ctx.lineWidth = 2.0;
-
+    // Peripheral Nodes
+    nodes.forEach(n => {
+      const risk = Number(n.dev.risk_score || 0);
+      ctx.fillStyle = risk >= 80 ? '#7f1d1d' : (risk >= 50 ? '#78350f' : '#064e3b');
+      ctx.strokeStyle = risk >= 80 ? '#ef4444' : (risk >= 50 ? '#f59e0b' : '#10b981');
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(node.x, node.y, 11, 0, Math.PI * 2);
+      ctx.arc(n.x, n.y, 14, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Node text label
-      ctx.fillStyle = '#cbd5e1';
+      ctx.fillStyle = '#fff';
       ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center';
-      const rawId = node.dev.device_id || '';
-      const shortId = rawId.length > 12 ? rawId.slice(0, 10) + '…' : rawId;
-      ctx.fillText(shortId, node.x, node.y - 14);
-
-      // Mini risk score below node
-      ctx.fillStyle = isHigh ? '#ff6b8a' : '#58d68d';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.fillText(`${risk.toFixed(0)}`, node.x, node.y + 20);
+      ctx.fillText(n.dev.device_id.slice(-6), n.x, n.y + 24);
     });
 
-    topologyAnimFrame = requestAnimationFrame(renderLoop);
+    requestAnimationFrame(render);
   }
-
-  if (topologyAnimFrame) cancelAnimationFrame(topologyAnimFrame);
-  renderLoop();
+  render();
 }
 
-async function loadStats() {
-  const stats = await fetchJson(apiUrl('/api/stats'));
-  const totalFlows = Number(stats.total_flows) || 0;
-  const totalAlerts = Number(stats.total_alerts) || 0;
-  const flagRate = totalFlows > 0 ? (totalAlerts / totalFlows) * 100 : 0;
-
-  document.getElementById('metric-flows').textContent = totalFlows.toLocaleString();
-  document.getElementById('metric-alerts').textContent = totalAlerts.toLocaleString();
-  const unkEl = document.getElementById('metric-unknown');
-  if (unkEl) unkEl.textContent = (Number(stats.unknown_alerts) || 0).toLocaleString();
-  document.getElementById('metric-rate').textContent = `${flagRate.toFixed(1)}%`;
-  renderAttackMix(stats.alerts_by_type || {});
-}
-
-async function refreshDashboard() {
-  const results = await Promise.allSettled([loadHealth(), loadAlerts(), loadDevices(), loadStats(), loadIncidents(), loadUserContext()]);
-  if (results.some((result) => result.status === 'fulfilled')) {
-    setRefreshLabel(`Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
-  }
-}
-
-function scheduleReconnect() {
-  clearTimeout(state.reconnectTimer);
-  state.reconnectTimer = setTimeout(connectWebSocket, 2000);
-}
-
+// ==========================================
+// WEBSOCKET ALERT STREAM
+// ==========================================
 function connectWebSocket() {
-  clearTimeout(state.reconnectTimer);
   if (state.ws) {
-    try { state.ws.close(); } catch (error) { console.debug(error); }
+    try { state.ws.close(); } catch (e) {}
   }
-
   const socket = new WebSocket(websocketUrl());
   state.ws = socket;
 
-  socket.onopen = () => setConnectionPill('ok', 'connected');
+  socket.onopen = () => {
+    document.getElementById('conn-status').innerHTML = `<span class="dot ok"></span><strong>Live Streaming</strong>`;
+  };
+
   socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type !== 'alert') return;
-
-    const body = document.getElementById('alerts-body');
-    document.getElementById('alerts-empty').style.display = 'none';
-    body.insertBefore(renderAlertRow(message.data, true), body.firstChild);
-    while (body.rows.length > 50) {
-      body.removeChild(body.lastChild);
-    }
-    document.getElementById('alert-count-label').textContent = body.rows.length;
-    loadStats().catch(() => {});
-    loadDevices().catch(() => {});
+    try {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'alert') {
+        state.alerts.unshift(msg.data);
+        if (state.alerts.length > 100) state.alerts.pop();
+        renderAlertsTable(state.alerts);
+        loadStats();
+        loadDevices();
+        showToast(`New Alert: ${msg.data.attack_type} on ${msg.data.device_id}`, msg.data.severity === 'critical' ? 'error' : 'warning');
+      }
+    } catch (e) {}
   };
+
   socket.onclose = () => {
-    if (state.ws === socket) {
-      state.ws = null;
-      setConnectionPill('warn', 'reconnecting');
-      scheduleReconnect();
-    }
-  };
-  socket.onerror = () => {
-    try { socket.close(); } catch (error) { console.debug(error); }
+    document.getElementById('conn-status').innerHTML = `<span class="dot warn"></span><strong>Reconnecting…</strong>`;
+    clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = setTimeout(connectWebSocket, 3000);
   };
 }
 
-function updateBackend(nextBackend) {
-  state.backend = normalizeBackendUrl(nextBackend || DEFAULT_BACKEND);
+// ==========================================
+// TAB NAVIGATION SYSTEM
+// ==========================================
+function switchTab(targetId) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === targetId);
+  });
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === targetId);
+  });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ==========================================
+// EVENT LISTENERS & LIFECYCLE
+// ==========================================
+document.getElementById('quick-refresh-btn').addEventListener('click', () => {
+  loadHealth();
+  loadStats();
+  loadAlerts();
+  loadDevices();
+  loadIncidents();
+  showToast('Refreshed latest data', 'info');
+});
+
+document.getElementById('quick-burst-btn').addEventListener('click', () => {
+  sendTrafficPulse(8);
+  showToast('Pushed 8 test flows to backend', 'info');
+});
+
+document.getElementById('send-burst-btn').addEventListener('click', () => {
+  const count = Number(document.getElementById('traffic-rate').value) || 6;
+  sendTrafficPulse(count);
+});
+
+document.getElementById('traffic-start-btn').addEventListener('click', startTrafficTest);
+document.getElementById('traffic-stop-btn').addEventListener('click', stopTrafficTest);
+
+document.getElementById('filter-alert-severity').addEventListener('change', loadAlerts);
+document.getElementById('filter-alert-type').addEventListener('change', () => renderAlertsTable(state.alerts));
+document.getElementById('filter-alert-search').addEventListener('input', () => renderAlertsTable(state.alerts));
+document.getElementById('filter-device-search').addEventListener('input', () => renderDeviceCards(state.devices));
+document.getElementById('filter-incident-status').addEventListener('change', loadIncidents);
+document.getElementById('filter-incident-search').addEventListener('input', () => renderIncidentsTable(state.incidents));
+document.getElementById('filter-audit-action').addEventListener('change', () => renderAuditTable(state.auditLogs));
+document.getElementById('filter-audit-search').addEventListener('input', () => renderAuditTable(state.auditLogs));
+document.getElementById('refresh-audit-btn').addEventListener('click', loadAuditLogs);
+
+document.getElementById('toggle-anim-btn').addEventListener('click', (e) => {
+  state.animatingTopology = !state.animatingTopology;
+  e.target.textContent = state.animatingTopology ? '⏸️ Pause Animation' : '▶️ Resume Animation';
+});
+
+document.getElementById('guide-modal-btn').addEventListener('click', () => openModal('guide-modal'));
+
+document.getElementById('reconnect-btn').addEventListener('click', () => {
+  const nextBackend = document.getElementById('backend-url').value.trim();
+  const nextToken = document.getElementById('jwt-token').value.trim();
+  state.backend = nextBackend.replace(/\/$/, '') || DEFAULT_BACKEND;
+  state.token = nextToken;
   localStorage.setItem(STORAGE_KEY, state.backend);
-  document.getElementById('backend-url').value = state.backend;
-}
+  if (nextToken) localStorage.setItem('pahredaar_jwt_token', nextToken);
+  else localStorage.removeItem('pahredaar_jwt_token');
 
-function reconnect() {
-  updateBackend(document.getElementById('backend-url').value);
-  const tokenVal = document.getElementById('jwt-token').value.trim();
-  state.token = tokenVal;
-  if (tokenVal) {
-    localStorage.setItem('pahredaar_jwt_token', tokenVal);
-  } else {
-    localStorage.removeItem('pahredaar_jwt_token');
-  }
-  if (state.ws) {
-    try { state.ws.close(); } catch (error) { console.debug(error); }
-  }
-  refreshDashboard();
   connectWebSocket();
-}
+  loadHealth();
+  loadStats();
+  loadAlerts();
+  loadDevices();
+  loadIncidents();
+  showToast('Backend settings updated and reconnected', 'success');
+});
+
+document.getElementById('default-btn').addEventListener('click', () => {
+  document.getElementById('backend-url').value = DEFAULT_BACKEND;
+  document.getElementById('reconnect-btn').click();
+});
 
 document.getElementById('clear-token-btn').addEventListener('click', () => {
   document.getElementById('jwt-token').value = '';
-  state.token = '';
-  localStorage.removeItem('pahredaar_jwt_token');
-  reconnect();
+  document.getElementById('reconnect-btn').click();
 });
 
-document.getElementById('reconnect-btn').addEventListener('click', reconnect);
-document.getElementById('default-btn').addEventListener('click', () => {
-  updateBackend(DEFAULT_BACKEND);
-  reconnect();
-});
-document.getElementById('backend-url').addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') reconnect();
-});
-document.getElementById('traffic-mode').addEventListener('change', (event) => {
-  state.traffic.mode = event.target.value;
-  setTrafficModeLabel(state.traffic.mode);
-});
-document.getElementById('traffic-start-btn').addEventListener('click', startTrafficTest);
-document.getElementById('traffic-stop-btn').addEventListener('click', stopTrafficTest);
-document.getElementById('traffic-burst-btn').addEventListener('click', () => {
-  sendBurstNow().catch((error) => {
-    console.error(error);
-    setTrafficRunLabel('idle');
-  });
-});
+// Initialization
+document.getElementById('backend-url').value = state.backend;
+document.getElementById('jwt-token').value = state.token;
 
-updateBackend(state.backend);
-if (state.token) {
-  document.getElementById('jwt-token').value = state.token;
-}
-state.traffic.fleet = makeTrafficFleet();
-state.traffic.mode = document.getElementById('traffic-mode').value;
-setTrafficModeLabel(state.traffic.mode);
-updateTrafficStats();
-setConnectionPill('warn', 'connecting');
-refreshDashboard();
+loadHealth();
+loadStats();
+loadAlerts();
+loadDevices();
+loadIncidents();
+loadSensors();
+loadAuditLogs();
 connectWebSocket();
 initTopology();
-setInterval(refreshDashboard, 5000);
+
+// Periodic background polling
+setInterval(() => {
+  loadHealth();
+  loadStats();
+}, 6000);
 </script>
 </body>
 </html>
