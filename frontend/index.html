@@ -185,10 +185,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .sim-dev-card.selected{border-color:var(--accent);background:rgba(13,124,128,0.08);box-shadow:0 0 0 1.5px var(--accent)}
 .sim-dev-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 
-.sim-pick-card{border:1px solid var(--line);border-radius:8px;padding:9px 11px;cursor:pointer;transition:all .15s;background:var(--panel);position:relative;display:flex;gap:10px;align-items:flex-start}
-.sim-pick-card:hover{border-color:var(--accent)}
-.sim-pick-card.selected{border-color:var(--accent);background:rgba(13,124,128,0.08)}
-.sim-pick-card input[type="checkbox"]{margin-top:2px;transform:scale(1.15);cursor:pointer}
+.sim-pick-card{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .15s ease-in-out;background:var(--panel);position:relative;display:flex;gap:12px;align-items:flex-start;user-select:none}
+.sim-pick-card:hover{border-color:var(--accent);background:rgba(13,124,128,0.04);transform:translateY(-1px)}
+.sim-pick-card.selected{border-color:var(--accent);background:rgba(13,124,128,0.12);box-shadow:0 0 0 1.5px var(--accent)}
+.sim-pick-card input[type="checkbox"]{margin-top:2px;transform:scale(1.25);cursor:pointer;pointer-events:none;accent-color:var(--accent)}
 
 .sim-kpi-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-align:center}
 .sim-kpi-card .val{font-size:18px;font-weight:700;margin:3px 0}
@@ -596,7 +596,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <!-- SECTION A: DEVICE SELECTION -->
         <div class="card" style="display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h2 style="font-size:14px;margin:0">A. Select Target IoT Devices</h2>
+            <div style="display:flex;align-items:center;gap:6px">
+              <h2 style="font-size:14px;margin:0">A. Select Target IoT Devices</h2>
+              <span id="target-count-pill" class="pill" style="font-size:10px">0 Devices</span>
+            </div>
             <div>
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllDevices(true)">All</button>
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllDevices(false)">Clear</button>
@@ -611,7 +614,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <!-- SECTION B: ATTACK SELECTION -->
         <div class="card" style="display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h2 style="font-size:14px;margin:0">B. Attack Selection</h2>
+            <div style="display:flex;align-items:center;gap:6px">
+              <h2 style="font-size:14px;margin:0">B. Attack Selection</h2>
+              <span id="attack-count-pill" class="pill" style="font-size:10px">0 Attacks</span>
+            </div>
             <div>
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllAttacks(true)">All</button>
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllAttacks(false)">Clear</button>
@@ -626,7 +632,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <!-- SECTION C: LEGITIMATE TRAFFIC SIMULATION -->
         <div class="card" style="display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h2 style="font-size:14px;margin:0">C. Legitimate Traffic Simulation</h2>
+            <div style="display:flex;align-items:center;gap:6px">
+              <h2 style="font-size:14px;margin:0">C. Legitimate Traffic Simulation</h2>
+              <span id="legit-count-pill" class="pill" style="font-size:10px">0 Profiles</span>
+            </div>
             <div>
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllLegit(true)">All</button>
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllLegit(false)">Clear</button>
@@ -855,6 +864,7 @@ const S = {
   paused: false, netPaused: false, connected: false, labRun: null, selectedScenario: null,
   health: {}
 };
+window.S = S;
 
 function toast(m, c=""){
   const t = document.createElement("div");
@@ -1060,7 +1070,7 @@ async function bootstrap(){
   }catch(e){
     toast("Could not load backend data: " + e.message, "Critical");
   }
-  buildLabPickers();
+  await buildLabPickers();
   connectWS();
   updatePosture();
   render();
@@ -1166,6 +1176,17 @@ function render(){
   if (tab === "engine") renderEngine();
   if (tab === "reports") renderReports();
   if (tab === "admin") renderAdmin();
+  if (tab === "lab") {
+    if (!S.simTargets || !S.simTargets.length) {
+      buildLabPickers();
+    } else {
+      renderSimDevices();
+      renderSimAttacks();
+      renderSimLegit();
+      setupSimLabEventDelegation();
+      updateSimWorkersSummary();
+    }
+  }
 }
 
 /* 2. LIVE NETWORK MONITORING */
@@ -2180,6 +2201,7 @@ async function buildLabPickers(){
     renderSimDevices();
     renderSimAttacks();
     renderSimLegit();
+    setupSimLabEventDelegation();
     updateSimWorkersSummary();
 
     const tgt = $("#tgt");
@@ -2196,7 +2218,8 @@ async function buildLabPickers(){
 function renderSimDevices(){
   const container = $("#sim-device-list");
   if (!container) return;
-  $("#target-count-pill").textContent = `${S.simTargets.length} Devices`;
+  const pill = $("#target-count-pill");
+  if (pill) pill.textContent = `${S.simTargets.length} Devices`;
 
   if (!S.simTargets.length) {
     container.innerHTML = '<p class="note">No simulated IoT devices available.</p>';
@@ -2208,8 +2231,8 @@ function renderSimDevices(){
     const secStatus = d.security_status || "Normal";
     const statusClass = secStatus.replace(/\s+/g, "");
     return `
-      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" onclick="toggleSimDevice('${d.id}')">
-        <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSimDevice('${d.id}')">
+      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" data-target-id="${esc(d.id)}">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} tabindex="-1">
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <b style="font-size:12.5px">${esc(d.name)}</b>
@@ -2238,17 +2261,14 @@ function renderSimDevices(){
                    (count === 1 ? `Target: ${targetNames[0]}` :
                    `Targets (${count}): ${targetNames.slice(0, 2).join(", ")}${count > 2 ? ' +' + (count - 2) + ' more' : ''}`);
 
-  $("#sim-active-target-badge").textContent = badgeText;
+  const activeBadge = $("#sim-active-target-badge");
+  if (activeBadge) activeBadge.textContent = badgeText;
 }
 
 function toggleSimDevice(devId){
+  if (!devId) return;
   if (S.selectedSimTargets.has(devId)) {
-    if (S.selectedSimTargets.size > 1) {
-      S.selectedSimTargets.delete(devId);
-    } else {
-      toast("At least one target device must remain selected.", "Warning");
-      return;
-    }
+    S.selectedSimTargets.delete(devId);
   } else {
     S.selectedSimTargets.add(devId);
   }
@@ -2264,10 +2284,7 @@ function selectAllDevices(select){
   if (select) {
     S.simTargets.forEach(d => S.selectedSimTargets.add(d.id));
   } else {
-    if (S.simTargets.length > 0) {
-      S.selectedSimTargets.clear();
-      S.selectedSimTargets.add(S.simTargets[0].id);
-    }
+    S.selectedSimTargets.clear();
   }
   const firstId = Array.from(S.selectedSimTargets)[0];
   S.selectedSimTarget = S.simTargets.find(d => d.id === firstId) || null;
@@ -2278,6 +2295,9 @@ function selectAllDevices(select){
 function renderSimAttacks(){
   const container = $("#sim-attack-list");
   if (!container) return;
+  const pillAtk = $("#attack-count-pill");
+  if (pillAtk) pillAtk.textContent = `${S.simAttacks.length} Attacks`;
+
   if (!S.simAttacks.length) {
     container.innerHTML = '<p class="note">No attack scenarios returned by backend.</p>';
     return;
@@ -2287,8 +2307,8 @@ function renderSimAttacks(){
     const isChecked = S.selectedAttacks.has(a.id);
     const sevClass = a.severity || "High";
     return `
-      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" onclick="toggleSimAttack('${a.id}')">
-        <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSimAttack('${a.id}')">
+      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" data-attack-id="${esc(a.id)}">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} tabindex="-1">
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <b style="font-size:12.5px">${esc(a.name)}</b>
@@ -2306,6 +2326,7 @@ function renderSimAttacks(){
 }
 
 function toggleSimAttack(atkId){
+  if (!atkId) return;
   if (S.selectedAttacks.has(atkId)) {
     S.selectedAttacks.delete(atkId);
   } else {
@@ -2330,6 +2351,9 @@ function selectAllAttacks(select){
 function renderSimLegit(){
   const container = $("#sim-legit-list");
   if (!container) return;
+  const pillLegit = $("#legit-count-pill");
+  if (pillLegit) pillLegit.textContent = `${S.simLegit.length} Profiles`;
+
   if (!S.simLegit.length) {
     container.innerHTML = '<p class="note">No legitimate traffic profiles configured.</p>';
     return;
@@ -2338,8 +2362,8 @@ function renderSimLegit(){
   container.innerHTML = S.simLegit.map(l => {
     const isChecked = S.selectedLegit.has(l.id);
     return `
-      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" onclick="toggleSimLegit('${l.id}')">
-        <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSimLegit('${l.id}')">
+      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" data-legit-id="${esc(l.id)}">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} tabindex="-1">
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <b style="font-size:12.5px">${esc(l.name)}</b>
@@ -2357,6 +2381,7 @@ function renderSimLegit(){
 }
 
 function toggleSimLegit(legitId){
+  if (!legitId) return;
   if (S.selectedLegit.has(legitId)) {
     S.selectedLegit.delete(legitId);
   } else {
@@ -2379,7 +2404,43 @@ function selectAllLegit(select){
 function updateSimWorkersSummary(){
   const summaryEl = $("#sim-workers-summary");
   if (summaryEl) {
-    summaryEl.textContent = `${S.selectedSimTargets.size} Device${S.selectedSimTargets.size === 1 ? '' : 's'} + ${S.selectedAttacks.size} Attack${S.selectedAttacks.size === 1 ? '' : 's'} + ${S.selectedLegit.size} Legitimate active`;
+    const dCount = S.selectedSimTargets.size;
+    const aCount = S.selectedAttacks.size;
+    const lCount = S.selectedLegit.size;
+    summaryEl.textContent = `${dCount} Device${dCount === 1 ? '' : 's'} + ${aCount} Attack${aCount === 1 ? '' : 's'} + ${lCount} Legitimate profile${lCount === 1 ? '' : 's'} active`;
+  }
+}
+
+function setupSimLabEventDelegation(){
+  const devList = $("#sim-device-list");
+  if (devList && !devList._hasDelegation) {
+    devList._hasDelegation = true;
+    devList.addEventListener("click", e => {
+      const card = e.target.closest(".sim-pick-card");
+      if (card && card.dataset.targetId) {
+        toggleSimDevice(card.dataset.targetId);
+      }
+    });
+  }
+  const atkList = $("#sim-attack-list");
+  if (atkList && !atkList._hasDelegation) {
+    atkList._hasDelegation = true;
+    atkList.addEventListener("click", e => {
+      const card = e.target.closest(".sim-pick-card");
+      if (card && card.dataset.attackId) {
+        toggleSimAttack(card.dataset.attackId);
+      }
+    });
+  }
+  const legitList = $("#sim-legit-list");
+  if (legitList && !legitList._hasDelegation) {
+    legitList._hasDelegation = true;
+    legitList.addEventListener("click", e => {
+      const card = e.target.closest(".sim-pick-card");
+      if (card && card.dataset.legitId) {
+        toggleSimLegit(card.dataset.legitId);
+      }
+    });
   }
 }
 
