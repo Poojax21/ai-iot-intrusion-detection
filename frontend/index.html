@@ -2526,41 +2526,6 @@ $("#run").onclick = async () => {
   }
 };
 
-  // Start timer
-  S.simElapsed = 0;
-  S.simDuration = durationSec;
-  if (S.simTimer) clearInterval(S.simTimer);
-  S.simTimer = setInterval(() => {
-    S.simElapsed++;
-    const min = String(Math.floor(S.simElapsed / 60)).padStart(2, "0");
-    const sec = String(S.simElapsed % 60).padStart(2, "0");
-    const tMin = String(Math.floor(S.simDuration / 60)).padStart(2, "0");
-    const tSec = String(S.simDuration % 60).padStart(2, "0");
-    $("#sim-timer").textContent = `Elapsed: ${min}:${sec} / ${tMin}:${tSec}`;
-    if (S.simElapsed >= S.simDuration) {
-      clearInterval(S.simTimer);
-    }
-  }, 1000);
-
-  try {
-    const res = await api("/api/lab/runs", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    S.simRun = { id: res.run_id, status: res.status || "running" };
-    S.labRun = S.simRun; // Backward compatibility
-    toast(`Simulation ${res.run_id} engaged on ${S.selectedSimTarget.name}`);
-    pollLabRun(res.run_id);
-  } catch(e) {
-    toast(`Launch failed: ${e.message}`, "Critical");
-    $("#run").disabled = false;
-    $("#sim-pause-btn").disabled = true;
-    $("#stop").disabled = true;
-    $("#sim-status-badge").textContent = "Status: Error";
-    if (S.simTimer) clearInterval(S.simTimer);
-  }
-};
-
 $("#sim-pause-btn").onclick = async () => {
   if (!S.simRun) return;
   try {

@@ -99,11 +99,12 @@ def main():
 
     interval = 1.0 / max(args.rate, 0.1)
     sent, flagged = 0, 0
+    session = requests.Session()
 
     while True:
         flow = build_flow(devices, rnd, args.attack_prob, victim_ip, c2_ip, brute_target)
         try:
-            resp = requests.post(f"{args.backend}/api/ingest", json=flow, timeout=5)
+            resp = session.post(f"{args.backend}/api/ingest", json=flow, timeout=5)
             resp.raise_for_status()
             result = resp.json()
             sent += 1

@@ -23,8 +23,75 @@ Endpoints:
   /api/sensors/*                    - sensor registration, key rotation, status
 """
 
+import sys
 import asyncio
 from collections import deque
+
+# Patch Windows asyncio ProactorEventLoop to prevent socket termination on WinError 64 / transient disconnects
+if sys.platform == "win32":
+    try:
+        import asyncio.proactor_events
+        import asyncio.trsock
+        _orig_start_serving = asyncio.proactor_events.BaseProactorEventLoop._start_serving
+
+        def _safe_start_serving(self, protocol_factory, sock, sslcontext=None, server=None, backlog=100,
+                                ssl_handshake_timeout=None, ssl_shutdown_timeout=None):
+            def loop(f=None):
+                try:
+                    if f is not None:
+                        try:
+                            conn, addr = f.result()
+                        except OSError as client_err:
+                            # Client reset connection prior to accept completing (WinError 64, 10054, etc.)
+                            if not self.is_closed() and sock.fileno() != -1:
+                                f2 = self._proactor.accept(sock)
+                                self._accept_futures[sock.fileno()] = f2
+                                f2.add_done_callback(loop)
+                            return
+
+                        protocol = protocol_factory()
+                        if sslcontext is not None:
+                            self._make_ssl_transport(
+                                conn, protocol, sslcontext, server_side=True,
+                                extra={'peername': addr}, server=server,
+                                ssl_handshake_timeout=ssl_handshake_timeout,
+                                ssl_shutdown_timeout=ssl_shutdown_timeout)
+                        else:
+                            self._make_socket_transport(
+                                conn, protocol,
+                                extra={'peername': addr}, server=server)
+                    if self.is_closed():
+                        return
+                    f = self._proactor.accept(sock)
+                except OSError as exc:
+                    if sock.fileno() != -1:
+                        winerror = getattr(exc, 'winerror', None)
+                        if winerror in (64, 121, 10053, 10054):
+                            if not self.is_closed():
+                                try:
+                                    f2 = self._proactor.accept(sock)
+                                    self._accept_futures[sock.fileno()] = f2
+                                    f2.add_done_callback(loop)
+                                    return
+                                except Exception:
+                                    pass
+                        self.call_exception_handler({
+                            'message': 'Accept failed on a socket',
+                            'exception': exc,
+                            'socket': asyncio.trsock.TransportSocket(sock) if hasattr(asyncio, 'trsock') else sock,
+                        })
+                        sock.close()
+                except asyncio.CancelledError:
+                    sock.close()
+                else:
+                    self._accept_futures[sock.fileno()] = f
+                    f.add_done_callback(loop)
+
+            self.call_soon(loop)
+
+        asyncio.proactor_events.BaseProactorEventLoop._start_serving = _safe_start_serving
+    except Exception:
+        pass
 import json
 import threading
 import time
