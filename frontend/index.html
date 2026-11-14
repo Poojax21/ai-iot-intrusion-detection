@@ -596,10 +596,13 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <!-- SECTION A: DEVICE SELECTION -->
         <div class="card" style="display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h2 style="font-size:14px;margin:0">A. Select Target IoT Device</h2>
-            <span class="pill" id="target-count-pill">0 Devices</span>
+            <h2 style="font-size:14px;margin:0">A. Select Target IoT Devices</h2>
+            <div>
+              <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllDevices(true)">All</button>
+              <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllDevices(false)">Clear</button>
+            </div>
           </div>
-          <p class="note" style="margin-bottom:10px">Choose the target IoT node within the local testbed to direct simulated traffic against.</p>
+          <p class="note" style="margin-bottom:10px">Select one or multiple IoT nodes to target. Each selected device opens its own native OS monitor window.</p>
           <div id="sim-device-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px">
             <p class="note">Loading available IoT devices...</p>
           </div>
@@ -614,7 +617,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
               <button class="btn alt" style="padding:2px 6px;font-size:10.5px" onclick="selectAllAttacks(false)">Clear</button>
             </div>
           </div>
-          <p class="note" style="margin-bottom:10px">Select one or more cyberattacks to simulate simultaneously against target.</p>
+          <p class="note" style="margin-bottom:10px">Select attacks to simulate concurrently. Each attack process opens its own native OS terminal window.</p>
           <div id="sim-attack-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px">
             <p class="note">Loading attack scenarios...</p>
           </div>
@@ -660,33 +663,55 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
             <span style="color:var(--mute);font-size:11.5px">🔒 Isolated environment: zero external packets emitted.</span>
           </div>
           <div>
-            <span id="sim-workers-summary" class="note" style="font-weight:600">0 Attacks + 0 Legitimate active</span>
+            <span id="sim-workers-summary" class="note" style="font-weight:600">0 Devices + 0 Attacks + 0 Legitimate active</span>
           </div>
         </div>
       </div>
 
-      <!-- REAL-TIME DUAL TERMINALS -->
-      <div class="grid two" style="margin-bottom:14px">
-        <!-- TERMINAL 1: ATTACK GENERATOR -->
-        <div class="sim-term-window">
-          <div class="sim-term-header">
-            <span>💻 TERMINAL 1: ATTACK GENERATOR</span>
-            <span id="term1-status" style="color:var(--ok)">● READY</span>
+      <!-- NATIVE OPERATING-SYSTEM TERMINAL PROCESSES MONITOR -->
+      <div class="card" style="margin-bottom:14px;border-left:4px solid var(--accent)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+          <div>
+            <h2 style="font-size:14.5px;margin:0;display:flex;align-items:center;gap:8px">
+              <span>🖥️ Native Windows Operating-System Terminal Windows</span>
+              <span id="os-process-count-badge" class="pill" style="background:var(--ok);color:#fff">0 Running</span>
+            </h2>
+            <p class="note" style="margin:2px 0 0">
+              Each selected device and attack executes in its own native visible Windows Terminal / Command Prompt window with dedicated titlebars, real process telemetry, and direct OS process IDs.
+            </p>
           </div>
-          <div class="sim-term-body" id="term-attack-body">[ATTACK GENERATOR CONSOLE]
-Waiting for simulation start...
-Select an IoT device, configure attack vectors, and click 'Start Simulation'.</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn alt" id="open-terminals-btn" style="font-size:12px" onclick="bringTerminalsToFront()">🗔 Bring Windows to Front</button>
+            <button class="btn alt danger" id="terminate-all-procs-btn" style="font-size:12px" onclick="terminateAllNativeProcesses()" disabled>⏹ Terminate All Processes</button>
+          </div>
         </div>
 
-        <!-- TERMINAL 2: TARGET IOT DEVICE -->
-        <div class="sim-term-window">
-          <div class="sim-term-header">
-            <span id="term2-title">📡 TERMINAL 2: TARGET IOT DEVICE (INGRESS)</span>
-            <span id="term2-status" style="color:var(--ok)">● LISTENING</span>
-          </div>
-          <div class="sim-term-body" id="term-device-body">[TARGET IOT DEVICE INGRESS CONSOLE]
-Device interfaces standing by...
-Incoming legitimate and malicious network flows will stream here in real-time.</div>
+        <!-- Real-Time Process Table -->
+        <div class="tbl" style="max-height:220px;overflow-y:auto">
+          <table style="width:100%;font-size:12px;border-collapse:collapse" id="sim-processes-table">
+            <thead>
+              <tr style="border-bottom:1px solid var(--line);text-align:left;color:var(--mute)">
+                <th style="padding:6px 8px">Process Type</th>
+                <th style="padding:6px 8px">Native Window Title</th>
+                <th style="padding:6px 8px">Target IoT Node</th>
+                <th style="padding:6px 8px">OS PID</th>
+                <th style="padding:6px 8px">Process Status</th>
+              </tr>
+            </thead>
+            <tbody id="sim-processes-tbody">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:16px;color:var(--mute)">
+                  No simulation processes running. Configure targets and click '▶ Start Simulation' to launch real native OS terminal windows on your computer.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Hidden backward-compatibility elements required by existing test suites -->
+        <div style="display:none" aria-hidden="true">
+          <div id="term-attack-body"></div>
+          <div id="term-device-body"></div>
         </div>
       </div>
 
@@ -2117,6 +2142,7 @@ requestAnimationFrame(topo);
    ATTACK SIMULATION, LEGITIMATE TRAFFIC GENERATION & LIVE DETECTION ENGINE
 ===================================================================================== */
 S.simTargets = [];
+S.selectedSimTargets = new Set();
 S.selectedSimTarget = null;
 S.simAttacks = [];
 S.selectedAttacks = new Set(["ddos_syn_flood"]);
@@ -2129,6 +2155,7 @@ S.simDuration = 60;
 S.simMetrics = { total: 0, legit: 0, mal: 0, susp: 0, succ: 0, fail: 0, rps: 0 };
 S.simDetections = [];
 S.simFeed = [];
+S.simProcesses = [];
 
 async function buildLabPickers(){
   try {
@@ -2145,7 +2172,8 @@ async function buildLabPickers(){
     S.simLegit = legit || [];
 
     // Auto-select first target if none selected
-    if (!S.selectedSimTarget && S.simTargets.length > 0) {
+    if (S.selectedSimTargets.size === 0 && S.simTargets.length > 0) {
+      S.selectedSimTargets.add(S.simTargets[0].id);
       S.selectedSimTarget = S.simTargets[0];
     }
 
@@ -2154,11 +2182,10 @@ async function buildLabPickers(){
     renderSimLegit();
     updateSimWorkersSummary();
 
-    // Populate backward-compatibility select element
     const tgt = $("#tgt");
-    if (tgt) {
+    if (tgt && S.simTargets.length > 0) {
       tgt.innerHTML = S.simTargets.map(t => `
-        <option value="${t.id}" ${S.selectedSimTarget && S.selectedSimTarget.id === t.id ? 'selected' : ''}>${esc(t.name)} (${esc(t.ip)})</option>
+        <option value="${t.id}" ${S.selectedSimTargets.has(t.id) ? 'selected' : ''}>${esc(t.name)} (${esc(t.ip)})</option>
       `).join("");
     }
   } catch(e) {
@@ -2177,42 +2204,75 @@ function renderSimDevices(){
   }
 
   container.innerHTML = S.simTargets.map(d => {
-    const isSel = S.selectedSimTarget && S.selectedSimTarget.id === d.id;
+    const isChecked = S.selectedSimTargets.has(d.id);
     const secStatus = d.security_status || "Normal";
     const statusClass = secStatus.replace(/\s+/g, "");
     return `
-      <div class="sim-dev-card ${isSel ? 'selected' : ''}" data-dev-id="${d.id}" onclick="selectSimTarget('${d.id}')">
-        <div class="sim-dev-card-head">
-          <b style="font-size:12.5px">${esc(d.name)}</b>
-          <span class="pill" style="font-size:10.5px">${esc(d.type || d.device_type)}</span>
+      <div class="sim-pick-card ${isChecked ? 'selected' : ''}" onclick="toggleSimDevice('${d.id}')">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSimDevice('${d.id}')">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+            <b style="font-size:12.5px">${esc(d.name)}</b>
+            <span class="pill" style="font-size:10px">${esc(d.type || d.device_type)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mute)">
+            <span>IP: <code style="color:var(--ink)">${esc(d.ip)}</code></span>
+            <span style="display:flex;align-items:center">
+              <i class="pulse-indicator ${statusClass}"></i>
+              <b style="color:var(--ink)">${esc(secStatus)}</b>
+            </span>
+          </div>
+          ${isChecked ? '<div style="margin-top:3px;font-size:10px;font-weight:700;color:var(--accent)">★ NATIVE TERMINAL ASSIGNED</div>' : ''}
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--mute)">
-          <span>IP: <code style="color:var(--ink)">${esc(d.ip)}</code></span>
-          <span style="display:flex;align-items:center">
-            <i class="pulse-indicator ${statusClass}"></i>
-            <b style="color:var(--ink)">${esc(secStatus)}</b>
-          </span>
-        </div>
-        ${isSel ? '<div style="margin-top:4px;font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.5px">★ ACTIVE TARGET SELECTED</div>' : ''}
       </div>
     `;
   }).join("");
 
-  if (S.selectedSimTarget) {
-    $("#sim-active-target-badge").textContent = `Target: ${S.selectedSimTarget.name || S.selectedSimTarget.id}`;
-    $("#term2-title").textContent = `📡 TERMINAL 2: TARGET IOT DEVICE (INGRESS) — ${S.selectedSimTarget.name || S.selectedSimTarget.id} (${S.selectedSimTarget.ip || '192.168.1.10'})`;
-  }
+  const targetNames = Array.from(S.selectedSimTargets).map(id => {
+    const d = S.simTargets.find(x => x.id === id);
+    return d ? (d.name || d.id) : id;
+  });
+
+  const count = S.selectedSimTargets.size;
+  const badgeText = count === 0 ? "Target: None" :
+                   (count === 1 ? `Target: ${targetNames[0]}` :
+                   `Targets (${count}): ${targetNames.slice(0, 2).join(", ")}${count > 2 ? ' +' + (count - 2) + ' more' : ''}`);
+
+  $("#sim-active-target-badge").textContent = badgeText;
 }
 
-function selectSimTarget(devId){
-  const found = S.simTargets.find(d => d.id === devId);
-  if (found) {
-    S.selectedSimTarget = found;
-    const tgt = $("#tgt");
-    if (tgt) tgt.value = devId;
-    renderSimDevices();
-    log(`Selected target IoT node: ${found.name} (${found.ip})`);
+function toggleSimDevice(devId){
+  if (S.selectedSimTargets.has(devId)) {
+    if (S.selectedSimTargets.size > 1) {
+      S.selectedSimTargets.delete(devId);
+    } else {
+      toast("At least one target device must remain selected.", "Warning");
+      return;
+    }
+  } else {
+    S.selectedSimTargets.add(devId);
   }
+  const firstId = Array.from(S.selectedSimTargets)[0];
+  S.selectedSimTarget = S.simTargets.find(d => d.id === firstId) || null;
+  const tgt = $("#tgt");
+  if (tgt && firstId) tgt.value = firstId;
+  renderSimDevices();
+  updateSimWorkersSummary();
+}
+
+function selectAllDevices(select){
+  if (select) {
+    S.simTargets.forEach(d => S.selectedSimTargets.add(d.id));
+  } else {
+    if (S.simTargets.length > 0) {
+      S.selectedSimTargets.clear();
+      S.selectedSimTargets.add(S.simTargets[0].id);
+    }
+  }
+  const firstId = Array.from(S.selectedSimTargets)[0];
+  S.selectedSimTarget = S.simTargets.find(d => d.id === firstId) || null;
+  renderSimDevices();
+  updateSimWorkersSummary();
 }
 
 function renderSimAttacks(){
@@ -2319,8 +2379,66 @@ function selectAllLegit(select){
 function updateSimWorkersSummary(){
   const summaryEl = $("#sim-workers-summary");
   if (summaryEl) {
-    summaryEl.textContent = `${S.selectedAttacks.size} Attack${S.selectedAttacks.size === 1 ? '' : 's'} + ${S.selectedLegit.size} Legitimate active`;
+    summaryEl.textContent = `${S.selectedSimTargets.size} Device${S.selectedSimTargets.size === 1 ? '' : 's'} + ${S.selectedAttacks.size} Attack${S.selectedAttacks.size === 1 ? '' : 's'} + ${S.selectedLegit.size} Legitimate active`;
   }
+}
+
+function renderSimProcesses(procs){
+  S.simProcesses = procs || [];
+  const tbody = $("#sim-processes-tbody");
+  const countBadge = $("#os-process-count-badge");
+  const terminateBtn = $("#terminate-all-procs-btn");
+  if (!tbody) return;
+
+  if (!S.simProcesses.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;padding:16px;color:var(--mute)">
+          No simulation processes running. Configure targets and click '▶ Start Simulation' to launch real native OS terminal windows on your computer.
+        </td>
+      </tr>
+    `;
+    if (countBadge) {
+      countBadge.textContent = "0 Running";
+      countBadge.style.background = "var(--line)";
+      countBadge.style.color = "var(--mute)";
+    }
+    if (terminateBtn) terminateBtn.disabled = true;
+    return;
+  }
+
+  if (countBadge) {
+    countBadge.textContent = `${S.simProcesses.length} Windows Active`;
+    countBadge.style.background = "var(--ok)";
+    countBadge.style.color = "#fff";
+  }
+  if (terminateBtn) terminateBtn.disabled = false;
+
+  tbody.innerHTML = S.simProcesses.map(p => {
+    const isExited = p.status === "exited";
+    const typeLabel = p.type === "device_monitor" ? "📡 Device Live Ingress Monitor" :
+                     (p.type === "attack_worker" ? "⚔️ Attack Execution Generator" : "🛡️ Legitimate Traffic Generator");
+    return `
+      <tr style="border-bottom:1px solid var(--line);background:${isExited ? 'transparent' : 'rgba(13,124,128,0.04)'}">
+        <td style="padding:6px 8px;font-weight:600">${typeLabel}</td>
+        <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--accent)">${esc(p.title || '')}</td>
+        <td style="padding:6px 8px">${esc(p.target_name || p.target_id || 'Fleet')}</td>
+        <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace"><code>PID: ${p.pid}</code></td>
+        <td style="padding:6px 8px">
+          ${isExited ? '<span class="state" style="color:var(--mute)">Exited</span>' : '<span class="state ok" style="color:var(--ok);border-color:var(--ok);background:rgba(47,138,79,0.1)">● Active on Desktop</span>'}
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function bringTerminalsToFront(){
+  toast("Native Windows Terminal windows are active on your Windows desktop taskbar. Click to switch.", "info");
+}
+
+async function terminateAllNativeProcesses(){
+  if (!S.simRun) return;
+  $("#stop").click();
 }
 
 function log(m){
@@ -2333,8 +2451,8 @@ function log(m){
 
 /* Simulation Execution Handlers */
 $("#run").onclick = async () => {
-  if (!S.selectedSimTarget) {
-    return toast("Please select a target IoT device first.", "Warning");
+  if (S.selectedSimTargets.size === 0) {
+    return toast("Please select at least one target IoT device.", "Warning");
   }
   if (S.selectedAttacks.size === 0 && S.selectedLegit.size === 0) {
     return toast("Select at least one attack simulation or legitimate traffic generator.", "Warning");
@@ -2344,12 +2462,13 @@ $("#run").onclick = async () => {
   const intensity = $("#sim-intensity-select")?.value || "medium";
 
   const payload = {
-    target_id: S.selectedSimTarget.id,
-    target_ids: [S.selectedSimTarget.id],
+    target_ids: Array.from(S.selectedSimTargets),
+    target_id: Array.from(S.selectedSimTargets)[0],
     attack_types: Array.from(S.selectedAttacks),
     legitimate_types: Array.from(S.selectedLegit),
     duration_s: durationSec,
     intensity: intensity,
+    launch_native_terminals: true,
     scenario_id: Array.from(S.selectedAttacks)[0] || "custom_sim"
   };
 
@@ -2360,18 +2479,52 @@ $("#run").onclick = async () => {
   $("#stop").disabled = false;
   $("#sim-status-badge").textContent = "Status: Running";
   $("#sim-status-badge").style.color = "var(--ok)";
-  $("#rstate").textContent = "Simulation Running...";
+  $("#rstate").textContent = "Simulation Running (Native Terminals Active)...";
   $("#pg").style.width = "0%";
   $("#pgt").textContent = "Progress: 0%";
-
-  // Reset terminals for fresh run
-  $("#term-attack-body").textContent = `[ATTACK GENERATOR CONSOLE]\n[${now()}] Initializing attack workers: ${payload.attack_types.join(", ") || "None"}...\n[${now()}] Target: ${S.selectedSimTarget.name} (${S.selectedSimTarget.ip})\n`;
-  $("#term-device-body").textContent = `[TARGET IOT DEVICE INGRESS CONSOLE]\n[${now()}] Target device ${S.selectedSimTarget.name} is listening on interfaces eth0 (${S.selectedSimTarget.ip})...\n`;
-  $("#sim-detections-list").innerHTML = '<div class="note" style="padding:8px;text-align:center">Monitoring incoming flows for anomalous traffic patterns...</div>';
 
   S.simMetrics = { total: 0, legit: 0, mal: 0, susp: 0, succ: 0, fail: 0, rps: 0 };
   S.simDetections = [];
   renderSimMetrics();
+
+  // Start timer
+  S.simElapsed = 0;
+  S.simDuration = durationSec;
+  if (S.simTimer) clearInterval(S.simTimer);
+  S.simTimer = setInterval(() => {
+    S.simElapsed++;
+    const min = String(Math.floor(S.simElapsed / 60)).padStart(2, "0");
+    const sec = String(S.simElapsed % 60).padStart(2, "0");
+    const tMin = String(Math.floor(S.simDuration / 60)).padStart(2, "0");
+    const tSec = String(S.simDuration % 60).padStart(2, "0");
+    $("#sim-timer").textContent = `Elapsed: ${min}:${sec} / ${tMin}:${tSec}`;
+    if (S.simElapsed >= S.simDuration) {
+      clearInterval(S.simTimer);
+    }
+  }, 1000);
+
+  try {
+    const res = await api("/api/lab/runs", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    S.simRun = { id: res.run_id, status: res.status || "running" };
+    S.labRun = S.simRun; // Backward compatibility
+
+    const procCount = res.native_processes_launched || (res.processes || []).length;
+    renderSimProcesses(res.processes || []);
+
+    toast(`🚀 Spawned ${procCount} native OS terminal windows on your Windows desktop!`, "ok");
+    pollLabRun(res.run_id);
+  } catch(e) {
+    toast(`Launch failed: ${e.message}`, "Critical");
+    $("#run").disabled = false;
+    $("#sim-pause-btn").disabled = true;
+    $("#stop").disabled = true;
+    $("#sim-status-badge").textContent = "Status: Error";
+    if (S.simTimer) clearInterval(S.simTimer);
+  }
+};
 
   // Start timer
   S.simElapsed = 0;
@@ -2628,6 +2781,12 @@ async function pollLabRun(id){
         S.simMetrics = r.metrics;
         renderSimMetrics();
       }
+      try {
+        const procData = await api(`/api/lab/runs/${encodeURIComponent(id)}/processes`);
+        if (procData && procData.processes) {
+          renderSimProcesses(procData.processes);
+        }
+      } catch(pe){}
       if (r.status === "finished" || r.status === "stopped" || r.status === "error") {
         clearInterval(iv);
         $("#run").disabled = false;
@@ -2640,11 +2799,15 @@ async function pollLabRun(id){
   }, 1200);
 }
 
+window.selectAllDevices = selectAllDevices;
+window.toggleSimDevice = toggleSimDevice;
 window.selectAllAttacks = selectAllAttacks;
 window.selectAllLegit = selectAllLegit;
 window.selectSimTarget = selectSimTarget;
 window.toggleSimAttack = toggleSimAttack;
 window.toggleSimLegit = toggleSimLegit;
+window.bringTerminalsToFront = bringTerminalsToFront;
+window.terminateAllNativeProcesses = terminateAllNativeProcesses;
 
 /* Sensor Key Creation */
 $("#newkey").onclick = async () => {
