@@ -2438,6 +2438,12 @@ function bringTerminalsToFront(){
 
 async function terminateAllNativeProcesses(){
   if (!S.simRun) return;
+  try {
+    await api(`/api/lab/runs/${encodeURIComponent(S.simRun.id)}/terminate`, { method: "POST" });
+    toast("Force-terminated and closed all native terminal processes.", "Warning");
+  } catch(e){
+    toast("Termination notice: " + e.message);
+  }
   $("#stop").click();
 }
 

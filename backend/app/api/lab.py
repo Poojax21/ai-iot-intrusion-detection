@@ -400,6 +400,7 @@ async def start_run(
                 "--device-name", d_name,
                 "--device-type", d_type,
                 "--device-ip", d_ip,
+                "--duration", str(payload.duration_s),
                 "--backend-url", backend_url
             ]
             proc = _spawn_native_console(dev_cmd)
@@ -612,7 +613,46 @@ async def stop_run(run_id: str):
     run["stop_requested"] = True
     run["status"] = "stopped"
 
-    # TERMINATE AND CLEAN UP ALL SPAWNED NATIVE OS TERMINAL WINDOW PROCESSES
+    # Tell all terminal windows to halt traffic generation and preserve their windows open for inspection
+    await manager.broadcast({
+        "type": "sim_stop",
+        "run_id": run_id,
+        "message": "Operator requested stop. Traffic ceased.",
+    }, org_id=run["organization_id"])
+
+    # Recover all target device statuses
+    for tid in run.get("target_ids", [run["target_id"]]):
+        DEVICE_SECURITY_STATUS[tid] = "Normal"
+        await manager.broadcast({
+            "type": "sim_device_status",
+            "device_id": tid,
+            "security_status": "Normal"
+        }, org_id=run["organization_id"])
+
+    stop_line = f"[{_fmt_ts()}] Operator stopped simulation. Terminal windows preserved for log examination."
+    run["attack_terminal"].append({"ts": _fmt_ts(), "line": stop_line, "tag": "STOP"})
+    run["device_terminal"].append({"ts": _fmt_ts(), "line": f"[{_fmt_ts()}] Traffic ceased. Target devices recovered to normal state.", "type": "ok"})
+    run["log"].append(stop_line)
+
+    await manager.broadcast({
+        "type": "sim_feed_event",
+        "run_id": run_id,
+        "ts": _fmt_ts(),
+        "event": "Simulation stopped",
+        "detail": "Traffic generation halted; terminal windows remain open for forensic inspection",
+        "badge": "warning",
+    }, org_id=run["organization_id"])
+
+    return {"status": "stopped", "run_id": run_id, "terminal_state": "preserved_for_inspection"}
+
+
+@router.post("/runs/{run_id}/terminate")
+async def terminate_run_processes(run_id: str):
+    """Forcefully terminates and closes all native terminal window processes."""
+    run = LAB_RUNS.get(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Simulation run not found")
+
     procs = ACTIVE_SIM_PROCESSES.get(run_id, [])
     active_pids = []
     for p_info in procs:
@@ -634,19 +674,7 @@ async def stop_run(run_id: str):
         except Exception:
             pass
 
-    # Recover all target device statuses
-    for tid in run.get("target_ids", [run["target_id"]]):
-        DEVICE_SECURITY_STATUS[tid] = "Normal"
-        await manager.broadcast({
-            "type": "sim_device_status",
-            "device_id": tid,
-            "security_status": "Normal"
-        }, org_id=run["organization_id"])
-
-    stop_line = f"[{_fmt_ts()}] Operator stopped simulation. All {len(procs)} native terminal processes terminated."
-    run["attack_terminal"].append({"ts": _fmt_ts(), "line": stop_line, "tag": "ABORT"})
-    run["device_terminal"].append({"ts": _fmt_ts(), "line": f"[{_fmt_ts()}] Traffic ceased. Target devices recovered to normal state.", "type": "ok"})
-    run["log"].append(stop_line)
+    return {"status": "terminated", "run_id": run_id, "terminated_pids": active_pids}
 
     await manager.broadcast({
         "type": "sim_feed_event",
@@ -833,6 +861,38 @@ def _craft_legitimate_flow(legit_id: str, target_id: str, target_ip: str, step: 
         }
 
 
+def _get_legitimate_payload_detail(legit_id: str, step: int) -> str:
+    if legit_id == "http_telemetry":
+        return f"GET /api/v1/telemetry HTTP/1.1 (Payload: status=ONLINE, uptime={84000 + step*10}s)"
+    elif legit_id == "device_heartbeat":
+        return f"MQTT PINGREQ /v1/devices/keepalive (Payload: ping_seq={step}, rssi=-58dBm)"
+    elif legit_id == "sensor_updates":
+        return f"MQTT PUBLISH /telemetry/data (Payload: temp={22.5 + (step%30)*0.1:.1f}C, humidity={50 + (step%20)}%, v=3.3V)"
+    elif legit_id == "temp_readings":
+        return f"Thermal Probe Telemetry (Payload: ambient_temp={21.4 + (step%40)*0.1:.1f}C, probe_status=CALIBRATED)"
+    elif legit_id == "humidity_readings":
+        return f"Hygrometer Telemetry (Payload: relative_humidity={48.2 + (step%30)*0.2:.1f}%, sensor=OK)"
+    elif legit_id == "status_updates":
+        return f"HTTPS POST /api/status (Payload: battery=96%, heap_free=42100B, cpu=4.2%)"
+    else:  # api_requests
+        return f"HTTPS GET /api/v1/policy/rules (Payload: sync_version=v2.4, cert=VALID)"
+
+
+def _get_attack_payload_detail(attack_id: str, step: int, dst_port: int) -> str:
+    if attack_id == "ddos_syn_flood":
+        return f"TCP SYN Flood Burst (Flags: [SYN], Seq: 0x{step:08x}, Win: 1024, Rate: 160 pkts/s -> Port {dst_port})"
+    elif attack_id == "dos_conn_exhaust":
+        return f"TCP Handshake Stall Exhaustion (Incomplete 3-way SYN-ACK holding socket slots on Port {dst_port})"
+    elif attack_id == "brute_force_cred":
+        return f"SSH/Telnet Auth Attempt (User: 'admin', Pass: '********', Attempt #{step%12 + 1} -> Port {dst_port})"
+    elif attack_id == "port_scan_syn":
+        return f"TCP SYN Reconnaissance Probe (Port {dst_port}/TCP Sweep, Flag: [SYN])"
+    elif attack_id == "mirai_c2_flood":
+        return f"Mirai IRC/TCP C2 Beaconing (Payload: \\x00\\x01MIRAI_REPORT, Target: 203.0.113.88:6667)"
+    else:  # zero_day_payload
+        return f"Anomalous High-Entropy Byte Mutation (Length: 2400B, Port: {dst_port}, Non-RFC Protocol)"
+
+
 async def orchestrate_simulation_session(run_id: str):
     """
     Background orchestrator updating dashboard metrics and dispatches.
@@ -906,8 +966,11 @@ async def orchestrate_simulation_session(run_id: str):
             run["metrics"]["successful_requests"] += 1
             run["metrics"]["requests_per_sec"] = round(run["metrics"]["total_requests"] / max(elapsed, 0.5), 1)
 
-            legit_name = curr_legit.replace("_", " ").title()
-            dev_line = f"[{_fmt_ts()}] [Legitimate {legit_name}] INGRESS from {l_flow['dst_ip']}:{l_flow['dst_port']} -> 200 OK"
+            legit_meta = next((l for l in LEGITIMATE_TYPES if l["id"] == curr_legit), None)
+            legit_name = legit_meta["name"] if legit_meta else curr_legit.replace("_", " ").title()
+            l_payload = _get_legitimate_payload_detail(curr_legit, step)
+
+            dev_line = f"[{_fmt_ts()}] [SAFE REQUEST: {legit_name}] {l_flow['dst_ip']} -> {target_ip}:{l_flow['src_port']} (200 OK)"
             run["device_terminal"].append({"ts": _fmt_ts(), "line": dev_line, "type": "legitimate"})
 
             await manager.broadcast({
@@ -915,7 +978,17 @@ async def orchestrate_simulation_session(run_id: str):
                 "run_id": run_id,
                 "device_id": curr_target_id,
                 "ts": _fmt_ts(),
-                "type": "legitimate",
+                "log_type": "legitimate",
+                "event_id": f"REQ-{step:04d}",
+                "category": "SAFE REQUEST",
+                "name": legit_name,
+                "src": f"{l_flow['dst_ip']}:{l_flow['dst_port']}",
+                "dst": f"{target_ip}:{l_flow['src_port']}",
+                "proto": l_flow["proto"].upper(),
+                "payload": l_payload,
+                "stats": f"Packets: {l_flow['orig_pkts']} | Ingress: {l_flow['orig_bytes']} B | Duration: {l_flow['duration']}s",
+                "verdict": "LEGITIMATE (Anomaly Score: 0.02 | RF: Normal 99.8%)",
+                "status": "200 OK",
                 "line": dev_line,
             }, org_id=org_id)
 
@@ -947,6 +1020,7 @@ async def orchestrate_simulation_session(run_id: str):
             atk_meta = next((a for a in ATTACK_SCENARIOS if a["id"] == curr_atk), None)
             atk_name = atk_meta["name"] if atk_meta else curr_atk
             atk_tag = curr_atk.split("_")[0].upper()
+            atk_payload = _get_attack_payload_detail(curr_atk, step, atk_flow['dst_port'])
 
             atk_line = f"[{_fmt_ts()}] [{atk_tag}-Worker] Emitting {atk_flow['orig_pkts']} pkts -> {target_ip}:{atk_flow['dst_port']} | {atk_flow['orig_bytes']} B"
             run["attack_terminal"].append({"ts": _fmt_ts(), "line": atk_line, "tag": atk_tag})
@@ -957,6 +1031,30 @@ async def orchestrate_simulation_session(run_id: str):
                 "ts": _fmt_ts(),
                 "tag": atk_tag,
                 "line": atk_line,
+            }, org_id=org_id)
+
+            # Broadcast attack timeline event to target device live monitor
+            atk_dev_line = f"[{_fmt_ts()}] [THREAT DETECTED: {atk_name}] {atk_flow['src_ip']} -> {target_ip}:{atk_flow['dst_port']} (FLAGGED)"
+            run["device_terminal"].append({"ts": _fmt_ts(), "line": atk_dev_line, "type": "malicious"})
+
+            await manager.broadcast({
+                "type": "sim_device_log",
+                "run_id": run_id,
+                "device_id": curr_target_id,
+                "ts": _fmt_ts(),
+                "log_type": "malicious",
+                "event_id": f"ATK-{step:04d}",
+                "category": "THREAT DETECTED",
+                "name": atk_name,
+                "src": f"{atk_flow['src_ip']}:{atk_flow['src_port']}",
+                "dst": f"{target_ip}:{atk_flow['dst_port']}",
+                "proto": atk_flow["proto"].upper(),
+                "payload": atk_payload,
+                "stats": f"Packets: {atk_flow['orig_pkts']} | Ingress: {atk_flow['orig_bytes']} B | Duration: {atk_flow['duration']}s",
+                "verdict": f"MALICIOUS (Gate: {gate_score:.3f} | Confidence: {gate_score:.1%})",
+                "status": "FLAGGED / ISOLATED",
+                "line": atk_dev_line,
+                "is_flagged": is_flagged,
             }, org_id=org_id)
 
             # 3. REAL-TIME ATTACK DETECTION TRIGGER
