@@ -316,6 +316,8 @@ async def ingest_flow(
                 "flows_per_sec": len(_ingest_timestamps),
                 "total_flows": st.get("total_flows", 0),
                 "total_alerts": st.get("total_alerts", 0),
+                "alerts_by_type": st.get("alerts_by_type", {}),
+                "recent_targets_by_type": st.get("recent_targets_by_type", {}),
             }
         }, org_id=org_id)
 
@@ -394,6 +396,17 @@ async def ingest_flow(
             ]
             # Broadcast strictly to subscribers in the same organization
             await manager.broadcast({"type": "alert", "alert": alert_obj, "data": alert_obj}, org_id=org_id)
+            st = storage.get_stats(org_id=org_id)
+            await manager.broadcast({
+                "type": "stats",
+                "stats": {
+                    "flows_per_sec": len(_ingest_timestamps),
+                    "total_flows": st.get("total_flows", 0),
+                    "total_alerts": st.get("total_alerts", 0),
+                    "alerts_by_type": st.get("alerts_by_type", {}),
+                    "recent_targets_by_type": st.get("recent_targets_by_type", {}),
+                }
+            }, org_id=org_id)
 
     return {
         "flagged": result.get("is_flagged", False),

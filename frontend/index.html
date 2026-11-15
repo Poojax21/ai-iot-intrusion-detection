@@ -140,27 +140,27 @@ select:focus,input:focus{border-color:var(--accent);outline:none}
 .topo-view-toggle{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .topo-view-toggle button{all:unset;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:600;color:var(--mute);background:var(--panel)}
 .topo-view-toggle button.active{background:var(--accent);color:#fff}
-.canvas-wrap{position:relative;border-radius:8px;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
-.canvas-legend{position:absolute;bottom:10px;left:12px;display:flex;gap:12px;font-size:11px;color:var(--mute);background:rgba(18,48,58,0.78);backdrop-filter:blur(4px);padding:4px 10px;border-radius:4px;pointer-events:none}
+.canvas-wrap{position:relative;width:100%;height:580px;min-height:500px;border-radius:8px;overflow:hidden;background:var(--panel);border:1px solid var(--line);user-select:none}
+.canvas-wrap canvas{width:100%;height:100%;display:block;cursor:grab}
+.canvas-wrap canvas:active{cursor:grabbing}
+.canvas-legend{position:absolute;bottom:12px;left:12px;display:flex;gap:12px;font-size:11px;color:var(--mute);background:rgba(18,48,58,0.85);backdrop-filter:blur(6px);padding:5px 12px;border-radius:6px;border:1px solid var(--line);pointer-events:none;z-index:10}
+.topo-controls-bar{position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:6px;z-index:10;background:rgba(18,48,58,0.85);backdrop-filter:blur(6px);padding:5px 8px;border-radius:6px;border:1px solid var(--line)}
+.topo-controls-bar button{padding:3px 9px;font-size:11.5px;cursor:pointer}
+#tip{position:fixed;pointer-events:none;background:rgba(18,48,58,0.96);color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;line-height:1.5;display:none;z-index:9999;border:1px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.35);backdrop-filter:blur(8px);max-width:320px}
 
 /* Threat Vector Cards */
 .threat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
-.threat-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;border-top:4px solid var(--accent)}
-.threat-card.crit{border-top-color:var(--crit)}.threat-card.high{border-top-color:var(--high)}.threat-card.zero{border-top-color:var(--zero)}
-.threat-card h3{margin:0 0 4px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
-.threat-card p{margin:0 0 10px;color:var(--mute);font-size:12px}
+.threat-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;border-top:4px solid var(--accent);box-shadow:0 4px 12px rgba(0,0,0,0.12);transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;justify-content:space-between}
+.threat-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.22)}
+.threat-card.crit{border-top-color:var(--crit)}
+.threat-card.high{border-top-color:var(--high)}
+.threat-card.zero{border-top-color:var(--zero)}
+.threat-card h3{margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.threat-card p{margin:0 0 10px;color:var(--mute);font-size:12px;line-height:1.45}
+.threat-target-item{display:flex;justify-content:space-between;align-items:center;padding:6px 9px;margin:4px 0;background:rgba(255,255,255,0.025);border:1px solid var(--line);border-radius:6px;cursor:pointer;transition:all .15s}
+.threat-target-item:hover{border-color:var(--accent);background:rgba(13,124,128,0.12)}
+.threat-target-item b{color:var(--ink);font-size:12px}
 
-/* Log & Terminal */
-.log{background:#0a1014;color:#9fb5bd;font:11.5px/1.6 "JetBrains Mono",monospace;padding:12px;border-radius:6px;height:240px;overflow-y:auto}
-.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0}.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
-
-/* Dialog & Login */
-dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);max-width:480px;width:calc(100% - 32px);padding:24px}
-dialog::backdrop{background:rgba(0,0,0,.6)}
-#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--side);padding:20px;z-index:60}
-#login.off{display:none}
-#login form{background:var(--panel);padding:30px;border-radius:12px;width:min(420px,100%);display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);box-shadow:0 12px 36px rgba(0,0,0,.25)}
-#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:5px;font-size:11.5px;display:none;z-index:40;box-shadow:0 4px 12px rgba(0,0,0,.15)}
 .pill{display:inline-block;font-size:11px;border-radius:9px;padding:1px 8px;border:1px solid var(--line);color:var(--mute)}
 .scn{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s}
 .scn.sel{border-color:var(--accent);background:rgba(13,124,128,.08)}
@@ -413,8 +413,18 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         </div>
       </div>
       <div id="topo-graph-view" class="card" style="padding:12px;margin-bottom:12px">
-        <div class="canvas-wrap">
-          <canvas id="cv" height="420"></canvas>
+        <div class="canvas-wrap" id="topo-canvas-wrap">
+          <canvas id="cv"></canvas>
+          
+          <!-- Navigation & Zoom Controls -->
+          <div class="topo-controls-bar">
+            <button class="btn alt" id="topo-btn-reset" title="Center View (Reset Zoom & Pan)">⟲ Center View</button>
+            <button class="btn alt" id="topo-btn-fit" title="Fit All Nodes to Screen">⤢ Fit to Screen</button>
+            <button class="btn alt" id="topo-btn-zin" title="Zoom In">+</button>
+            <button class="btn alt" id="topo-btn-zout" title="Zoom Out">−</button>
+            <span id="topo-zoom-badge" class="pill" style="font-size:11px;min-width:44px;text-align:center">100%</span>
+          </div>
+
           <div class="canvas-legend">
             <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:4px"></i>Normal</span>
             <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--high);margin-right:4px"></i>Suspicious (&gt;35%)</span>
@@ -422,7 +432,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
             <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:4px"></i>Core Gateway</span>
           </div>
         </div>
-        <p class="note" style="margin-top:8px">Hover over any node for live IP &amp; risk telemetry. Pulsing conduits show active network communication to the central gateway.</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11.5px;color:var(--mute)">
+          <span>Drag background to pan · Scroll wheel to zoom · Drag any node to reposition · Click node for deep telemetry</span>
+          <span id="topo-rendered-count-badge" class="pill" style="font-size:11px">106 Nodes Visualized</span>
+        </div>
       </div>
       <div id="topo-zones-view" style="display:none;margin-bottom:12px">
         <div class="topo-seg-grid" id="topo-zones-container"></div>
@@ -461,6 +474,22 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
     <!-- 6. TAB: THREAT CENTER -->
     <section class="tab" id="threats">
+      <div class="card" style="padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:8px">
+            <span>Threat Vector Intelligence & Real-Time Classification</span>
+            <span class="pill" style="color:var(--ok);border-color:var(--ok);font-size:11px">● LIVE PIPELINE</span>
+          </h2>
+          <p class="note" style="margin:0;font-size:12px">Continuous MITRE ATT&CK alignment across volumetric DDoS, credential attacks, network reconnaissance, and zero-day anomalies.</p>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center">
+          <div style="text-align:right">
+            <span class="note" style="font-size:11px">Total Detections Logged</span>
+            <div id="threat-total-summary-count" style="font-size:18px;font-weight:700;color:var(--crit)">0</div>
+          </div>
+          <button class="btn alt" onclick="refreshThreatsData()" title="Refresh telemetry from backend" style="font-size:11.5px;padding:4px 10px">⟲ Sync Now</button>
+        </div>
+      </div>
       <div class="threat-grid" id="threat-cards-container"></div>
     </section>
 
@@ -814,6 +843,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <button id="send-burst-btn"></button>
 </div>
 
+<script src="d3.min.js"></script>
 <script>
 /* =====================================================================================
    PAHREDAAR-IOT ENTERPRISE SOC OPERATIONS CLIENT
@@ -971,6 +1001,25 @@ function onAlert(a){
   if (S.alerts.length > 500) S.alerts.pop();
   S.counts[a.type] = (S.counts[a.type] || 0) + 1;
 
+  if (!S.threatTargets) S.threatTargets = {};
+  if (!S.threatTargets[a.type]) S.threatTargets[a.type] = [];
+  const existingIdx = S.threatTargets[a.type].findIndex(x => x.device_id === a.device);
+  if (existingIdx >= 0) {
+    const tgt = S.threatTargets[a.type][existingIdx];
+    tgt.hit_count = (tgt.hit_count || 1) + 1;
+    tgt.last_ts = a.ts || (Date.now() / 1000);
+    S.threatTargets[a.type].splice(existingIdx, 1);
+    S.threatTargets[a.type].unshift(tgt);
+  } else {
+    S.threatTargets[a.type].unshift({
+      device_id: a.device,
+      ip: a.ip || a.src_ip || "192.168.1.x",
+      hit_count: 1,
+      last_ts: a.ts || (Date.now() / 1000)
+    });
+    if (S.threatTargets[a.type].length > 4) S.threatTargets[a.type].pop();
+  }
+
   const nb = $("#nb");
   if (nb) nb.textContent = S.alerts.filter(x => !x.seen).length || "";
   render();
@@ -1004,13 +1053,16 @@ function onFlow(f){
 }
 
 function onStats(st){
-  S.fps = st.flows_per_sec || 0;
+  if (!st) return;
+  S.fps = typeof st.flows_per_sec === "number" ? st.flows_per_sec : S.fps;
   S.total = st.total_flows || S.total;
+  if (st.alerts_by_type) S.counts = Object.assign({}, S.counts, st.alerts_by_type);
+  if (st.recent_targets_by_type) S.threatTargets = st.recent_targets_by_type;
   S.hist.push(S.fps);
   S.hist.shift();
-  $("#fps").textContent = Math.round(S.fps).toLocaleString();
-  $("#flow-throughput-stat").textContent = Math.round(S.fps).toLocaleString() + " flows/s";
-  $("#clock").textContent = now();
+  if ($("#fps")) $("#fps").textContent = Math.round(S.fps).toLocaleString();
+  if ($("#flow-throughput-stat")) $("#flow-throughput-stat").textContent = Math.round(S.fps).toLocaleString() + " flows/s";
+  if ($("#clock")) $("#clock").textContent = now();
   updatePosture();
   render();
 }
@@ -1060,11 +1112,17 @@ async function bootstrap(){
     S.flows = flows || [];
     S.health = health || {};
 
-    if (stats && stats.total_flows) S.total = stats.total_flows;
-    (S.alerts || []).forEach(a => {
-      const t = a.type || a.attack_type;
-      S.counts[t] = (S.counts[t] || 0) + 1;
-    });
+    if (stats) {
+      if (stats.total_flows) S.total = stats.total_flows;
+      if (stats.alerts_by_type) S.counts = Object.assign({}, stats.alerts_by_type);
+      if (stats.recent_targets_by_type) S.threatTargets = stats.recent_targets_by_type;
+    }
+    if (!Object.keys(S.counts).length) {
+      (S.alerts || []).forEach(a => {
+        const t = a.type || a.attack_type;
+        if (t) S.counts[t] = (S.counts[t] || 0) + 1;
+      });
+    }
 
     setConn(true, "Live");
   }catch(e){
@@ -1171,7 +1229,10 @@ function render(){
   if (tab === "devices") renderDevices();
   if (tab === "incidents") renderIncidents();
   if (tab === "topology") renderTopology();
-  if (tab === "threats") renderThreats();
+  if (tab === "threats") {
+    renderThreats();
+    api("/api/stats").then(st => { if (st) onStats(st); }).catch(() => {});
+  }
   if (tab === "explainability") renderExplainability();
   if (tab === "engine") renderEngine();
   if (tab === "reports") renderReports();
@@ -1318,24 +1379,95 @@ function renderThreats(){
     { type: "unknown_suspicious", name: "Zero-Day Novelty (EVT Out-of-Distribution)", mitre: "T0884", icon: "👽", sev: "zero", desc: "Anomalous network flows rejected by open-set extreme value distribution centroids." }
   ];
 
-  $("#threat-cards-container").innerHTML = threatInfo.map(t => {
+  const totalDetections = Object.values(S.counts).reduce((a, b) => a + b, 0);
+  const totalSummaryEl = $("#threat-total-summary-count");
+  if (totalSummaryEl) totalSummaryEl.textContent = totalDetections.toLocaleString();
+
+  const container = $("#threat-cards-container");
+  if (!container) return;
+
+  container.innerHTML = threatInfo.map(t => {
     const count = S.counts[t.type] || 0;
-    const relatedAlerts = S.alerts.filter(a => (a.type || a.attack_type) === t.type).slice(0, 3);
+    
+    // Resolve recent unique targets: prefer backend DB-aggregated targets, fallback to deduplicated recent alerts
+    let targets = [];
+    if (S.threatTargets && S.threatTargets[t.type] && S.threatTargets[t.type].length) {
+      targets = S.threatTargets[t.type];
+    } else {
+      const seen = new Set();
+      for (const a of S.alerts) {
+        const at = a.type || a.attack_type;
+        const dev = a.device || a.device_id;
+        if (at === t.type && dev && !seen.has(dev)) {
+          seen.add(dev);
+          targets.push({
+            device_id: dev,
+            ip: a.ip || a.src_ip || "192.168.1.x",
+            hit_count: 1,
+            last_ts: a.ts
+          });
+          if (targets.length >= 3) break;
+        }
+      }
+    }
+
+    const targetsHtml = targets.length
+      ? targets.map(tgt => `
+          <div class="threat-target-item" onclick="openDeviceDetail('${esc(tgt.device_id)}')" title="Inspect forensic telemetry for ${esc(tgt.device_id)}">
+            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px">
+              <b>🎯 ${esc(tgt.device_id)}</b>
+              <div class="note" style="font-size:11px">${esc(tgt.ip || "192.168.1.x")} · <span style="color:var(--ink)">${tgt.hit_count > 1 ? tgt.hit_count + ' hits' : '1 detection'}</span></div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <span class="pill" style="font-size:10px">${tgt.last_ts ? ago(tgt.last_ts) + ' ago' : 'Recent'}</span>
+            </div>
+          </div>
+        `).join("")
+      : '<div class="note" style="padding:6px 0;font-size:11.5px">No target devices flagged yet.</div>';
+
     return `
       <div class="threat-card ${t.sev}">
-        <h3><span>${t.icon} ${t.name}</span> <span class="pill">${t.mitre}</span></h3>
-        <p>${t.desc}</p>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span class="note">Total Detections:</span>
-          <b style="font-size:18px">${count}</b>
+        <div>
+          <h3><span>${t.icon} ${t.name}</span> <span class="pill">${t.mitre}</span></h3>
+          <p>${t.desc}</p>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 6px">
+            <span class="note" style="font-weight:600">Total Detections</span>
+            <b style="font-size:22px;color:var(--ink)">${count.toLocaleString()}</b>
+          </div>
+          <div style="font-size:11.5px;color:var(--mute);margin-top:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <b>Recent Targets (${targets.length}):</b>
+              <span class="pill" style="font-size:9.5px;color:var(--accent);border-color:var(--accent)">Click to inspect</span>
+            </div>
+            ${targetsHtml}
+          </div>
         </div>
-        <div style="font-size:11.5px;color:var(--mute)">
-          <b>Recent Targets:</b>
-          ${relatedAlerts.map(a => `<div>· ${esc(a.device || a.device_id)} (${esc(a.ip || a.src_ip)})</div>`).join("") || '<div>None detected yet</div>'}
-        </div>
+        <button class="btn alt" style="width:100%;margin-top:12px;font-size:11.5px;padding:6px 10px" onclick="filterAlertsByType('${t.type}')">Filter ${esc(t.name.split(' ')[0])} in Alerts Log ➔</button>
       </div>
     `;
   }).join("");
+}
+
+function filterAlertsByType(type){
+  const b = document.querySelector('nav button[data-id="alerts"]');
+  if (b) b.click();
+  const s = $("#alert-search");
+  if (s) {
+    s.value = type;
+    s.dispatchEvent(new Event("input"));
+  }
+}
+
+async function refreshThreatsData(){
+  try {
+    const st = await api("/api/stats");
+    if (st) {
+      onStats(st);
+      toast("Threat telemetry synchronized", "ok");
+    }
+  } catch(e) {
+    toast("Failed to refresh stats: " + e.message, "crit");
+  }
 }
 
 /* 7. IOT ASSETS */
@@ -2058,37 +2190,202 @@ function renderTopology(){
   });
 }
 
-function topo(){
-  requestAnimationFrame(topo);
-  const topoTab = $("#topology");
-  if (!topoTab || !topoTab.classList.contains("on") || topoViewMode !== "graph") return;
+/* =====================================================================================
+   NETWORK TOPOLOGY GRAPH COMPONENT (D3 FORCE-DIRECTED RADIAL SIMULATION)
+   - Dynamic canvas sizing & responsive high-DPI (Retina) scaling
+   - Dynamic centering to (containerWidth / 2, containerHeight / 2)
+   - D3 forceSimulation with robust collision force (d3.forceCollide) & multi-tier radial rings
+   - Responsive panning & zooming (d3.zoom) with Center View, Fit to Screen, Zoom In/Out
+   - Smart label collision management & rich hovering telemetry card tooltip
+   - Interactive node drag & click triage integration
+===================================================================================== */
+let topoTransform = (typeof d3 !== "undefined") ? d3.zoomIdentity : { x: 0, y: 0, k: 1 };
+let topoZoomBehavior = null;
+let topoSim = null;
+let topoNodes = [];
+let topoHoveredNode = null;
+let topoLastFilterKey = "";
+let topoCanvasWidth = 0;
+let topoCanvasHeight = 0;
+let topoControlsInitialized = false;
+
+function screenToWorld(sx, sy) {
+  return {
+    x: (sx - topoTransform.x) / topoTransform.k,
+    y: (sy - topoTransform.y) / topoTransform.k
+  };
+}
+
+function findTopoNode(wx, wy) {
+  if (!topoNodes || !topoNodes.length) return null;
+  for (let i = topoNodes.length - 1; i >= 0; i--) {
+    const n = topoNodes[i];
+    const hitR = n.isGateway ? 28 : (n.hasAlert ? 22 : 16);
+    if (Math.hypot(n.x - wx, n.y - wy) <= hitR) return n;
+  }
+  return null;
+}
+
+function fitTopologyToScreen() {
+  if (!topoNodes || !topoNodes.length || typeof d3 === "undefined" || !topoZoomBehavior) return;
+  const wrap = $("#topo-canvas-wrap");
   const c = $("#cv");
-  if (!c) return;
+  if (!c || !wrap) return;
+  const w = wrap.clientWidth || 1000;
+  const h = wrap.clientHeight || 580;
 
-  const w = c.clientWidth, h = 420, d = devicePixelRatio || 1;
-  if (!w) return;
-  c.width = w * d; c.height = h * d;
-  const x = c.getContext("2d");
-  x.scale(d, d);
-
-  const st = getComputedStyle(document.documentElement);
-  const T = Date.now() / 1000;
-  const cx = w / 2, cy = h / 2;
-
-  x.fillStyle = st.getPropertyValue("--panel");
-  x.fillRect(0, 0, w, h);
-
-  x.strokeStyle = st.getPropertyValue("--line");
-  x.lineWidth = 1;
-  x.setLineDash([4, 4]);
-  [100, 165].forEach(r => {
-    x.beginPath();
-    x.arc(cx, cy, r, 0, Math.PI * 2);
-    x.stroke();
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  topoNodes.forEach(n => {
+    if (n.x < minX) minX = n.x;
+    if (n.x > maxX) maxX = n.x;
+    if (n.y < minY) minY = n.y;
+    if (n.y > maxY) maxY = n.y;
   });
-  x.setLineDash([]);
 
+  const pad = 65;
+  const dx = Math.max(120, maxX - minX + pad * 2);
+  const dy = Math.max(120, maxY - minY + pad * 2);
+  const k = Math.min(1.4, Math.max(0.3, Math.min(w / dx, h / dy)));
+  const midX = (minX + maxX) / 2;
+  const midY = (minY + maxY) / 2;
+  const tx = (w / 2) - midX * k;
+  const ty = (h / 2) - midY * k;
+
+  d3.select("#cv").transition().duration(500).call(
+    topoZoomBehavior.transform,
+    d3.zoomIdentity.translate(tx, ty).scale(k)
+  );
+}
+
+function initTopoControls() {
+  if (topoControlsInitialized || typeof d3 === "undefined") return;
+  const cv = d3.select("#cv");
+  if (!cv.node()) return;
+
+  topoZoomBehavior = d3.zoom()
+    .scaleExtent([0.25, 4.0])
+    .on("zoom", e => {
+      topoTransform = e.transform;
+      const badge = $("#topo-zoom-badge");
+      if (badge) badge.textContent = `${Math.round(e.transform.k * 100)}%`;
+    });
+
+  cv.call(topoZoomBehavior);
+
+  // Drag behavior for nodes
+  cv.call(d3.drag()
+    .container(function() { return this; })
+    .subject(e => {
+      const r = cv.node().getBoundingClientRect();
+      const pt = screenToWorld(e.sourceEvent.clientX - r.left, e.sourceEvent.clientY - r.top);
+      return findTopoNode(pt.x, pt.y);
+    })
+    .on("start", e => {
+      if (!e.subject || e.subject.isGateway) return;
+      if (!e.active && topoSim) topoSim.alphaTarget(0.3).restart();
+      e.subject.fx = e.subject.x;
+      e.subject.fy = e.subject.y;
+    })
+    .on("drag", e => {
+      if (!e.subject || e.subject.isGateway) return;
+      const r = cv.node().getBoundingClientRect();
+      const pt = screenToWorld(e.sourceEvent.clientX - r.left, e.sourceEvent.clientY - r.top);
+      e.subject.fx = pt.x;
+      e.subject.fy = pt.y;
+    })
+    .on("end", e => {
+      if (!e.subject || e.subject.isGateway) return;
+      if (!e.active && topoSim) topoSim.alphaTarget(0);
+      e.subject.fx = null;
+      e.subject.fy = null;
+    })
+  );
+
+  // Mouse hover & click events
+  const cvEl = $("#cv");
+  if (cvEl) {
+    cvEl.addEventListener("mousemove", e => {
+      const r = cvEl.getBoundingClientRect();
+      const pt = screenToWorld(e.clientX - r.left, e.clientY - r.top);
+      const n = findTopoNode(pt.x, pt.y);
+      topoHoveredNode = n;
+      const t = $("#tip");
+      if (n && t) {
+        t.style.display = "block";
+        t.style.left = Math.min(window.innerWidth - 330, e.clientX + 16) + "px";
+        t.style.top = Math.min(window.innerHeight - 200, e.clientY + 16) + "px";
+        const isGw = n.isGateway;
+        const sevColor = n.hasAlert ? "var(--crit)" : (n.risk >= 35 ? "var(--high)" : "var(--ok)");
+        const statusText = isGw ? "Core Default Gateway" :
+                           (n.hasAlert ? `🚨 CRITICAL (${Math.round(n.risk)}% Risk)` :
+                           (n.risk >= 35 ? `⚠ ELEVATED (${Math.round(n.risk)}% Risk)` : `✓ Secure (${Math.round(n.risk)}% Risk)`));
+        t.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="font-size:12.5px;color:#fff">${esc(n.name)}</b>
+            <span class="pill" style="font-size:10px">${esc(n.type)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--sideink);display:flex;flex-direction:column;gap:3px">
+            <div>IP Address: <code style="color:#fff">${esc(n.ip)}</code></div>
+            <div>Zone: <b>${esc(n.zoneTitle || n.type)}</b></div>
+            <div>Status: <b style="color:${sevColor}">${statusText}</b></div>
+            ${n.alert ? `<div style="color:var(--crit);margin-top:2px">🚨 Detected: <b>${esc(n.alert.type || n.alert.attack_type)}</b> (${esc(n.alert.severity || "Critical")})</div>` : ''}
+            ${!isGw ? `<div style="margin-top:6px;font-size:10px;color:var(--mute);border-top:1px solid rgba(255,255,255,0.1);padding-top:4px">Click node to inspect forensic telemetry</div>` : ''}
+          </div>
+        `;
+      } else if (t) {
+        t.style.display = "none";
+      }
+    });
+
+    cvEl.addEventListener("mouseleave", () => {
+      topoHoveredNode = null;
+      const t = $("#tip");
+      if (t) t.style.display = "none";
+    });
+
+    cvEl.addEventListener("click", e => {
+      const r = cvEl.getBoundingClientRect();
+      const pt = screenToWorld(e.clientX - r.left, e.clientY - r.top);
+      const n = findTopoNode(pt.x, pt.y);
+      if (n && !n.isGateway) {
+        if (n.alert) openAlert(n.alert.id);
+        else openDeviceDetail(n.id);
+      }
+    });
+  }
+
+  // Toolbar action buttons
+  const btnReset = $("#topo-btn-reset");
+  if (btnReset) {
+    btnReset.onclick = () => {
+      cv.transition().duration(400).call(topoZoomBehavior.transform, d3.zoomIdentity);
+    };
+  }
+
+  const btnFit = $("#topo-btn-fit");
+  if (btnFit) btnFit.onclick = fitTopologyToScreen;
+
+  const btnZin = $("#topo-btn-zin");
+  if (btnZin) {
+    btnZin.onclick = () => {
+      cv.transition().duration(250).call(topoZoomBehavior.scaleBy, 1.3);
+    };
+  }
+
+  const btnZout = $("#topo-btn-zout");
+  if (btnZout) {
+    btnZout.onclick = () => {
+      cv.transition().duration(250).call(topoZoomBehavior.scaleBy, 0.75);
+    };
+  }
+
+  topoControlsInitialized = true;
+}
+
+function updateTopologySimulation(w, h) {
+  const cx = w / 2, cy = h / 2;
   const q = topoSearchQuery.toLowerCase();
+
   let devs = S.devs.filter(dev => {
     const id = (dev.name || dev.device_id || dev.id || "").toLowerCase();
     const ip = (dev.ip || "").toLowerCase();
@@ -2103,11 +2400,17 @@ function topo(){
     return true;
   });
 
+  const recentAlertMap = {};
+  (S.alerts || []).slice(0, 50).forEach(a => {
+    const did = a.device || a.device_id;
+    if (did) recentAlertMap[did] = a;
+  });
+
   const sectors = [
-    { name: "Surveillance", icon: "📹", start: 195, end: 255, devs: [] },
-    { name: "Environmental", icon: "🌡️", start: 285, end: 345, devs: [] },
-    { name: "Smart Grid", icon: "⚡", start: 15, end: 75, devs: [] },
-    { name: "Controllers", icon: "🔒", start: 105, end: 165, devs: [] }
+    { key: "camera", name: "Surveillance", icon: "📹", start: 195, end: 255, devs: [] },
+    { key: "temp_sensor", name: "Environmental", icon: "🌡️", start: 285, end: 345, devs: [] },
+    { key: "meter", name: "Smart Grid", icon: "⚡", start: 15, end: 75, devs: [] },
+    { key: "controller", name: "Controllers", icon: "🔒", start: 105, end: 165, devs: [] }
   ];
 
   devs.forEach(d => {
@@ -2118,208 +2421,323 @@ function topo(){
     else sectors[1].devs.push(d);
   });
 
-  const recentAlertMap = {};
-  S.alerts.slice(0, 30).forEach(a => {
-    recentAlertMap[a.device || a.device_id] = a;
-  });
-
   const nodes = [{
     id: "gateway",
     name: "Core Gateway",
     ip: "192.168.1.1",
-    type: "gateway",
+    type: "Default Gateway",
+    zoneTitle: "Network Backbone",
     risk: 0,
     x: cx,
     y: cy,
+    fx: cx,
+    fy: cy,
     isGateway: true
   }];
 
+  // Multi-tier radial orbits with adequate breathing room
+  const ringDistances = [150, 230, 310, 390, 470];
+
   sectors.forEach(sec => {
-    const count = sec.devs.length;
-    if (!count) return;
+    const sDevs = sec.devs;
+    const totalInSec = sDevs.length;
+    if (!totalInSec) return;
 
-    const maxShow = 8;
-    const toRender = sec.devs.slice(0, maxShow);
-    const overflow = count - toRender.length;
-
-    toRender.forEach((d, i) => {
-      const ring = (i % 2 === 0) ? 100 : 165;
-      const step = count > 1 ? (sec.end - sec.start) / Math.max(1, toRender.length - 1) : 0;
-      const deg = count === 1 ? (sec.start + sec.end) / 2 : sec.start + (i * step);
-      const rad = deg * (Math.PI / 180);
-
-      const nx = cx + Math.cos(rad) * ring;
-      const ny = cy + Math.sin(rad) * ring;
+    sDevs.forEach((d, idx) => {
       const devId = d.name || d.device_id || d.id;
       const alert = recentAlertMap[devId];
+      const risk = Number(d.risk || d.risk_score || 0);
+      const hasAlert = Boolean(alert || risk >= 65);
+
+      let ringTier = 0;
+      let posInTier = idx;
+      let tierCap = 4;
+
+      if (idx >= 4 && idx < 11) {
+        ringTier = 1;
+        posInTier = idx - 4;
+        tierCap = 7;
+      } else if (idx >= 11 && idx < 22) {
+        ringTier = 2;
+        posInTier = idx - 11;
+        tierCap = 11;
+      } else if (idx >= 22 && idx < 37) {
+        ringTier = 3;
+        posInTier = idx - 22;
+        tierCap = 15;
+      } else if (idx >= 37) {
+        ringTier = 4;
+        posInTier = idx - 37;
+        tierCap = Math.max(1, totalInSec - 37);
+      }
+
+      const targetR = ringDistances[Math.min(ringTier, ringDistances.length - 1)];
+      const stepAngle = tierCap > 1 ? (sec.end - sec.start) / Math.max(1, tierCap - 1) : 0;
+      const deg = sec.start + (posInTier * stepAngle) + (Math.sin(idx * 7) * 2.5);
+      const rad = deg * (Math.PI / 180);
+
+      const initX = cx + Math.cos(rad) * targetR;
+      const initY = cy + Math.sin(rad) * targetR;
 
       nodes.push({
         id: devId,
         name: devId,
         ip: d.ip || "192.168.1.x",
-        type: d.type || d.device_type || "IoT",
-        risk: d.risk || d.risk_score || 0,
-        flow_count: d.flow_count || 1,
+        type: d.type || d.device_type || sec.name,
+        zoneTitle: sec.name,
+        risk: risk,
+        hasAlert: hasAlert,
         alert: alert,
-        x: nx,
-        y: ny,
+        targetR: targetR,
+        targetAngle: rad,
+        flow_count: d.flow_count || 1,
+        x: initX,
+        y: initY,
         isGateway: false
       });
     });
-
-    if (overflow > 0) {
-      const rad = ((sec.start + sec.end) / 2) * (Math.PI / 180);
-      const nx = cx + Math.cos(rad) * 205;
-      const ny = cy + Math.sin(rad) * 205;
-      nodes.push({
-        id: "cluster_" + sec.name,
-        name: `+${overflow} more`,
-        ip: `${overflow} devices`,
-        type: sec.name,
-        risk: 0,
-        x: nx,
-        y: ny,
-        isCluster: true
-      });
-    }
   });
 
-  nodes.forEach(n => {
-    if (n.isGateway) return;
-    const hasAlert = Boolean(n.alert || n.risk >= 65);
-    x.beginPath();
-    x.moveTo(cx, cy);
-    x.lineTo(n.x, n.y);
+  topoNodes = nodes;
+  window.topoNodes = topoNodes;
+  const cvEl = $("#cv");
+  if (cvEl) cvEl._nodes = topoNodes;
 
-    if (hasAlert) {
-      x.strokeStyle = st.getPropertyValue("--crit");
-      x.lineWidth = 2.2;
-    } else {
-      x.strokeStyle = "rgba(13, 124, 128, 0.22)";
-      x.lineWidth = 1.2;
-    }
-    x.stroke();
+  const countBadge = $("#topo-rendered-count-badge");
+  if (countBadge) countBadge.textContent = `${topoNodes.length - 1} Nodes Visualized`;
 
-    const progress = ((T * (hasAlert ? 1.6 : 0.6) + (n.x * 0.05)) % 1);
-    const px = cx + (n.x - cx) * progress;
-    const py = cy + (n.y - cy) * progress;
-    x.beginPath();
-    x.arc(px, py, hasAlert ? 3.5 : 2, 0, Math.PI * 2);
-    x.fillStyle = hasAlert ? st.getPropertyValue("--crit") : st.getPropertyValue("--accent");
-    x.fill();
-  });
+  // Initialize or restart D3 force simulation with robust collision & radial forces
+  if (typeof d3 !== "undefined") {
+    if (topoSim) topoSim.stop();
+    topoSim = d3.forceSimulation(topoNodes)
+      .alphaDecay(0.025)
+      .velocityDecay(0.4)
+      .force("center", d3.forceCenter(cx, cy))
+      .force("collide", d3.forceCollide().radius(d => d.isGateway ? 55 : (d.hasAlert ? 26 : 19)).strength(1.0).iterations(3))
+      .force("radial", d3.forceRadial(d => d.targetR || 0, cx, cy).strength(0.85))
+      .force("charge", d3.forceManyBody().strength(d => d.isGateway ? -320 : -35).distanceMax(280));
 
-  const gwAura = Math.sin(T * 2.5) * 4 + 22;
-  x.beginPath();
-  x.arc(cx, cy, gwAura, 0, Math.PI * 2);
-  x.fillStyle = "rgba(13, 124, 128, 0.15)";
-  x.fill();
-
-  x.beginPath();
-  x.arc(cx, cy, 18, 0, Math.PI * 2);
-  x.fillStyle = st.getPropertyValue("--accent");
-  x.fill();
-
-  x.fillStyle = "#fff";
-  x.font = "bold 10px sans-serif";
-  x.textAlign = "center";
-  x.textBaseline = "middle";
-  x.fillText("GW", cx, cy);
-
-  x.fillStyle = "rgba(18, 48, 58, 0.88)";
-  x.beginPath();
-  x.roundRect ? x.roundRect(cx - 48, cy + 24, 96, 18, 4) : x.rect(cx - 48, cy + 24, 96, 18);
-  x.fill();
-  x.strokeStyle = st.getPropertyValue("--accent");
-  x.lineWidth = 1;
-  x.stroke();
-  x.fillStyle = "#cfe0e4";
-  x.font = "10.5px sans-serif";
-  x.fillText("192.168.1.1 (Core)", cx, cy + 33);
-
-  nodes.forEach(n => {
-    if (n.isGateway) return;
-
-    const hasAlert = Boolean(n.alert || n.risk >= 65);
-    const isWarn = n.risk >= 35 && !hasAlert;
-
-    if (hasAlert) {
-      const ringPulse = Math.sin(T * 4 + n.x) * 4 + 16;
-      x.beginPath();
-      x.arc(n.x, n.y, ringPulse, 0, Math.PI * 2);
-      x.strokeStyle = st.getPropertyValue("--crit");
-      x.lineWidth = 2;
-      x.stroke();
-    }
-
-    x.beginPath();
-    x.arc(n.x, n.y, n.isCluster ? 9 : 11, 0, Math.PI * 2);
-    if (n.isCluster) {
-      x.fillStyle = st.getPropertyValue("--mute");
-    } else if (hasAlert) {
-      x.fillStyle = st.getPropertyValue("--crit");
-    } else if (isWarn) {
-      x.fillStyle = st.getPropertyValue("--high");
-    } else {
-      x.fillStyle = st.getPropertyValue("--ok");
-    }
-    x.fill();
-
-    const cleanLabel = n.name.length > 12 ? n.name.slice(0, 10) + "…" : n.name;
-    const pillW = Math.max(56, cleanLabel.length * 6.5 + 14);
-    const pillH = 17;
-    const pillX = n.x - pillW / 2;
-    const pillY = n.y + 14;
-
-    x.fillStyle = "rgba(18, 48, 58, 0.88)";
-    x.beginPath();
-    x.roundRect ? x.roundRect(pillX, pillY, pillW, pillH, 4) : x.rect(pillX, pillY, pillW, pillH);
-    x.fill();
-    x.strokeStyle = hasAlert ? st.getPropertyValue("--crit") : st.getPropertyValue("--line");
-    x.lineWidth = 1;
-    x.stroke();
-
-    x.fillStyle = "#fff";
-    x.font = "10.5px sans-serif";
-    x.textAlign = "center";
-    x.textBaseline = "middle";
-    x.fillText(cleanLabel, n.x, pillY + pillH / 2);
-  });
-
-  c._nodes = nodes;
+    // Warm up simulation synchronously so initial layout is separated immediately
+    for (let i = 0; i < 35; ++i) topoSim.tick();
+  }
 }
 
-const cvEl = $("#cv");
-if (cvEl) {
-  cvEl.addEventListener("mousemove", e => {
-    const c = e.target, r = c.getBoundingClientRect();
-    const mx = e.clientX - r.left, my = e.clientY - r.top;
-    const n = (c._nodes || []).find(n => Math.hypot(n.x - mx, n.y - my) < 22);
-    const t = $("#tip");
-    if (n && !n.isGateway) {
-      t.style.display = "block";
-      t.style.left = e.clientX + 14 + "px";
-      t.style.top = e.clientY + 14 + "px";
-      t.innerHTML = `<b>${esc(n.name)}</b><br>${esc(n.ip)} · Type: ${esc(n.type)}<br>Risk: ${Math.round(n.risk)}% ${n.alert ? `<br><span style="color:var(--crit)">🚨 ${esc(n.alert.type || n.alert.attack_type)}</span>` : ""}`;
+function topo(){
+  requestAnimationFrame(topo);
+  const topoTab = $("#topology");
+  if (!topoTab || !topoTab.classList.contains("on") || topoViewMode !== "graph") return;
+  const c = $("#cv");
+  if (!c) return;
+
+  const wrap = $("#topo-canvas-wrap");
+  const w = wrap ? wrap.clientWidth : c.clientWidth;
+  const h = wrap ? wrap.clientHeight : (c.clientHeight || 580);
+  const dpr = window.devicePixelRatio || 1;
+  if (!w || !h) return;
+
+  // Resize canvas bitmap if container dimensions change
+  if (c.width !== w * dpr || c.height !== h * dpr || w !== topoCanvasWidth || h !== topoCanvasHeight) {
+    c.width = w * dpr;
+    c.height = h * dpr;
+    topoCanvasWidth = w;
+    topoCanvasHeight = h;
+    updateTopologySimulation(w, h);
+  }
+
+  // Check if filter or dataset changed
+  const currentFilterKey = `${S.devs.length}_${topoFilterCat}_${topoSearchQuery}_${(S.alerts || []).length}`;
+  if (currentFilterKey !== topoLastFilterKey) {
+    topoLastFilterKey = currentFilterKey;
+    updateTopologySimulation(w, h);
+  }
+
+  initTopoControls();
+
+  const ctx = c.getContext("2d");
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  const st = getComputedStyle(document.documentElement);
+  const T = Date.now() / 1000;
+  const cx = w / 2, cy = h / 2;
+
+  // 1. Clear background
+  ctx.fillStyle = st.getPropertyValue("--panel");
+  ctx.fillRect(0, 0, w, h);
+
+  // 2. Apply Pan & Zoom Transform
+  ctx.save();
+  ctx.translate(topoTransform.x, topoTransform.y);
+  ctx.scale(topoTransform.k, topoTransform.k);
+
+  // 3. Draw Orbit Rings Guide Lines
+  ctx.strokeStyle = st.getPropertyValue("--line");
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  [150, 230, 310, 390].forEach(r => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // 4. Sector Titles & Quadrant Watermarks
+  const sectorHeaders = [
+    { title: "📹 SURVEILLANCE", angle: 225, r: 420 },
+    { title: "🌡️ ENVIRONMENTAL", angle: 315, r: 420 },
+    { title: "⚡ SMART GRID", angle: 45, r: 420 },
+    { title: "🔒 CONTROLLERS", angle: 135, r: 420 }
+  ];
+  ctx.fillStyle = st.getPropertyValue("--mute");
+  ctx.font = "bold 11px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  sectorHeaders.forEach(sh => {
+    const rad = sh.angle * (Math.PI / 180);
+    const sx = cx + Math.cos(rad) * sh.r;
+    const sy = cy + Math.sin(rad) * sh.r;
+    ctx.fillText(sh.title, sx, sy);
+  });
+
+  // 5. Draw Traffic Conduits (Links to Gateway)
+  topoNodes.forEach(n => {
+    if (n.isGateway) return;
+    const isHovered = (n === topoHoveredNode);
+    const hasAlert = n.hasAlert;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(n.x, n.y);
+
+    if (isHovered) {
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2.4;
+    } else if (hasAlert) {
+      ctx.strokeStyle = "rgba(200, 50, 31, 0.7)";
+      ctx.lineWidth = 2.0;
     } else {
-      t.style.display = "none";
+      ctx.strokeStyle = "rgba(13, 124, 128, 0.16)";
+      ctx.lineWidth = 1.0;
+    }
+    ctx.stroke();
+
+    // Data packet flow animation
+    const speed = hasAlert ? 2.2 : 0.8;
+    const progress = ((T * speed + (n.x * 0.04)) % 1);
+    const px = cx + (n.x - cx) * progress;
+    const py = cy + (n.y - cy) * progress;
+    ctx.beginPath();
+    ctx.arc(px, py, hasAlert ? 3.5 : (isHovered ? 3.0 : 2.0), 0, Math.PI * 2);
+    ctx.fillStyle = hasAlert ? st.getPropertyValue("--crit") : (isHovered ? "#fff" : st.getPropertyValue("--accent"));
+    ctx.fill();
+  });
+
+  // 6. Draw Core Gateway at (cx, cy)
+  const gwAura = Math.sin(T * 2.8) * 5 + 26;
+  ctx.beginPath();
+  ctx.arc(cx, cy, gwAura, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(13, 124, 128, 0.16)";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+  ctx.fillStyle = st.getPropertyValue("--accent");
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 11px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("GW", cx, cy);
+
+  // Gateway Label Pill
+  ctx.fillStyle = "rgba(18, 48, 58, 0.9)";
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(cx - 58, cy + 26, 116, 20, 5) : ctx.rect(cx - 58, cy + 26, 116, 20);
+  ctx.fill();
+  ctx.strokeStyle = st.getPropertyValue("--accent");
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = "#cfe0e4";
+  ctx.font = "bold 10.5px sans-serif";
+  ctx.fillText("192.168.1.1 (Core)", cx, cy + 36);
+
+  // 7. Draw Nodes
+  topoNodes.forEach(n => {
+    if (n.isGateway) return;
+    const isHovered = (n === topoHoveredNode);
+    const hasAlert = n.hasAlert;
+    const isWarn = n.risk >= 35 && !hasAlert;
+
+    // Alert expanding pulse ring
+    if (hasAlert) {
+      const ringPulse = Math.sin(T * 4.5 + n.x) * 4 + 18;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, ringPulse, 0, Math.PI * 2);
+      ctx.strokeStyle = st.getPropertyValue("--crit");
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    }
+
+    // Hover halo
+    if (isHovered) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 16, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Node Body Circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, hasAlert ? 13 : 11, 0, Math.PI * 2);
+    if (hasAlert) {
+      ctx.fillStyle = st.getPropertyValue("--crit");
+    } else if (isWarn) {
+      ctx.fillStyle = st.getPropertyValue("--high");
+    } else {
+      ctx.fillStyle = st.getPropertyValue("--ok");
+    }
+    ctx.fill();
+    ctx.strokeStyle = isHovered ? "#fff" : "rgba(255, 255, 255, 0.5)";
+    ctx.lineWidth = isHovered ? 2 : 1;
+    ctx.stroke();
+
+    // 8. Smart Non-Colliding Labels
+    const shouldDrawLabel = hasAlert || isHovered || (topoTransform.k >= 1.4);
+
+    if (shouldDrawLabel) {
+      const cleanLabel = isHovered ? n.name :
+                         (hasAlert && n.alert ? `🚨 ${n.alert.type || n.alert.attack_type}` :
+                         (n.name.length > 14 ? n.name.slice(0, 12) + "…" : n.name));
+      const pillW = Math.max(54, cleanLabel.length * 6.5 + 14);
+      const pillH = 18;
+      const pillX = n.x - pillW / 2;
+      const pillY = n.y + 14;
+
+      ctx.fillStyle = isHovered ? "rgba(13, 124, 128, 0.95)" : "rgba(18, 48, 58, 0.88)";
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(pillX, pillY, pillW, pillH, 4) : ctx.rect(pillX, pillY, pillW, pillH);
+      ctx.fill();
+      ctx.strokeStyle = hasAlert ? st.getPropertyValue("--crit") : (isHovered ? "#fff" : st.getPropertyValue("--line"));
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = isHovered ? "bold 11px sans-serif" : "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(cleanLabel, n.x, pillY + pillH / 2);
     }
   });
 
-  cvEl.addEventListener("click", e => {
-    const c = e.target, r = c.getBoundingClientRect();
-    const mx = e.clientX - r.left, my = e.clientY - r.top;
-    const n = (c._nodes || []).find(n => Math.hypot(n.x - mx, n.y - my) < 22);
-    if (n && !n.isGateway) {
-      if (n.alert) openAlert(n.alert.id);
-      else openDeviceDetail(n.id);
-    }
-  });
-
-  cvEl.addEventListener("mouseleave", () => {
-    const t = $("#tip");
-    if (t) t.style.display = "none";
-  });
+  ctx.restore(); // Restore pan/zoom
+  ctx.restore(); // Restore DPR scale
 }
 
 const btnGraph = $("#topo-btn-graph");
@@ -3206,9 +3624,15 @@ $("#lf").onsubmit = async e => {
 /* Start Data Ingestion & Live Monitoring */
 bootstrap();
 setInterval(() => {
-  if (S.connected && document.querySelector(".tab.on")?.id === "network" && !S.netPaused){
+  if (!S.connected || S.netPaused) return;
+  const currentTab = document.querySelector(".tab.on")?.id;
+  if (currentTab === "network"){
     api("/api/flows?limit=50").then(fls => {
       if (fls && fls.length) { S.flows = fls; renderNetwork(); }
+    }).catch(() => {});
+  } else if (currentTab === "threats" || currentTab === "overview"){
+    api("/api/stats").then(st => {
+      if (st) onStats(st);
     }).catch(() => {});
   }
 }, 3000);

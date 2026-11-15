@@ -570,10 +570,33 @@ def get_stats(org_id: Optional[str] = None):
 
         inc_group_query = f"SELECT status, COUNT(*) c FROM incidents{where_clause} GROUP BY status"
         inc_counts = conn.execute(inc_group_query, params).fetchall()
+
+        # Query recent targets per attack type with hit counts and latest timestamp
+        targets_query = (
+            f"SELECT attack_type, device_id, src_ip, MAX(ts) as last_ts, COUNT(*) as cnt "
+            f"FROM alerts{where_clause} "
+            f"GROUP BY attack_type, device_id "
+            f"ORDER BY last_ts DESC"
+        )
+        targets_rows = conn.execute(targets_query, params).fetchall()
+        recent_targets_by_type = {}
+        for r in targets_rows:
+            at = r["attack_type"]
+            if at not in recent_targets_by_type:
+                recent_targets_by_type[at] = []
+            if len(recent_targets_by_type[at]) < 4:
+                recent_targets_by_type[at].append({
+                    "device_id": r["device_id"],
+                    "ip": r["src_ip"],
+                    "last_ts": r["last_ts"],
+                    "hit_count": r["cnt"],
+                })
+
         return {
             "total_flows": total_flows,
             "total_alerts": total_alerts,
             "unknown_alerts": unknown_alerts,
             "alerts_by_type": {r["attack_type"]: r["c"] for r in by_type},
+            "recent_targets_by_type": recent_targets_by_type,
             "incidents_by_status": {r["status"]: r["c"] for r in inc_counts},
         }
