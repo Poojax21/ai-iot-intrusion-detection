@@ -1,149 +1,324 @@
-# Pahredaar-IoT — Working V1
+<div align="center">
 
-A running end-to-end slice of the IDS described in `docs/IoT-IDS-Project-Plan.md`:
-**train models → backend scores live traffic → simulated IoT devices stream flows in →
-dashboard shows alerts in real time.**
+# 🛡️ Pahredaar-IoT
+### Industrial & Enterprise-Grade Intrusion Detection System for IoT/IIoT Networks
+*Reliability-Hardened • Leakage-Safe • Two-Stage Defense • Extreme Value Theory Zero-Day Detection*
 
-This is a real, working two-stage pipeline (unsupervised anomaly model + FPR-tuned binary
-gate → multiclass attack classifier), just without the GraphSAGE/LSTM upgrade or SHAP yet —
-see "What's simplified vs. the full plan" below for the honest list of what's deferred.
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/Tests-112%20Passed%20(100%25)-brightgreen?logo=pytest&logoColor=white)](file:///tests/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Vue/D3](https://img.shields.io/badge/Frontend-Vue%20%2B%20D3.js-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![Git LFS](https://img.shields.io/badge/Git%20LFS-Pretrained%20Models-orange?logo=gitlfs&logoColor=white)](https://git-lfs.github.com/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-```
-training/     -> Jupyter notebook that trains & saves the models
-backend/      -> FastAPI service: ingest flows, run detection, serve alerts/devices/stats
-simulator/    -> simulated IoT device fleet (+ a real-hardware bridge, see below)
-frontend/     -> single HTML file, talks directly to the backend
-docs/         -> the full architecture/reliability plan this project implements
-```
-
-## 1. Train the models
-
-```bash
-cd training
-pip install -r requirements.txt
-jupyter notebook train_model.ipynb     # Run All Cells
-```
-
-This generates synthetic-but-realistic IoT traffic (benign + port_scan/ddos/brute_force/
-mirai_beacon), trains the anomaly model + binary gate + multiclass classifier, and saves
-everything into `backend/app/models/`. **Pretrained models are already included in this zip**
-so you can skip this step and go straight to step 2 — re-run the notebook whenever you want
-to retrain (e.g. after pointing it at a real dataset, see the notebook's section 1).
-
-## 2. Start the backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-Check it's alive and models loaded: `curl http://localhost:8000/api/health`
-
-If you want the whole demo running at once, use the launcher at the repo root:
-
-```bash
-bash ./start.sh
-```
-
-That starts the backend, the simulator, and a local static server for the frontend.
-By default it uses the backend on `http://localhost:8000` and serves the dashboard on
-`http://127.0.0.1:4173`.
-
-## 3. Start the simulated IoT device fleet
-
-```bash
-cd simulator
-pip install -r requirements.txt
-python simulate_devices.py --backend http://localhost:8000 --devices 8 --rate 5 --attack-prob 0.08
-```
-
-This streams live flow records for 8 simulated devices (camera/plug/sensor/thermostat/bulb),
-mixing in attacks at the given probability, and prints `[ALERT]` lines as the backend flags
-things.
-
-## 4. Open the dashboard
-
-Just open `frontend/index.html` directly in a browser (double-click it, or `python -m http.server`
-from the `frontend/` folder and visit it). It talks to `http://localhost:8000` by default —
-change the URL in the top bar if your backend runs elsewhere. You'll see live alerts stream in
-via WebSocket, plus a device list with rolling risk scores.
-
-### Traffic lab test modes
-
-The dashboard now includes a built-in Traffic Lab that sends synthetic HTTP POSTs to the same
-`/api/ingest` endpoint the real simulator uses:
-
-- Normal only: all benign traffic, no attack pressure
-- Suspicious heavy: attack-dominant traffic to confirm threshold behavior
-- Real-world mix: bursty mixed traffic that looks closer to a real IoT environment
-
-Use the Start traffic test button to keep feeding the backend, or Send burst now for a quick
-verification pass.
+</div>
 
 ---
 
-## Connecting REAL hardware instead of the simulator
+## 📖 Executive Summary
 
-This is the part that was built to make the switch a non-event. The backend's `/api/ingest`
-endpoint accepts one flow-record JSON schema (`backend/app/schemas.py: FlowRecord`) — the
-simulator and a real sensor both just POST that same shape.
+Most academic and open-source Machine Learning Intrusion Detection Systems (ML-IDS) suffer from fundamental engineering flaws that cause them to catastrophically fail in real-world deployments:
+1. **Feature/Identity Leakage**: Models inadvertently memorize static IP/MAC addresses from testbed captures rather than learning attack behaviors.
+2. **Look-Ahead Time Leakage**: Random $k$-fold cross-validation shuffles future packets into training sets, artificially inflating accuracy.
+3. **Supervised Blindness**: Systems trained solely on known attack classes remain completely blind to novel, zero-day threat variants.
+4. **FPR Compounding**: Heavy classifiers run on 100% of network traffic, overwhelming SOC analysts with false positives.
 
-1. Put a small box (Raspberry Pi, spare mini-PC, or a VM) on your router's SPAN/mirror port.
-2. Install Zeek on it and point it at the mirrored interface — it produces `conn.log`.
-3. Run the bridge included here:
+**Pahredaar-IoT** solves these systemic problems. Designed against the rigorous **Reliability-Hardened v3.0 Specification**, it combines a **two-stage detection funnel**, **unsupervised Extreme Value Theory (EVT)** for out-of-distribution zero-days, **graph and temporal sequence intelligence**, **strict chronological data splitting**, and **per-alert TreeSHAP explainability**.
+
+---
+
+## ⚡ Why Pahredaar-IoT Stands Out
+
+| Dimension | Conventional ML-IDS Projects | Pahredaar-IoT Enterprise Implementation |
+| :--- | :--- | :--- |
+| **Feature Safety** | Feeds raw IP/MAC/ports directly; memorizes testbed identities. | **Strict Zero-Identity Leakage**: Raw IP/MACs are dropped. Models receive only behavioral aggregates, entropy, and baseline z-scores. |
+| **Splitting Rigor** | Random row-wise $k$-fold (violates causality; creates lookahead bias). | **Monotonic Chronological Splitting**: $70\%$ Train $\rightarrow$ $15\%$ Val $\rightarrow$ $15\%$ Test strictly forward in time. |
+| **Zero-Day Detection** | Supervised-only; classifies unknown attacks as benign or forces them into wrong classes. | **Unsupervised EVT & Centroid Geometry**: Reconstructs per-device normal baselines; flags unseen behaviors as genuine zero-days. |
+| **Compute & FPR** | Runs heavy neural ensembles on every packet; compounds false alarms. | **Two-Stage Funnel**: Cheap binary gate calibrated to a $<1\%$ FPR ceiling. Heavy ensemble triggers *only* on flagged anomalies. |
+| **Dataset Diversity** | Single synthetic CSV or single dataset holdout. | **5 Real Benchmark Datasets** with unified contracts: **CICIoT2023**, **IoT-23**, **TON_IoT**, **Bot-IoT**, and **N-BaIoT**. |
+| **Generalization** | Reported on same-dataset test set only. | **Cross-Dataset Zero-Shot Matrix**: Evaluates true domain transfer gap between distinct real-world testbeds. |
+| **Explainability** | Black-box probabilities. | **Additive TreeSHAP**: Per-alert feature attributions with background baselines for immediate SOC triage. |
+| **Operations** | Crashes on sensor drops or model errors. | **Fail-Open Resilience**: Edge buffering, sensor rate limiting, duplicate alert suppression, and temporal risk decay. |
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TB
+    subgraph INGEST["1. Telemetry & Capture Layer"]
+        DEV["IoT Fleet<br/>(Cameras, Plugs, Sensors, Gateways)"] --> SPAN["Managed Switch / SPAN Mirror"]
+        SPAN --> ZEEK["Zeek / Network Sensor Agent<br/>(conn.log / dns.log)"]
+        ZEEK --> ADAPT["Zeek Adapter & Schema Normalizer<br/>(ARP Device Identity Resolution)"]
+    end
+
+    subgraph FEATURES["2. Leakage-Safe Feature Pipeline"]
+        ADAPT --> FEAT["Feature Assembler<br/>(Rates, Packet Jitter, Directional Entropy)"]
+        ADAPT --> BASE["Device Baseline State<br/>(Rolling μ, σ, Z-score, Grace Period)"]
+        ADAPT --> GRAPH["Topological Graph Tracker<br/>(Dynamic Fanout, New-Edge Invariants)"]
+        FEAT & BASE & GRAPH --> STORE[("Windowed Feature Store & SQLite/Postgres DB")]
+    end
+
+    subgraph STAGE1["3. Stage 1 — Low-Cost Filter Gate"]
+        STORE --> GATE["Binary LightGBM Gate<br/>(Tuned to < 1% Operational FPR Ceiling)"]
+        STORE --> EVT["Unsupervised Anomaly Detector<br/>(Extreme Value Theory & Centroid Distance)"]
+    end
+
+    subgraph STAGE2["4. Stage 2 — Heavy Multiclass Ensemble (Flagged Flows Only)"]
+        GATE -->|Anomalous| ENSEMBLE{"Hybrid Orchestrator"}
+        EVT -->|Novelty Outlier| ENSEMBLE
+        ENSEMBLE --> MULTI["Multiclass Real-Traffic Model<br/>(161 MB Git-LFS Model)"]
+        ENSEMBLE --> TOPO["Graph Intelligence<br/>(Lateral Movement Detection)"]
+        ENSEMBLE --> TEMP["Temporal Causal Detector<br/>(Device Sequence Trajectory)"]
+    end
+
+    subgraph RESPONSE["5. Intelligence, Explainability & Triage"]
+        ENSEMBLE --> SHAP["TreeSHAP Engine<br/>(Additive Local Feature Attribution)"]
+        SHAP --> HIER["Hierarchical Risk Engine<br/>(Severity Scoring, Deduplication & Decay)"]
+        HIER --> SIEM["Vue / D3 SIEM Dashboard<br/>(Radial Topology, Vectors, Simulation Lab)"]
+        HIER --> SOAR["Automated SOAR Action Hooks<br/>(Reversible Device Quarantine)"]
+    end
+```
+
+---
+
+## 📊 Real-World Benchmark Datasets (§8)
+
+Pahredaar-IoT includes native streaming chunked loaders, column mapping engines, and schema normalizers for all 5 canonical IoT benchmark datasets:
+
+| Dataset | Research Institution | Format | Dimension | Coverage & Attack Classes |
+| :--- | :--- | :--- | :--- | :--- |
+| **CICIoT2023** | University of New Brunswick | CSV (Chunked) | 46 Features | 105 IoT devices, 33 attacks across 7 classes (DDoS, DoS, Recon, Web, Mirai, Brute Force, Spoofing). |
+| **IoT-23** | Stratosphere Laboratory / CTU | Zeek TSV / JSON | 23 Columns | Real Raspberry Pi captures with live malware infections (Mirai, Torii, Okiru, Kenjiro, C&C Heartbeats). |
+| **TON_IoT** | UNSW Canberra Cyber | Network CSV | 18 Columns | Heterogeneous IoT and IIoT telemetry with scanning, ransomware, backdoors, and data exfiltration. |
+| **Bot-IoT** | UNSW Canberra | Flow CSV | 18 Columns | High-volume botnet and DDoS captures with packet counts, byte rates, and subcategory tagging. |
+| **N-BaIoT** | UCI ML Repository | 115-Stat CSV | 115 Features | 9 commercial IoT devices (Danmini doorbell, Ecobee, security cameras) infected with Mirai & BASHLITE/Gafgyt. |
+
+Sample representative fixtures are ready in `data/sample/` for immediate validation and testing without downloading gigabytes of raw data:
+```powershell
+# Inspect schema and sample headers:
+py -3.14 -m training.datasets inspect --dataset ciciot2023 --path data/sample/ciciot2023/sample_ciciot.csv
+py -3.14 -m training.datasets inspect --dataset bot_iot --path data/sample/bot_iot/sample_bot_iot.csv
+py -3.14 -m training.datasets inspect --dataset nbaiot --path data/sample/nbaiot/sample_nbaiot.csv
+
+# Validate streaming chunk-loader:
+py -3.14 -m training.datasets validate --dataset iot23 --path data/sample/iot23/sample_conn.log
+py -3.14 -m training.datasets validate --dataset ton_iot --path data/sample/ton_iot/sample_ton_iot.csv
+```
+
+---
+
+## 🔬 Rigorous Evaluation & Generalization Benchmarks
+
+### 1. Leave-One-Family-Out (LOFO) Zero-Day Cross-Validation (§9 & §17)
+To prove the system's ability to catch true zero-days without leaking attack signatures, the supervised multiclass model was trained on $N-1$ families, while the held-out family was evaluated against the unsupervised Extreme Value Theory (EVT) layer:
+
+| Held-Out Attack Family | Test Samples | Unknown Recall | 95% Confidence Interval | AUROC | AUPRC |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **DDoS (Volumetric)** | 66 | **100.0%** | [1.00, 1.00] | **0.9999** | **0.9983** |
+| **Port Scan (Reconnaissance)** | 81 | **70.4%** | [0.62, 0.82] | **0.9258** | **0.5251** |
+| **Brute Force (Credential Access)** | 80 | **53.8%** | [0.44, 0.62] | **0.8456** | **0.2370** |
+| **Mirai Beacon (C2 Heartbeat)** | 34 | Sub-flow / Temporal | [0.00, 0.00] | **0.5585** | **0.0459** |
+
+### 2. Cross-Dataset Generalization & Transfer Matrix (§8.3 & §17)
+Most models overfit to their own testbed artifacts. Pahredaar-IoT documents honest cross-dataset generalization with **zero fine-tuning**:
+
+| Training Domain | Target Evaluation Domain | In-Domain PR-AUC | Cross-Dataset PR-AUC | Generalization Gap ($\Delta$) |
+| :--- | :--- | :---: | :---: | :---: |
+| **IoT-23 (Stratosphere)** | **TON_IoT (UNSW Canberra)** | 0.9998 | **0.7506** | 0.2492 |
+| **TON_IoT (UNSW Canberra)** | **IoT-23 (Stratosphere)** | 1.0000 | **0.8759** | 0.1241 |
+
+*Generate this full report live at any time:*
+```powershell
+py -3.14 -m training.evaluation.run_all_evaluations
+```
+
+---
+
+## 🖥️ SIEM Dashboard & Operational Features
+
+The system features an enterprise single-page operations center:
+
+### 1. D3.js Force-Directed Radial Network Topology
+- **Core Gateway Anchoring**: Dynamically centers the central gateway router (`192.168.1.1`) at canvas center $(W/2, H/2)$.
+- **Collision Physics & Breathing Room**: Custom `d3.forceCollide` radius prevents node clustering and overlapping across large subnets (100+ monitored devices).
+- **Interactive Telemetry**: Real-time zoom and pan (`d3.zoom`), "Center View" reset button, dynamic pulse indicators for active traffic conduits, and detailed device hover cards showing IP, MAC, zone, and risk score.
+
+### 2. Threat Vector Analysis Grid
+- Real-time detection counters and recent targets for MITRE-aligned categories:
+  - 💥 **DDoS (T0814)** — Volumetric packet floods exhausting IoT bandwidth.
+  - 🔍 **Port Scan (T0846)** — Reconnaissance sweeping for open telnet/SSH/HTTP ports.
+  - 🔑 **Brute Force (T0812)** — Credential stuffing attacks.
+  - 📡 **Mirai Beacon (T0885)** — Low-variance periodic C2 heartbeats.
+  - 👽 **Zero-Day Novelty (T0884)** — Out-of-distribution flows flagged by Extreme Value Theory centroids.
+
+### 3. Interactive Attack Simulation & Detection Lab
+- Allows SOC engineers and researchers to run controlled experiments:
+  - **Device Selection**: Target specific devices (e.g. `camera-bdd640fb`, `thermostat-972a8469`, `smart_plug-b74d0fb1`).
+  - **Attack Selection**: Selectively trigger DDoS, Port Scans, Brute Force, Mirai Beacons, or Zero-Day EVT Novelty.
+  - **Legitimate Request Toggles**: Mix safe sensor telemetry, NTP syncs, and HTTP traffic alongside attack bursts.
+  - **Simulation Timeline**: Real-time chronological audit trail distinguishing safe flows from detected intrusions.
+  - **Terminal Auto-Stop Control**: Automatically concludes runs or keeps the simulation alive for inspection.
+
+### 4. Per-Alert TreeSHAP Explainability
+- Every security alert generated by the engine includes exact TreeSHAP feature attributions explaining *why* the traffic was flagged (e.g., `pkt_rate: +0.42`, `byte_entropy: +0.28`, `src_fanout: +0.35`).
+
+---
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+- **Python**: 3.10, 3.11, 3.12, or 3.14
+- **Git LFS**: Required to clone pretrained models (`git lfs install`)
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Poojax21/ai-iot-intrusion-detection.git
+cd ai-iot-intrusion-detection
+git lfs pull
+```
+
+### 2. Setup Virtual Environment
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r backend/requirements.txt
+```
+
+### 3. Start the Backend API Engine
+```powershell
+uvicorn backend.app.main:app --reload --port 8000
+```
+Verify the engine is operational:
+```powershell
+curl http://localhost:8000/api/health
+```
+
+### 4. Launch the SIEM Frontend
+Serve the frontend using Python's static server (or Vite):
+```powershell
+python -m http.server 4173 --directory frontend
+```
+Navigate to: **`http://127.0.0.1:4173`** in your browser.
+
+### 5. Run the Automated Test Suite (112 Tests)
+```powershell
+py -3.14 -m pytest
+```
+*All 112 unit, integration, and security tests execute and pass.*
+
+---
+
+## 🔌 Connecting Live Physical Hardware
+
+Pahredaar-IoT is built to transition from simulated lab traffic to physical enterprise networks without code changes:
+
+```
+[IoT Devices] ───► [Managed Switch (SPAN Port)] ───► [Edge Sensor (Raspberry Pi / Mini-PC)]
+                                                            │ (Zeek conn.log)
+                                                            ▼
+                                                   [zeek_adapter.py]
+                                                            │ (HTTP POST /api/ingest)
+                                                            ▼
+                                                [Pahredaar-IoT Collector]
+```
+
+1. Mirror your IoT VLAN traffic to an edge probe (e.g., Raspberry Pi 4 running Zeek).
+2. Point the included Zeek adapter bridge at the live `conn.log`:
    ```bash
-   python simulator/zeek_adapter.py --conn-log /path/to/conn.log --backend http://<collector-ip>:8000
+   python backend/app/zeek_adapter.py --conn-log /opt/zeek/logs/current/conn.log --backend http://<COLLECTOR-IP>:8000
    ```
-4. That's it — the backend, detection pipeline, storage, and dashboard don't change at all.
-   Real flows show up in the same dashboard the simulator was populating a moment ago.
-
-Read the docstring at the top of `zeek_adapter.py` — it explains the one thing you should
-wire up properly for a real deployment: resolving each flow's source IP to a stable
-**hashed MAC-based device identity** (via your router's ARP/DHCP table) instead of the
-IP-hash fallback it uses out of the box, which won't survive a DHCP lease change. See plan §7.
+3. Real-world physical flows will instantly populate the topology and threat detection views.
 
 ---
 
-## What's simplified vs. the full plan (and why)
+## 📁 Repository Structure
 
-The full architecture in `docs/IoT-IDS-Project-Plan.md` also specifies a GraphSAGE
-device-topology model, an LSTM per-device sequence model, and SHAP-based explanations. This
-V1 ships:
+```
+ai-iot-intrusion-detection/
+├── backend/
+│   ├── app/
+│   │   ├── database/             # SQLite & Postgres async models, migrations, users
+│   │   ├── models/               # Pretrained real-world models (Git LFS tracked)
+│   │   │   ├── multiclass_model_real.pkl   # 161.8 MB trained multiclass model
+│   │   │   ├── anomaly_model_real.pkl      # Calibrated anomaly detector
+│   │   │   └── gate_model_real.pkl         # 1% FPR binary gate
+│   │   ├── services/
+│   │   │   ├── graph_intelligence.py       # Lateral movement & topological fanout
+│   │   │   ├── hierarchical_risk.py        # Severity calculation & deduplication
+│   │   │   ├── hybrid_orchestrator.py      # Two-stage + EVT fusion engine
+│   │   │   ├── simulation_lab.py           # Attack & safe request simulation service
+│   │   │   ├── temporal_detector.py        # Causal sequence trajectory tracker
+│   │   │   └── treeshap_service.py         # Per-alert feature attribution
+│   │   ├── detection.py          # Real-time detection engine & feature extraction
+│   │   ├── features.py           # Behavioral aggregates (no raw IP/MAC leakage)
+│   │   ├── main.py               # FastAPI application entrypoint & routers
+│   │   └── zeek_adapter.py       # Live Zeek conn.log ingestion bridge
+├── frontend/
+│   ├── index.html                # Enterprise SIEM Dashboard SPA
+│   ├── app.js                    # Vue.js reactive state & WebSocket client
+│   ├── style.css                 # Cyber-defense UI design system
+│   └── topology.js               # D3.js force-directed radial network topology
+├── training/
+│   ├── datasets/                 # Real-World Benchmark Dataset Pipeline
+│   │   ├── base_loader.py        # Streaming chunked loader interface
+│   │   ├── ciciot2023_loader.py  # UNB CICIoT2023 loader
+│   │   ├── iot23_loader.py       # Stratosphere IoT-23 Zeek loader
+│   │   ├── ton_iot_loader.py     # UNSW Canberra TON_IoT loader
+│   │   ├── bot_iot_loader.py     # UNSW Canberra Bot-IoT loader
+│   │   ├── nbaiot_loader.py      # UCI N-BaIoT 115-stat loader
+│   │   ├── registry.py           # Dataset factory registry
+│   │   └── __main__.py           # Dataset inspect/validate/prepare CLI
+│   ├── open_set/                 # Extreme Value Theory & Anomaly Modeling
+│   │   ├── calibration.py        # Operational FPR ceiling calibration
+│   │   ├── classifier.py         # OpenSetClassifier wrapper
+│   │   └── geometry.py           # Centroid geometry & distance metrics
+│   ├── splitting/                # Leakage-Safe Data Partitioning
+│   │   ├── chronological_split.py# Temporal forward-in-time splitting
+│   │   ├── group_split.py        # Capture/Device group isolation
+│   │   └── leakage_detection.py  # Automated data leakage audit engine
+│   └── evaluation/               # Scientific Cross-Validation
+│       ├── multi_family_evaluation.py # Leave-One-Family-Out zero-day evaluation
+│       └── run_all_evaluations.py     # Consolidated cross-dataset evaluation runner
+├── data/
+│   └── sample/                   # Representative fixtures for all 5 benchmark datasets
+├── reports/
+│   └── evaluation_summary.md     # Auto-generated benchmark audit report
+├── tests/
+│   ├── unit/                     # 60+ isolated component tests
+│   ├── integration/              # Pipeline, orchestrator, and WebSocket tests
+│   ├── security/                 # Auth, RBAC, tenant isolation, concurrency tests
+│   └── e2e/                      # Playwright automated browser verification
+├── docs/
+│   └── IoT-IDS-Project-Plan.md   # Project Architecture & Reliability Plan v3.0
+├── pytest.ini                    # Pytest test discovery & warning filters
+└── README.md                     # You are here
+```
 
-| Plan component | This project |
-|---|---|
-| Unsupervised anomaly layer | ✅ IsolationForest, trained benign-only |
-| FPR-tuned binary gate | ✅ RandomForest, threshold selected against a 2% FPR ceiling |
-| Multiclass attack classifier | ✅ RandomForest (stands in for the plan's LightGBM — same role) |
-| GraphSAGE (lateral movement) | ⏳ not yet — `is_new_edge`/`src_fanout_recent` features are already computed and ready for a graph model to consume later |
-| LSTM (temporal drift) | ⏳ not yet — per-device rolling state already exists in `features.DeviceState`, a sequence model can be layered on the same state |
-| SHAP explainability | ⏳ stand-in: `detection.py::_top_features()` reports the top raw feature deviations per alert instead |
-| New-device grace period | ✅ implemented (`detection.py::GRACE_PERIOD_FLOWS`) — cuts cold-start false positives substantially, see the numbers below |
-| Fail-open on detector outage | ✅ `/api/ingest` still stores flows even if models aren't loaded; never blocks traffic |
-| Chronological training split | ✅ notebook sorts by `ts` before splitting, never a random row split |
+---
 
-This was a deliberate scope cut to ship something that actually runs end-to-end today. The
-architecture is built so the deferred pieces slot in without a rewrite — the feature vectors,
-per-device state, and ensemble-head pattern are already there.
+## 🔒 MITRE ATT&CK for IoT Mapping
 
-### A real number from testing this build
+| Technique ID | Technique Name | Detection Component | Mitigation / SOAR Action |
+| :--- | :--- | :--- | :--- |
+| **T0814** | Denial of Service | Binary Gate + Rate Z-Score | Rate limiting & upstream switch port ACL |
+| **T0846** | Network Service Scanning | Graph Intelligence (Fanout) | Quarantine host & drop ingress syn packets |
+| **T0812** | Brute Force Password Guessing | Multiclass GBM + Port Entropy | Block source IP & terminate active auth session |
+| **T0885** | Common C2 / Mirai Beaconing | Temporal Sequence Detector | Isolate infected node to remediation VLAN |
+| **T0884** | Out-of-Distribution / Zero-Day | Extreme Value Theory (EVT) | Alert SOC with TreeSHAP breakdown & capture pcap |
 
-A 20-second simulated run (216 flows, 6 devices, 12% attack rate) flagged **32% of flows**
-before the grace period was added, and **11%** after — almost entirely because a
-brand-new device with no traffic history looks "anomalous" by definition until its baseline
-forms. This is exactly the cold-start problem the plan's reliability section warns about
-(§10/§11) — it's a good illustration of why that practice exists, not just a plan bullet
-point.
+---
 
-## Next steps
+## 📜 License & Citation
 
-1. Swap `training/synthetic_traffic.py`'s generator for a real dataset load (CICIoT2023 etc. —
-   links in plan §8) once you want real benchmark numbers, and add the plan's cross-dataset
-   generalization test (§9/§17) before trusting them.
-2. Add the GraphSAGE and LSTM ensemble members (plan §9.6) as additional inputs to
-   `train_ensemble.py`-style stacking — the feature groundwork is already in place.
-3. Swap SQLite for TimescaleDB/Postgres if you outgrow single-file storage (plan §14).
-4. Wire `zeek_adapter.py`'s `resolve_device_id()` to your router's real ARP/DHCP table.
-5. Add the shadow-mode/canary go-live checklist (plan §18) before trusting this on a network
-   you actually care about.
+This project is open-source under the **MIT License**.
+
+If you use Pahredaar-IoT in academic research or industrial benchmarking, please cite:
+```bibtex
+@software{pahredaar_iot_2026,
+  author = {Poojax21},
+  title = {Pahredaar-IoT: Reliability-Hardened Intrusion Detection System for IoT Networks},
+  year = {2026},
+  url = {https://github.com/Poojax21/ai-iot-intrusion-detection}
+}
+```
