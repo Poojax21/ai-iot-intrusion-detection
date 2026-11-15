@@ -6,6 +6,8 @@ from training.preprocessing.column_mapping import (
     IOT23_COLUMN_MAP,
     CICIOT2023_COLUMN_MAP,
     TON_IOT_NETWORK_MAP,
+    BOT_IOT_COLUMN_MAP,
+    NBAIOT_COLUMN_MAP,
 )
 
 
@@ -33,3 +35,15 @@ def test_ton_iot_column_map_coverage():
     assert "dst_ip" in TON_IOT_NETWORK_MAP
     assert "proto" in TON_IOT_NETWORK_MAP
     assert "type" in TON_IOT_NETWORK_MAP
+
+
+def test_bot_iot_column_map_coverage():
+    assert "stime" in BOT_IOT_COLUMN_MAP
+    assert "saddr" in BOT_IOT_COLUMN_MAP
+    assert "category" in BOT_IOT_COLUMN_MAP
+    assert "dur" in BOT_IOT_COLUMN_MAP
+
+
+def test_nbaiot_column_map_coverage():
+    assert "MI_dir_L5_weight" in NBAIOT_COLUMN_MAP
+    assert "label" in NBAIOT_COLUMN_MAP

@@ -79,3 +79,37 @@ CICIOT2023_COLUMN_MAP: Dict[str, str] = {
     "std": "std_pkt_size",
     "label": "original_label",
 }
+
+
+# ==============================================================================
+# Bot-IoT (UNSW Canberra Netflow / Flow CSV Format)
+# ==============================================================================
+BOT_IOT_COLUMN_MAP: Dict[str, str] = {
+    "stime": "timestamp",
+    "saddr": "source_ip",
+    "sport": "source_port",
+    "daddr": "destination_ip",
+    "dport": "destination_port",
+    "proto": "protocol",
+    "state": "connection_state",
+    "dur": "duration",
+    "sbytes": "source_bytes",
+    "dbytes": "destination_bytes",
+    "spkts": "source_packets",
+    "dpkts": "destination_packets",
+    "category": "original_label",
+    "subcategory": "detailed_label",
+}
+
+
+# ==============================================================================
+# N-BaIoT (UCI Machine Learning Repository - 115 Flow Statistics)
+# ==============================================================================
+NBAIOT_COLUMN_MAP: Dict[str, str] = {
+    "MI_dir_L5_weight": "source_packets",
+    "MI_dir_L5_mean": "avg_pkt_size",
+    "MI_dir_L5_std": "std_pkt_size",
+    "H_L5_weight": "host_packets",
+    "HH_L5_weight": "host_to_host_packets",
+    "label": "original_label",
+}

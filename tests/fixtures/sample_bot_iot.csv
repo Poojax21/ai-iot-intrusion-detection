@@ -1,0 +1,6 @@
+pkSeqID,stime,flgs,proto,saddr,sport,daddr,dport,pkts,bytes,state,dur,spkts,dpkts,sbytes,dbytes,category,subcategory
+1,1528078900.1,e,udp,192.168.1.100,54321,192.168.1.1,53,2,140,CON,0.012,1,1,70,70,Normal,Normal
+2,1528078905.2,e,tcp,192.168.1.105,44321,192.168.1.10,80,1,60,RST,0.001,1,0,60,0,Reconnaissance,Service_Scan
+3,1528078910.5,e,tcp,192.168.1.110,60001,192.168.1.20,80,500,32000,CON,0.500,500,0,32000,0,DDoS,DDoS_TCP
+4,1528078915.8,e,tcp,192.168.1.115,55555,192.168.1.30,22,10,800,FIN,1.200,6,4,480,320,Theft,Data_Exfiltration
+5,1528078920.0,e,udp,192.168.1.120,51000,192.168.1.40,80,300,18000,INT,0.300,300,0,18000,0,DoS,DoS_UDP

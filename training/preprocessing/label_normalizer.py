@@ -122,6 +122,48 @@ class LabelNormalizer:
         for k, v in ton_exact.items():
             self._exact_rules[("ton_iot", k)] = v
 
+        # -------------------------------------------------------------
+        # Bot-IoT Exact Labels
+        # -------------------------------------------------------------
+        bot_iot_exact = {
+            "normal": (NormalizedLabel.BENIGN, "benign", 1.0),
+            "normal_normal": (NormalizedLabel.BENIGN, "benign", 1.0),
+            "ddos": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "ddos_tcp": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "ddos_udp": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "ddos_http": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "dos": (NormalizedLabel.OTHER_ATTACK, "denial_of_service_dos", 0.95),
+            "dos_tcp": (NormalizedLabel.OTHER_ATTACK, "denial_of_service_dos", 0.95),
+            "dos_udp": (NormalizedLabel.OTHER_ATTACK, "denial_of_service_dos", 0.95),
+            "dos_http": (NormalizedLabel.OTHER_ATTACK, "denial_of_service_dos", 0.95),
+            "reconnaissance": (NormalizedLabel.PORT_SCAN, "reconnaissance", 1.0),
+            "reconnaissance_os_fingerprint": (NormalizedLabel.PORT_SCAN, "reconnaissance", 0.95),
+            "reconnaissance_service_scan": (NormalizedLabel.PORT_SCAN, "reconnaissance", 1.0),
+            "theft": (NormalizedLabel.OTHER_ATTACK, "data_exfiltration", 0.95),
+            "theft_keylogging": (NormalizedLabel.OTHER_ATTACK, "keylogging", 0.95),
+            "theft_data_exfiltration": (NormalizedLabel.OTHER_ATTACK, "data_exfiltration", 0.95),
+        }
+        for k, v in bot_iot_exact.items():
+            self._exact_rules[("bot_iot", k)] = v
+
+        # -------------------------------------------------------------
+        # N-BaIoT Exact Labels
+        # -------------------------------------------------------------
+        nbaiot_exact = {
+            "benign": (NormalizedLabel.BENIGN, "benign", 1.0),
+            "mirai": (NormalizedLabel.BOTNET, "botnet_infection", 0.95),
+            "gafgyt": (NormalizedLabel.BOTNET, "botnet_infection", 0.95),
+            "mirai_scan": (NormalizedLabel.PORT_SCAN, "reconnaissance", 0.95),
+            "gafgyt_scan": (NormalizedLabel.PORT_SCAN, "reconnaissance", 0.95),
+            "mirai_syn": (NormalizedLabel.DDOS, "denial_of_service", 0.95),
+            "mirai_ack": (NormalizedLabel.DDOS, "denial_of_service", 0.95),
+            "mirai_udp": (NormalizedLabel.DDOS, "denial_of_service", 0.95),
+            "gafgyt_combo": (NormalizedLabel.BOTNET, "c2_combo", 0.95),
+            "gafgyt_junk": (NormalizedLabel.BOTNET, "botnet_traffic", 0.95),
+        }
+        for k, v in nbaiot_exact.items():
+            self._exact_rules[("nbaiot", k)] = v
+
     def normalize(self, raw_label: Any, dataset_name: str = "generic") -> LabelMappingResult:
         """
         Maps raw string label to standard NormalizedLabel and category.
