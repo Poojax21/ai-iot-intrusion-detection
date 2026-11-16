@@ -1,7 +1,7 @@
-# 🛡️ Pahredaar-IoT: Reliability-Hardened Intrusion Detection System
+# 🛡️ Aegis-IoT: Reliability-Hardened Intrusion Detection System
 ## Comprehensive Technical, Architectural & Empirical Evaluation Report
 
-**Project Title:** Pahredaar-IoT — Enterprise & Industrial Intrusion Detection System for IoT/IIoT Networks  
+**Project Title:** Aegis-IoT — Autonomous Edge-Gated Intrusion Detection & Zero-Day Defense for IoT Networks  
 **Specification Version:** v3.0 (Reliability-Hardened)  
 **Author / Lead:** Poojax21  
 **Repository:** [https://github.com/Poojax21/ai-iot-intrusion-detection](https://github.com/Poojax21/ai-iot-intrusion-detection)  
@@ -19,7 +19,7 @@ While academic literature features hundreds of Machine Learning Intrusion Detect
 3. **Supervised Blindness to Zero-Days:** Purely supervised classifiers force unseen, novel attack variants into known classes or classify them as benign.
 4. **FPR Compounding & Alert Fatigue:** Heavy classifiers evaluated over 100% of network traffic overwhelm SOC teams with false positives.
 
-**Pahredaar-IoT** resolves these vulnerabilities through a ground-up re-architecture:
+**Aegis-IoT** resolves these vulnerabilities through a ground-up re-architecture:
 - **Two-Stage Detection Funnel:** A high-speed, binary gate tuned to a strict $<1\%$ operational False Positive Rate (FPR) ceiling screens 100% of edge traffic, while a multimodal heavy ensemble (161.8 MB real-traffic model, topological graph tracker, and temporal sequence detector) evaluates only flagged anomalies ($\approx 5\text{--}10\%$ of flows).
 - **Extreme Value Theory (EVT) Open-Set Discovery:** An unsupervised anomaly layer models per-device benign behavior and detects true zero-day attacks without requiring pre-labeled training data.
 - **Strict Leakage-Safe Feature Engineering:** Raw IP and MAC addresses are omitted from the model feature vector; models learn only behavioral metrics, entropy, fanout, and baseline z-scores.
@@ -31,7 +31,7 @@ While academic literature features hundreds of Machine Learning Intrusion Detect
 
 ## 2. Threat Landscape & Attack Taxonomy
 
-Pahredaar-IoT maps all detections to the **MITRE ATT&CK for IoT / ICS** matrix:
+Aegis-IoT maps all detections to the **MITRE ATT&CK for IoT / ICS** matrix:
 
 ```mermaid
 flowchart LR
@@ -44,7 +44,7 @@ flowchart LR
     ATTACK --> ZERO["Zero-Day Outlier (T0884)<br/>Novel Mimicry & Unseen Attacks"]
 ```
 
-| MITRE ID | Attack Family | Behavioral Signature in Network Flow | Pahredaar-IoT Detection Mechanism |
+| MITRE ID | Attack Family | Behavioral Signature in Network Flow | Aegis-IoT Detection Mechanism |
 | :--- | :--- | :--- | :--- |
 | **T0814** | Volumetric DDoS | Extreme packet arrival rate (`pkt_rate`), uniform packet size, high byte rate (`byte_rate`), zero payload response. | Binary Gate + Rate Z-Score ($\Delta z > 3.5$) |
 | **T0846** | Network Port Scan | Rapid destination port diversity (`dst_port_entropy`), short connection duration, high connection rejection state (`conn_state_s0`, `conn_state_rej`). | Graph Intelligence (Dynamic Fanout Tracker) |
@@ -86,7 +86,7 @@ flowchart TD
 5. **N-BaIoT (UCI Machine Learning Repository):** 115 continuous stream statistics extracted across 5 time windows from 9 commercial IoT devices infected with Mirai and Gafgyt.
 
 ### 3.2 Leakage Prevention Architecture (§5 & §7)
-- **Identity Leakage Protection:** Many public datasets have attacker traffic originating from a single IP address (e.g., `192.168.1.105`). If fed to a model, the classifier simply memorizes the IP address. Pahredaar-IoT strictly drops `src_ip`, `dst_ip`, `src_mac`, `dst_mac`, and session identifiers prior to model scoring.
+- **Identity Leakage Protection:** Many public datasets have attacker traffic originating from a single IP address (e.g., `192.168.1.105`). If fed to a model, the classifier simply memorizes the IP address. Aegis-IoT strictly drops `src_ip`, `dst_ip`, `src_mac`, `dst_mac`, and session identifiers prior to model scoring.
 - **Chronological Forward Splitting:** Random train/test splits shuffle future packets into past training sets. The platform enforces monotonic chronological splitting:
 $$\text{Train } [t_0, t_1] \longrightarrow \text{Validation } (t_1, t_2] \longrightarrow \text{Test } (t_2, t_3] \quad \text{where } t_0 < t_1 < t_2 < t_3$$
 
@@ -158,7 +158,7 @@ To validate zero-day discovery without label leakage, the multiclass model was t
 | **Mirai Beacon (C2 Heartbeat)** | 34 | Sub-flow / Temporal | [0.00, 0.00] | **0.5585** | **0.0459** |
 
 ### 5.2 Cross-Dataset Generalization & Transfer Matrix (§8.3 & §17)
-Most intrusion detectors overfit to testbed artifacts and fail when tested on different networks. Pahredaar-IoT evaluates zero-shot cross-dataset transfer between independent research testbeds:
+Most intrusion detectors overfit to testbed artifacts and fail when tested on different networks. Aegis-IoT evaluates zero-shot cross-dataset transfer between independent research testbeds:
 
 | Source Training Domain | Target Evaluation Domain | In-Domain PR-AUC | Cross-Dataset PR-AUC | Generalization Gap ($\Delta$) |
 | :--- | :--- | :---: | :---: | :---: |
@@ -317,7 +317,7 @@ py -3.14 -m pytest
 
 ## 10. Conclusion & Future Roadmap
 
-Pahredaar-IoT bridges the critical divide between theoretical intrusion detection research and operational engineering reality. By enforcing strict zero-identity feature contracts, monotonic chronological data partitioning, a two-stage $<1\%$ FPR ceiling funnel, and Extreme Value Theory zero-day discovery, the platform delivers a reliable, low-noise cyberdefense solution for modern IoT fleets.
+Aegis-IoT bridges the critical divide between theoretical intrusion detection research and operational engineering reality. By enforcing strict zero-identity feature contracts, monotonic chronological data partitioning, a two-stage $<1\%$ FPR ceiling funnel, and Extreme Value Theory zero-day discovery, the platform delivers a reliable, low-noise cyberdefense solution for modern IoT fleets.
 
 **Next Horizons:**
 1. Hardware TAP deployment with dedicated Raspberry Pi 4 edge sensors.

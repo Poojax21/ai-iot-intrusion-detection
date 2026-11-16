@@ -1,6 +1,6 @@
-# Pahredaar-IoT: Technical Architecture & Algorithm Reference (Light / White Theme)
+# Aegis-IoT: Technical Architecture & Algorithm Reference (Light / White Theme)
 
-This document provides formal, publication-ready visual representations for both the **Detection Algorithm Flow** and the **System Architecture** of Pahredaar-IoT styled in a clean, high-contrast white / light theme.
+This document provides formal, publication-ready visual representations for both the **Detection Algorithm Flow** and the **System Architecture** of Aegis-IoT styled in a clean, high-contrast white / light theme.
 
 ---
 
@@ -124,7 +124,7 @@ flowchart TB
     SIM -->|Simulated Flows| API_GATEWAY
 
     %% Core Detection Engine
-    subgraph ENGINE["Pahredaar-IoT Analytical Core"]
+    subgraph ENGINE["Aegis-IoT Analytical Core"]
         ORCH["Hybrid Orchestrator Service"]:::coreStyle
         
         subgraph MODELS["Model & Intelligence Layer"]

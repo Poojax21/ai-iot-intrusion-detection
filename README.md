@@ -1,7 +1,7 @@
 <div align="center">
 
-# 🛡️ Pahredaar-IoT
-### Industrial & Enterprise-Grade Intrusion Detection System for IoT/IIoT Networks
+# 🛡️ Aegis-IoT
+### Autonomous Edge-Gated Intrusion Detection & Zero-Day Defense for IoT Networks
 *Reliability-Hardened • Leakage-Safe • Two-Stage Defense • Extreme Value Theory Zero-Day Detection*
 
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -23,13 +23,13 @@ Most academic and open-source Machine Learning Intrusion Detection Systems (ML-I
 3. **Supervised Blindness**: Systems trained solely on known attack classes remain completely blind to novel, zero-day threat variants.
 4. **FPR Compounding**: Heavy classifiers run on 100% of network traffic, overwhelming SOC analysts with false positives.
 
-**Pahredaar-IoT** solves these systemic problems. Designed against the rigorous **Reliability-Hardened v3.0 Specification**, it combines a **two-stage detection funnel**, **unsupervised Extreme Value Theory (EVT)** for out-of-distribution zero-days, **graph and temporal sequence intelligence**, **strict chronological data splitting**, and **per-alert TreeSHAP explainability**.
+**Aegis-IoT** solves these systemic problems. Designed against the rigorous **Reliability-Hardened v3.0 Specification**, it combines a **two-stage detection funnel**, **unsupervised Extreme Value Theory (EVT)** for out-of-distribution zero-days, **graph and temporal sequence intelligence**, **strict chronological data splitting**, and **per-alert TreeSHAP explainability**.
 
 ---
 
-## ⚡ Why Pahredaar-IoT Stands Out
+## ⚡ Why Aegis-IoT Stands Out
 
-| Dimension | Conventional ML-IDS Projects | Pahredaar-IoT Enterprise Implementation |
+| Dimension | Conventional ML-IDS Projects | Aegis-IoT Enterprise Implementation |
 | :--- | :--- | :--- |
 | **Feature Safety** | Feeds raw IP/MAC/ports directly; memorizes testbed identities. | **Strict Zero-Identity Leakage**: Raw IP/MACs are dropped. Models receive only behavioral aggregates, entropy, and baseline z-scores. |
 | **Splitting Rigor** | Random row-wise $k$-fold (violates causality; creates lookahead bias). | **Monotonic Chronological Splitting**: $70\%$ Train $\rightarrow$ $15\%$ Val $\rightarrow$ $15\%$ Test strictly forward in time. |
@@ -84,7 +84,7 @@ flowchart TB
 
 ## 📊 Real-World Benchmark Datasets (§8)
 
-Pahredaar-IoT includes native streaming chunked loaders, column mapping engines, and schema normalizers for all 5 canonical IoT benchmark datasets:
+Aegis-IoT includes native streaming chunked loaders, column mapping engines, and schema normalizers for all 5 canonical IoT benchmark datasets:
 
 | Dataset | Research Institution | Format | Dimension | Coverage & Attack Classes |
 | :--- | :--- | :--- | :--- | :--- |
@@ -121,7 +121,7 @@ To prove the system's ability to catch true zero-days without leaking attack sig
 | **Mirai Beacon (C2 Heartbeat)** | 34 | Sub-flow / Temporal | [0.00, 0.00] | **0.5585** | **0.0459** |
 
 ### 2. Cross-Dataset Generalization & Transfer Matrix (§8.3 & §17)
-Most models overfit to their own testbed artifacts. Pahredaar-IoT documents honest cross-dataset generalization with **zero fine-tuning**:
+Most models overfit to their own testbed artifacts. Aegis-IoT documents honest cross-dataset generalization with **zero fine-tuning**:
 
 | Training Domain | Target Evaluation Domain | In-Domain PR-AUC | Cross-Dataset PR-AUC | Generalization Gap ($\Delta$) |
 | :--- | :--- | :---: | :---: | :---: |
@@ -211,7 +211,7 @@ py -3.14 -m pytest
 
 ## 🔌 Connecting Live Physical Hardware
 
-Pahredaar-IoT is built to transition from simulated lab traffic to physical enterprise networks without code changes:
+Aegis-IoT is built to transition from simulated lab traffic to physical enterprise networks without code changes:
 
 ```
 [IoT Devices] ───► [Managed Switch (SPAN Port)] ───► [Edge Sensor (Raspberry Pi / Mini-PC)]
@@ -220,7 +220,7 @@ Pahredaar-IoT is built to transition from simulated lab traffic to physical ente
                                                    [zeek_adapter.py]
                                                             │ (HTTP POST /api/ingest)
                                                             ▼
-                                                [Pahredaar-IoT Collector]
+                                                    [Aegis-IoT Collector]
 ```
 
 1. Mirror your IoT VLAN traffic to an edge probe (e.g., Raspberry Pi 4 running Zeek).
@@ -313,11 +313,11 @@ ai-iot-intrusion-detection/
 
 This project is open-source under the **MIT License**.
 
-If you use Pahredaar-IoT in academic research or industrial benchmarking, please cite:
+If you use Aegis-IoT in academic research or industrial benchmarking, please cite:
 ```bibtex
-@software{pahredaar_iot_2026,
+@software{aegis_iot_2026,
   author = {Poojax21},
-  title = {Pahredaar-IoT: Reliability-Hardened Intrusion Detection System for IoT Networks},
+  title = {Aegis-IoT: Autonomous Edge-Gated Intrusion Detection & Zero-Day Defense for IoT Networks},
   year = {2026},
   url = {https://github.com/Poojax21/ai-iot-intrusion-detection}
 }
