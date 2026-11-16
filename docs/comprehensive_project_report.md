@@ -33,6 +33,8 @@ While academic literature features hundreds of Machine Learning Intrusion Detect
 
 Aegis-IoT maps all detections to the **MITRE ATT&CK for IoT / ICS** matrix:
 
+![Figure 1: Aegis-IoT Threat Landscape & MITRE ATT&CK for IoT Vector Mapping](images/figure1_threat_taxonomy.png)
+
 ```mermaid
 flowchart LR
     ATTACK["IoT Network Infiltration"]
@@ -58,6 +60,8 @@ flowchart LR
 
 ### 3.1 The 5 Canonical Public Datasets
 The platform implements memory-safe chunked loaders, column normalization maps, and standardized schemas for 5 foundational datasets:
+
+![Figure 2: Unified 5-Dataset Ingestion & Leakage-Safe Feature Pipeline](images/figure2_data_pipeline.png)
 
 ```mermaid
 flowchart TD
@@ -93,6 +97,8 @@ $$\text{Train } [t_0, t_1] \longrightarrow \text{Validation } (t_1, t_2] \longri
 ---
 
 ## 4. Analytical Engine & Detection Architecture
+
+![Figure 3: Aegis-IoT Two-Stage Detection Funnel & Explainability Flowchart](images/figure3_detection_funnel.png)
 
 ```mermaid
 flowchart TD
@@ -168,6 +174,8 @@ Most intrusion detectors overfit to testbed artifacts and fail when tested on di
 ---
 
 ## 6. System Architecture & Operations Console
+
+![Figure 4: Aegis-IoT End-to-End Enterprise Deployment Architecture](images/figure4_system_architecture.png)
 
 ```mermaid
 flowchart TB
