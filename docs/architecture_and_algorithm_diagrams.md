@@ -1,23 +1,21 @@
-# Pahredaar-IoT: Technical Architecture & Algorithm Reference
+# Pahredaar-IoT: Technical Architecture & Algorithm Reference (Light / White Theme)
 
-This document provides formal visual representations for both the **Detection Algorithm Flow** and the **System Architecture** of Pahredaar-IoT.
+This document provides formal, publication-ready visual representations for both the **Detection Algorithm Flow** and the **System Architecture** of Pahredaar-IoT styled in a clean, high-contrast white / light theme.
 
 ---
 
 ## 1. Algorithm Flowchart: Two-Stage Detection & Explainability Pipeline
 
-This diagram explains the mathematical and algorithmic progression of every network flow through the system: from raw packet ingestion and leakage-safe feature construction, through the two-stage detection funnel (with Extreme Value Theory for zero-day discovery), to TreeSHAP attribution and hierarchical alert triage.
-
 ```mermaid
 flowchart TD
-    %% Styling
-    classDef inputStyle fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef featureStyle fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-    classDef stage1Style fill:#1e1b4b,stroke:#a855f7,stroke-width:2px,color:#f8fafc;
-    classDef stage2Style fill:#311042,stroke:#ec4899,stroke-width:2px,color:#f8fafc;
-    classDef explainStyle fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-    classDef triageStyle fill:#451a03,stroke:#f97316,stroke-width:2px,color:#f8fafc;
-    classDef passStyle fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+    %% White / Light Theme Styling
+    classDef inputStyle fill:#ffffff,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+    classDef featureStyle fill:#f0f9ff,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+    classDef stage1Style fill:#faf5ff,stroke:#7e22ce,stroke-width:2px,color:#1e1b4b;
+    classDef stage2Style fill:#fdf2f8,stroke:#be185d,stroke-width:2px,color:#311042;
+    classDef explainStyle fill:#f0fdf4,stroke:#15803d,stroke-width:2px,color:#064e3b;
+    classDef triageStyle fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#431407;
+    classDef passStyle fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#064e3b;
 
     %% Ingestion & Feature Engineering
     subgraph INGESTION["1. Ingestion & Leakage-Safe Feature Construction"]
@@ -81,28 +79,18 @@ flowchart TD
     RISK --> SOAR
 ```
 
-### Key Algorithmic Steps:
-1. **Zero-Identity Leakage Extraction**: Network flows pass through a filter that strips raw IP and MAC identities. Only statistical rates, entropy, port fanouts, and rolling deviations enter the models.
-2. **Two-Stage Funnel**: 
-   - **Stage 1 (Binary Gate + EVT)** processes 100% of network traffic at high speed. It enforces an operational False Positive Rate ceiling of $<1\%$ while Extreme Value Theory (EVT) detects novel out-of-distribution behaviors (zero-days).
-   - **Stage 2 (Heavy Ensemble)** only fires on flagged traffic ($\approx 5-10\%$ of total flows). It combines multiclass supervised predictions with graph topological lateral-movement tracking and temporal sequence analysis.
-3. **Local Explainability (TreeSHAP)**: Every generated alert includes exact Shapley attributions, highlighting the exact feature spikes that caused the alert.
-4. **Hierarchical Risk & Triage**: Alerts are filtered by a new-device grace period, deduplicated across time windows, and decayed exponentially to eliminate alert fatigue.
-
 ---
 
 ## 2. System Architecture Diagram: End-to-End Enterprise Deployment
 
-This diagram shows how the system deploys across physical network hardware, the ingestion pipeline, the analytical engine, and the frontend SOC operations console.
-
 ```mermaid
 flowchart TB
-    %% Styling
-    classDef edgeStyle fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef ingestStyle fill:#1e293b,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-    classDef coreStyle fill:#1e1b4b,stroke:#a855f7,stroke-width:2px,color:#f8fafc;
-    classDef dataStyle fill:#172554,stroke:#60a5fa,stroke-width:2px,color:#f8fafc;
-    classDef uiStyle fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
+    %% White / Light Theme Styling
+    classDef edgeStyle fill:#ffffff,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+    classDef ingestStyle fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#064e3b;
+    classDef coreStyle fill:#faf5ff,stroke:#9333ea,stroke-width:2px,color:#3b0764;
+    classDef dataStyle fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+    classDef uiStyle fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#7c2d12;
 
     %% Edge Layer
     subgraph EDGE["Physical Edge & Network Tap Layer"]
@@ -175,10 +163,3 @@ flowchart TB
     DB -->|WebSocket /ws/alerts & REST| TOPOLOGY & VECTORS & INCIDENTS
     SIM_UI -->|Trigger Simulation Run| SIM
 ```
-
-### Architectural Highlights:
-1. **Edge Tap Non-Invasiveness**: Passive monitoring via SPAN/TAP mirror ports ensures zero latency impact on IoT devices.
-2. **Resilience & Local Buffering**: Edge sensor probes buffer packets locally to handle network disconnects or collector maintenance without flow loss.
-3. **Decoupled Ingestion**: The REST ingestion contract accepts standard `FlowRecord` JSON from both live physical Zeek probes and the interactive Simulation Lab.
-4. **Multi-Tenant Security**: Full JWT authentication, role-based access control (RBAC), and strict organization isolation at the database and WebSocket layers.
-5. **Real-Time Interactive SOC Interface**: D3.js force-directed topology visualizer with real-time WebSocket feeds and automated SOAR response hooks.
