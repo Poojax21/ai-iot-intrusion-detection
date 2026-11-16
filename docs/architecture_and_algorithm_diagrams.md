@@ -6,6 +6,8 @@ This document provides formal, publication-ready visual representations for both
 
 ## 1. Algorithm Flowchart: Two-Stage Detection & Explainability Pipeline
 
+![Aegis-IoT Algorithm Flowchart](images/algorithm_flowchart.png)
+
 ```mermaid
 flowchart TD
     %% White / Light Theme Styling
@@ -82,6 +84,8 @@ flowchart TD
 ---
 
 ## 2. System Architecture Diagram: End-to-End Enterprise Deployment
+
+![Aegis-IoT System Architecture](images/system_architecture.png)
 
 ```mermaid
 flowchart TB

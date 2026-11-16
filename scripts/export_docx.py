@@ -279,6 +279,25 @@ def build_docx_report():
     add_bullet(" Calculates exact additive Shapley feature values for every alert, providing immediate transparency into why traffic was flagged.", "Stage 3 — Per-Alert TreeSHAP Explainability:")
     add_bullet(" Suppresses cold-start alerts on new devices (10-flow grace period), deduplicates repeated alerts across sliding windows, and decays risk exponentially.", "Stage 4 — Hierarchical Risk Engine:")
 
+    # Embed Algorithm Flowchart Diagram
+    algo_img_path = PROJECT_ROOT / "docs" / "images" / "algorithm_flowchart.png"
+    if algo_img_path.exists():
+        p_img = doc.add_paragraph()
+        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img.paragraph_format.space_before = Pt(8)
+        p_img.paragraph_format.space_after = Pt(2)
+        p_img.add_run().add_picture(str(algo_img_path), width=Inches(6.4))
+        
+        p_cap = doc.add_paragraph()
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.paragraph_format.space_before = Pt(0)
+        p_cap.paragraph_format.space_after = Pt(10)
+        r_cap = p_cap.add_run("Figure 1: Aegis-IoT Two-Stage Detection Funnel & Explainability Flowchart")
+        r_cap.font.name = "Calibri"
+        r_cap.font.size = Pt(9.5)
+        r_cap.font.italic = True
+        r_cap.font.color.rgb = RGBColor(100, 116, 139)
+
     # --- Section 5: Empirical Benchmarks ---
     add_heading_1("5. Empirical Validation & Scientific Benchmarks")
     add_heading_2("5.1 Leave-One-Family-Out (LOFO) Zero-Day Cross-Validation")
@@ -365,6 +384,25 @@ def build_docx_report():
     add_bullet(" Real-time counters and recent target histories for DDoS (T0814), Port Scan (T0846), Brute Force (T0812), Mirai Beacon (T0885), and Zero-Day EVT Novelty (T0884).", "Live Threat Vector Grid:")
     add_bullet(" Features static inspection mode and dedicated manual refresh controls, completely preventing page shaking during high-frequency live traffic ingestion.", "AI Decision Explainability (Static Mode):")
     add_bullet(" Interactive workbench allowing security engineers to selectively inject attack vectors against chosen devices alongside legitimate background sensor traffic.", "Attack Simulation Lab:")
+
+    # Embed System Architecture Diagram
+    arch_img_path = PROJECT_ROOT / "docs" / "images" / "system_architecture.png"
+    if arch_img_path.exists():
+        p_img2 = doc.add_paragraph()
+        p_img2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img2.paragraph_format.space_before = Pt(8)
+        p_img2.paragraph_format.space_after = Pt(2)
+        p_img2.add_run().add_picture(str(arch_img_path), width=Inches(6.4))
+        
+        p_cap2 = doc.add_paragraph()
+        p_cap2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap2.paragraph_format.space_before = Pt(0)
+        p_cap2.paragraph_format.space_after = Pt(10)
+        r_cap2 = p_cap2.add_run("Figure 2: Aegis-IoT End-to-End Enterprise Deployment Architecture")
+        r_cap2.font.name = "Calibri"
+        r_cap2.font.size = Pt(9.5)
+        r_cap2.font.italic = True
+        r_cap2.font.color.rgb = RGBColor(100, 116, 139)
 
     # --- Section 7: Verification ---
     add_heading_1("7. Automated Test Suite & Verification (112 Tests)")
