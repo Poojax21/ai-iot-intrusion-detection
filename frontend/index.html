@@ -532,10 +532,23 @@ select:focus,input:focus{border-color:var(--accent);outline:none}
         </div>
       </div>
       <div class="card" style="margin-top:14px">
-        <h2>Inspect Alert Feature Attribution</h2>
-        <div class="row2">
-          <select id="explain-alert-select" style="max-width:380px;font-size:12px;padding:6px 8px"></select>
-          <button class="btn" id="explain-btn">Inspect TreeSHAP</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <div>
+            <h2 style="margin:0 0 4px">Inspect Alert Feature Attribution</h2>
+            <span class="note" style="font-size:11px">Inspect exact mathematical Shapley value contributions (&phi;<sub>i</sub>) for any detected security alert.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="explain-status-pill" class="pill" style="font-size:11px;background:rgba(16,185,129,0.1);color:var(--good);border:1px solid rgba(16,185,129,0.3)">✓ Static Mode (No Auto-Shaking)</span>
+            <button class="btn alt" id="explain-refresh-btn" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px">
+              🔄 Refresh Alerts
+            </button>
+          </div>
+        </div>
+        <div class="row2" style="margin-bottom:12px">
+          <select id="explain-alert-select" style="max-width:420px;font-size:12px;padding:7px 10px"></select>
+          <button class="btn" id="explain-btn" style="display:inline-flex;align-items:center;gap:6px;font-size:12px">
+            🔍 Inspect TreeSHAP
+          </button>
         </div>
         <div id="explain-detail-box" style="margin-top:10px"></div>
       </div>
@@ -892,7 +905,7 @@ const S = {
   devs: [], alerts: [], inc: [], keys: [], scenarios: [], targets: [], flows: [], audits: [],
   hist: Array(60).fill(0), fps: 0, total: 0, counts: {},
   paused: false, netPaused: false, connected: false, labRun: null, selectedScenario: null,
-  health: {}
+  health: {}, explainInitialized: false, explainCurrentAlertId: null
 };
 window.S = S;
 
@@ -1233,7 +1246,12 @@ function render(){
     renderThreats();
     api("/api/stats").then(st => { if (st) onStats(st); }).catch(() => {});
   }
-  if (tab === "explainability") renderExplainability();
+  if (tab === "explainability") {
+    if (!S.explainInitialized) {
+      renderExplainability();
+      S.explainInitialized = true;
+    }
+  }
   if (tab === "engine") renderEngine();
   if (tab === "reports") renderReports();
   if (tab === "admin") renderAdmin();
@@ -1514,39 +1532,53 @@ const devTierEl = $("#dev-tier-filter");
 if (devTierEl) devTierEl.onchange = renderDevices;
 
 /* 8. AI EXPLAINABILITY */
-function renderExplainability(){
-  const topFeatures = [
-    { name: "pkt_rate", desc: "Packet arrival frequency per second", weight: 0.35 },
-    { name: "byte_rate", desc: "Byte transmission volume per second", weight: 0.28 },
-    { name: "orig_pkts", desc: "Client packets transmitted in flow", weight: 0.18 },
-    { name: "duration", desc: "Connection flow lifespan in seconds", weight: 0.12 },
-    { name: "resp_bytes", desc: "Server response payload volume", weight: 0.07 }
-  ];
+function renderExplainability(force = false){
+  const featList = $("#feature-importance-list");
+  if (featList && (!featList.children.length || force)) {
+    const topFeatures = [
+      { name: "pkt_rate", desc: "Packet arrival frequency per second", weight: 0.35 },
+      { name: "byte_rate", desc: "Byte transmission volume per second", weight: 0.28 },
+      { name: "orig_pkts", desc: "Client packets transmitted in flow", weight: 0.18 },
+      { name: "duration", desc: "Connection flow lifespan in seconds", weight: 0.12 },
+      { name: "resp_bytes", desc: "Server response payload volume", weight: 0.07 }
+    ];
 
-  $("#feature-importance-list").innerHTML = topFeatures.map(f => `
-    <div style="margin:6px 0">
-      <div style="display:flex;justify-content:space-between;font-size:12px">
-        <b>${f.name}</b> <span>${Math.round(f.weight * 100)}% contribution</span>
+    featList.innerHTML = topFeatures.map(f => `
+      <div style="margin:6px 0">
+        <div style="display:flex;justify-content:space-between;font-size:12px">
+          <b>${f.name}</b> <span>${Math.round(f.weight * 100)}% contribution</span>
+        </div>
+        <div class="bar" style="margin:3px 0"><i style="width:${f.weight * 100}%;background:var(--accent)"></i></div>
+        <span class="note" style="font-size:11px">${f.desc}</span>
       </div>
-      <div class="bar" style="margin:3px 0"><i style="width:${f.weight * 100}%;background:var(--accent)"></i></div>
-      <span class="note" style="font-size:11px">${f.desc}</span>
-    </div>
-  `).join("");
+    `).join("");
+  }
 
   const sel = $("#explain-alert-select");
   if (sel){
-    const prevVal = sel.value;
-    sel.innerHTML = S.alerts.slice(0, 30).map(a => `
-      <option value="${a.id}">Alert #${a.id} — ${esc(a.type || a.attack_type)} on ${esc(a.device || a.device_id)}</option>
-    `).join("") || '<option value="">No alerts available for explanation</option>';
-    if (prevVal && S.alerts.some(a => String(a.id) === String(prevVal))) {
-      sel.value = prevVal;
+    const currentVal = sel.value;
+    if (!sel.options.length || force) {
+      const prevVal = currentVal;
+      sel.innerHTML = S.alerts.slice(0, 30).map(a => `
+        <option value="${a.id}">Alert #${a.id} — ${esc(a.type || a.attack_type)} on ${esc(a.device || a.device_id)}</option>
+      `).join("") || '<option value="">No alerts available for explanation</option>';
+      if (prevVal && S.alerts.some(a => String(a.id) === String(prevVal))) {
+        sel.value = prevVal;
+      }
     }
-    sel.onchange = () => renderExplainAlertDetail(sel.value);
-    if (sel.value) {
+
+    sel.onchange = () => {
+      S.explainCurrentAlertId = null;
       renderExplainAlertDetail(sel.value);
-    } else {
-      renderExplainAlertDetail(null);
+    };
+
+    const box = $("#explain-detail-box");
+    if (box && (!box.children.length || force)) {
+      if (sel.value) {
+        renderExplainAlertDetail(sel.value);
+      } else {
+        renderExplainAlertDetail(null);
+      }
     }
   }
 }
@@ -1573,10 +1605,17 @@ async function renderExplainAlertDetail(id){
   const box = $("#explain-detail-box");
   if (!box) return;
   if (!id) {
+    S.explainCurrentAlertId = null;
     box.innerHTML = `<div class="note" style="padding:16px;background:var(--bg);border-radius:6px;text-align:center">No alert selected. Generate attack traffic in the <b>Attack Simulation Lab</b> or select an alert above to inspect exact TreeSHAP attributions.</div>`;
     return;
   }
 
+  // Prevent shaking: if this alert is already rendered and displayed, do not wipe DOM or flash loading note
+  if (S.explainCurrentAlertId === String(id) && box.querySelector("table")) {
+    return;
+  }
+
+  S.explainCurrentAlertId = String(id);
   box.innerHTML = `<div class="note" style="padding:16px;background:var(--bg);border-radius:6px;text-align:center">Loading TreeSHAP Shapley values and reconstructing decision boundary for Alert #${esc(id)}…</div>`;
 
   let alertObj = S.alerts.find(a => String(a.id) === String(id));
@@ -1743,10 +1782,37 @@ async function renderExplainAlertDetail(id){
 $("#explain-btn").onclick = () => {
   const id = $("#explain-alert-select").value;
   if (id) {
+    S.explainCurrentAlertId = null;
     renderExplainAlertDetail(id);
     openAlert(id);
   }
 };
+
+const explainRefreshBtn = $("#explain-refresh-btn");
+if (explainRefreshBtn) {
+  explainRefreshBtn.onclick = async () => {
+    explainRefreshBtn.disabled = true;
+    explainRefreshBtn.textContent = "⏳ Refreshing…";
+    try {
+      const freshAlerts = await api("/api/alerts?limit=30");
+      if (freshAlerts && freshAlerts.length) {
+        S.alerts = freshAlerts;
+      }
+      renderExplainability(true);
+      const pill = $("#explain-status-pill");
+      if (pill) {
+        pill.textContent = `✓ Refreshed at ${new Date().toLocaleTimeString()}`;
+        pill.style.background = "rgba(16,185,129,0.15)";
+      }
+      toast("Explainability alerts refreshed");
+    } catch(err) {
+      toast("Refresh error: " + err.message, "Critical");
+    } finally {
+      explainRefreshBtn.disabled = false;
+      explainRefreshBtn.textContent = "🔄 Refresh Alerts";
+    }
+  };
+}
 
 /* 10. ENGINE HEALTH */
 function renderEngine(){
@@ -3524,6 +3590,9 @@ document.querySelectorAll("nav button").forEach(b => {
       S.alerts.forEach(a => a.seen = 1);
       const nb = $("#nb");
       if (nb) nb.textContent = "";
+    }
+    if (id === "explainability"){
+      S.explainInitialized = false;
     }
     render();
   };
