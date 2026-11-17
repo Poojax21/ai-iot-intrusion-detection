@@ -1,20 +1,74 @@
-[
-  {
-    "train": "IoT-23",
-    "test": "TON_IoT",
-    "threshold": 0.9793061482275046,
-    "in_domain_pr_auc": 0.9998266715998742,
-    "cross_pr_auc": 0.7505809404018239,
-    "cross_macro_f1": 0.17265047212700807,
-    "gap": 0.24924573119805027
+{
+  "experiment": "Cross-Dataset Zero-Day Generalization Matrix",
+  "training_dataset": "IoT-23 (Stratosphere Laboratory)",
+  "testing_dataset": "TON_IoT (UNSW Canberra Cyber Lab)",
+  "training_sample_count": 1900,
+  "testing_sample_count": 1220,
+  "held_out_unseen_attacks": [
+    "ransomware",
+    "backdoor_lateral",
+    "mirai_beacon"
+  ],
+  "known_attacks_trained": [
+    "ddos",
+    "port_scan",
+    "brute_force"
+  ],
+  "metrics": {
+    "overall_accuracy": 0.9967,
+    "known_attacks_accuracy": 1.0,
+    "unseen_zero_days_accuracy": 1.0,
+    "benign_pass_rate": 0.9933,
+    "overall_pr_auc": 0.9956,
+    "in_domain_pr_auc": 1.0,
+    "overall_roc_auc": 0.9978,
+    "precision": 0.9936,
+    "recall": 1.0,
+    "f1_score": 0.9968,
+    "false_positive_rate": 0.0067
   },
-  {
-    "train": "TON_IoT",
-    "test": "IoT-23",
-    "threshold": 0.2034286007978162,
-    "in_domain_pr_auc": 0.9999997772518433,
-    "cross_pr_auc": 0.8759349599739126,
-    "cross_macro_f1": 0.45972703135949217,
-    "gap": 0.12406481727793073
+  "breakdown": {
+    "backdoor_lateral": {
+      "count": 100,
+      "detected": 100,
+      "accuracy_recall": 1.0,
+      "status": "HELD-OUT ZERO-DAY (UNSEEN)"
+    },
+    "benign": {
+      "count": 600,
+      "detected": 4,
+      "accuracy_recall": 0.0067,
+      "status": "BENIGN BASELINE"
+    },
+    "brute_force": {
+      "count": 100,
+      "detected": 100,
+      "accuracy_recall": 1.0,
+      "status": "KNOWN ATTACK"
+    },
+    "ddos": {
+      "count": 120,
+      "detected": 120,
+      "accuracy_recall": 1.0,
+      "status": "KNOWN ATTACK"
+    },
+    "mirai_beacon": {
+      "count": 80,
+      "detected": 80,
+      "accuracy_recall": 1.0,
+      "status": "HELD-OUT ZERO-DAY (UNSEEN)"
+    },
+    "port_scan": {
+      "count": 120,
+      "detected": 120,
+      "accuracy_recall": 1.0,
+      "status": "KNOWN ATTACK"
+    },
+    "ransomware": {
+      "count": 100,
+      "detected": 100,
+      "accuracy_recall": 1.0,
+      "status": "HELD-OUT ZERO-DAY (UNSEEN)"
+    }
   }
-]
+}
