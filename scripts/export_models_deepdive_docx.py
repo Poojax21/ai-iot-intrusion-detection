@@ -1,7 +1,7 @@
 """
 Export Comprehensive Model-by-Model Deep-Dive Report to Word (.docx).
 Covers the exact working, mathematical formulation, and execution code
-for every model used in Aegis-IoT, with high-resolution diagram embedding.
+for every model used in Aegis-IoT, with 8 individual high-resolution diagrams embedded.
 """
 
 from pathlib import Path
@@ -73,7 +73,7 @@ def add_code_block(doc, code_str):
     tbl.columns[0].width = Inches(6.5)
     
     cell = tbl.cell(0, 0)
-    set_cell_background(cell, "1E293B") # Dark slate
+    set_cell_background(cell, "1E293B")
     set_cell_margins(cell, top=100, bottom=100, left=140, right=140)
     
     p = cell.paragraphs[0]
@@ -109,7 +109,7 @@ def add_figure(doc, img_path, caption, width_inches=6.5):
 def build_models_docx():
     doc = Document()
     
-    # 0.75 inch margins
+    # Page setup
     for s in doc.sections:
         s.top_margin = Inches(0.75)
         s.bottom_margin = Inches(0.75)
@@ -120,7 +120,7 @@ def build_models_docx():
     p_title = doc.add_paragraph()
     p_title.paragraph_format.space_before = Pt(0)
     p_title.paragraph_format.space_after = Pt(2)
-    run_title = p_title.add_run("🛡️ Aegis-IoT: Models & Algorithms Execution Deep-Dive")
+    run_title = p_title.add_run("🛡️ Aegis-IoT: Model-by-Model Execution Architecture & Algorithms")
     run_title.font.name = "Calibri"
     run_title.font.size = Pt(22)
     run_title.bold = True
@@ -129,7 +129,7 @@ def build_models_docx():
     p_sub = doc.add_paragraph()
     p_sub.paragraph_format.space_before = Pt(0)
     p_sub.paragraph_format.space_after = Pt(12)
-    run_sub = p_sub.add_run("Detailed Technical Specification: Mathematical Principles, Execution Workflows, and Code Bindings for Every Machine Learning Model")
+    run_sub = p_sub.add_run("Exhaustive Technical Specification: Dedicated Diagrams, Mathematical Formulations, and Execution Code for Every Machine Learning Model in Aegis-IoT")
     run_sub.font.name = "Calibri"
     run_sub.font.size = Pt(11.5)
     run_sub.font.color.rgb = RGBColor(71, 85, 105)
@@ -139,10 +139,10 @@ def build_models_docx():
     meta_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     meta_data = [
         ("Project Name", "Aegis-IoT (Autonomous Edge-Gated Intrusion Detection System)"),
-        ("Document Topic", "Model-by-Model Execution Architecture & Algorithms"),
-        ("Analytical Scope", "8 Cooperating Models across 4 Inspection Stages"),
+        ("Document Topic", "Individual Model Execution Flows & Algorithmic Mechanics"),
+        ("Analytical Scope", "8 Cooperating Models with Dedicated Visual Execution Flows"),
         ("Repository", "https://github.com/Poojax21/ai-iot-intrusion-detection"),
-        ("Verified Implementation", "112 / 112 Unit, Integration & Security Tests Passing"),
+        ("Verified Implementation", "112 / 112 Unit, Integration & Security Tests Passing (100% Green)"),
     ]
     for idx, (k, v) in enumerate(meta_data):
         row = meta_table.rows[idx]
@@ -228,38 +228,44 @@ def build_models_docx():
         r.font.color.rgb = RGBColor(30, 41, 59)
         return p
 
-    # --- Section 1: Overview & Visual Architecture ---
-    add_heading_1("1. Architectural Overview of Model Execution")
+    # --- Section 1: End-to-End Orchestration ---
+    add_heading_1("1. End-to-End Staged Funnel Orchestration")
     add_p(
-        "Aegis-IoT does not rely on a single isolated model. Because 99.9% of production IoT network packets are benign, running complex deep neural networks or heavy ensembles over 100% of line traffic creates severe latency bottlenecks and compounding false alarms. Instead, Aegis-IoT organizes 8 specialized models into a staged execution funnel:"
+        "In production IoT systems, 99.9% of all line packets are normal, repetitive sensor telemetry. Subjecting every flow to deep neural networks or complex ensembles creates severe CPU saturation, high latency, and compounding false positives. Aegis-IoT solves this by decomposing analytical intelligence across 8 specialized cooperating models arranged in a tiered funnel:"
     )
-    add_bullet(" Screens 100% of network traffic in under 0.5 ms using an FPR-tuned Binary Random Forest, an unsupervised Isolation Forest, and an Extreme Value Theory (EVT) novelty calibrator.", "Stage 1 (Edge Gate & Outlier Discovery):")
-    add_bullet(" Runs only on the top 5-10% of traffic flagged by Stage 1, applying a 161 MB Multiclass Classifier, dynamic Graph Intelligence, and Temporal Sequence Buffers.", "Stage 2 (Forensic Multimodal Ensemble):")
-    add_bullet(" Traverses the decision tree ensemble to compute exact local additive Shapley values for every triggered alert.", "Stage 3 (Explainability & Attribution):")
-    add_bullet(" Suppresses cold-start alerts on new devices, deduplicates repeated alerts, and applies exponential temporal risk decay.", "Stage 4 (Risk & Triage):")
+    add_bullet(" 100% of network traffic is screened at edge speed (< 0.5 ms) by the Binary Random Forest Gate, the Isolation Forest Anomaly Sentry, and the EVT Weibull Novelty Calibrator.", "Stage 1 (High-Speed Edge Screening):")
+    add_bullet(" Only the 5-10% of flows flagged by Stage 1 undergo deep inspection by the Multiclass Random Forest, Graph Fanout Tracker, and Temporal Sequence Buffer.", "Stage 2 (Forensic Multimodal Ensemble):")
+    add_bullet(" For every alert, TreeSHAP decomposes the ensemble decision tree paths into exact additive feature attributions.", "Stage 3 (Local Explainability):")
+    add_bullet(" Enforces a 10-flow cold-start grace period, sliding-window deduplication, and exponential risk decay.", "Stage 4 (Risk & Triage):")
 
-    # Embed High-Resolution Execution Architecture Diagram
     add_figure(
         doc,
         IMG_DIR / "model_execution_architecture.png",
-        "Figure 1: Aegis-IoT Detailed Model-by-Model Execution Pipeline",
+        "Figure 1: Aegis-IoT End-to-End Model-by-Model Execution Architecture",
         width_inches=6.5
     )
 
-    # --- Section 2: Model 1 - Random Forest Binary Gate ---
+    # --- Section 2: Model 1 ---
     add_heading_1("2. Model 1: Random Forest Binary Gate (gate_model.pkl)")
-    add_p("The Binary Gate is the front-line sentry of Aegis-IoT, responsible for evaluating every inbound packet flow at edge line rate.")
-    add_bullet(" Random Forest Classifier (sklearn.ensemble.RandomForestClassifier), 100 estimators, Gini impurity criterion, balanced bootstrap sub-sampling.", "Algorithm:")
-    add_bullet(" Standardized 46-dimensional behavioral feature vector X_s (packet rate, byte entropy, port fanout, duration, connection state flags).", "Input:")
+    add_p("The Binary Gate serves as the high-speed screening sentry of Aegis-IoT, evaluating every inbound packet flow at edge speed.")
+    add_bullet(" Random Forest Classifier (100 estimators, Gini impurity, balanced bootstrap sub-sampling).", "Algorithm:")
+    add_bullet(" Standardized 46-dimensional behavioral feature vector X_s.", "Input:")
     add_bullet(" P(Attack) in [0.0, 1.0]. If P(Attack) >= tau (where tau = 0.30), the flow is flagged.", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
-        "The standardized feature vector X_s traverses 100 independent decision trees in parallel. Each tree t_k makes a binary split decision at each internal node based on learned thresholds (e.g., if pkt_rate > 1520.4). The forest aggregates predictions across all trees to compute the class probability:"
+        "The standardized feature vector X_s traverses 100 independent decision trees in parallel. Each tree t_k makes binary split decisions at internal nodes based on learned thresholds (e.g. pkt_rate > 1520.4, byte_rate > 8500). The forest aggregates predictions across all trees to compute the class probability:"
     )
     add_p("P(Attack | X_s) = (1 / N) * sum_{k=1}^{N} I(t_k(X_s) == Attack)")
     add_p(
-        "Crucially, the decision threshold tau is calibrated during training against an explicit False Positive Rate ceiling (FPR <= 0.01). If P(Attack) < tau, the flow is certified as benign and passed immediately in 0.18 ms without invoking any heavier downstream models."
+        "The decision threshold tau is calibrated during training against an explicit False Positive Rate ceiling (FPR <= 0.01). If P(Attack) < tau, the flow is certified as benign and passed immediately in 0.18 ms without invoking downstream models."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model1_random_forest_gate.png",
+        "Figure 2: Model 1 — Random Forest Binary Gate Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (backend/app/detection.py)")
@@ -267,28 +273,35 @@ def build_models_docx():
 # 1. Feature scaling
 X_s = self.scaler.transform(np.array([vec]))
 
-# 2. Random Forest probability inference
+# 2. Random Forest probability inference (100 trees)
 gate_score = float(self.gate_model.predict_proba(X_s)[0, 1])
 
-# 3. FPR-Calibrated threshold check (tau = 0.30)
+# 3. FPR-Calibrated threshold check (tau = 0.30, FPR < 1%)
 if gate_score >= self.gate_threshold:
     is_flagged = True # Dispatched to Stage 2 Heavy Ensemble
 """)
 
-    # --- Section 3: Model 2 - Isolation Forest Anomaly Detector ---
+    # --- Section 3: Model 2 ---
     add_heading_1("3. Model 2: Isolation Forest Anomaly Detector (anomaly_model.pkl)")
     add_p("Operates in parallel with the Binary Gate during Stage 1 to detect structural network anomalies without requiring attack labels.")
-    add_bullet(" Isolation Forest (sklearn.ensemble.IsolationForest), 100 isolation trees, contamination='auto', max_samples=256.", "Algorithm:")
+    add_bullet(" Isolation Forest (100 isolation trees, contamination='auto', max_samples=256).", "Algorithm:")
     add_bullet(" Continuous standardized feature vector X_s.", "Input:")
     add_bullet(" Raw anomaly score s(x) and discrete prediction flag in {-1 (Anomaly), 1 (Normal)}.", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
-        "The Isolation Forest is trained exclusively on benign IoT telemetry. It constructs trees by randomly selecting a feature and randomly selecting a split value between the feature's minimum and maximum. Because anomalous vectors deviate from normal clusters, they require significantly fewer splits to isolate, resulting in shorter tree paths h(x)."
+        "The Isolation Forest is trained exclusively on benign IoT telemetry. It constructs trees by randomly selecting a feature and a random split value between that feature's minimum and maximum. Because anomalous vectors deviate from normal clusters, they require significantly fewer splits to isolate, resulting in shorter tree paths h(x):"
     )
     add_p("s(x, n) = 2^(- E(h(x)) / c(n))")
     add_p(
-        "where E(h(x)) is the average path length across all isolation trees, and c(n) is the average path length of unsuccessful searches in a Binary Search Tree (BST) of n samples. Flows with s(x) > 0.5 yield a prediction of -1, triggering Stage 2 investigation even if the supervised gate missed the pattern."
+        "where E(h(x)) is the average path length across all isolation trees, and c(n) is the average path length of unsuccessful searches in a Binary Search Tree of n samples. Flows with s(x) > 0.5 yield a prediction of -1, triggering Stage 2 investigation even if the supervised gate missed the pattern."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model2_isolation_forest.png",
+        "Figure 3: Model 2 — Isolation Forest Anomaly Sentry Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (backend/app/detection.py)")
@@ -301,25 +314,32 @@ if anomaly_flag:
     is_flagged = True # Flagged as an out-of-distribution anomaly
 """)
 
-    # --- Section 4: Model 3 - Extreme Value Theory (EVT) ---
-    add_heading_1("4. Model 3: Extreme Value Theory & Centroid Geometry (anomaly_calibrator.pkl + geometry.pkl)")
+    # --- Section 4: Model 3 ---
+    add_heading_1("4. Model 3: Extreme Value Theory (EVT) & Centroid Geometry (anomaly_calibrator.pkl + geometry.pkl)")
     add_p("The Open-Set Anomaly Engine provides mathematically grounded Zero-Day detection.")
     add_bullet(" Extreme Value Theory (EVT) Generalized Pareto / Weibull Tail Fitting & Hyperspherical Centroid Geometry.", "Algorithm:")
     add_bullet(" Feature vector vec, class centroids C_k, and 95th/99th percentile boundary radii.", "Input:")
     add_bullet(" Decision outcome: KNOWN_ATTACK vs. UNKNOWN_SUSPICIOUS (MITRE T0884 Zero-Day).", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
         "For any flow x, the algorithm computes the minimum Euclidean distance to all known benign and attack training centroids:"
     )
     add_p("d(x) = min_{k} ||x - c_k||_2")
     add_p(
-        "Instead of guessing a fixed threshold, the extreme tail of distances is fitted to an EVT Weibull distribution. If the calibrated anomaly score exceeds the 99th percentile radius (r_99), the sample is mathematically proven to lie outside all known training distributions. It is classified as UNKNOWN_SUSPICIOUS (Zero-Day Outlier T0884) rather than being forced into an incorrect supervised bucket."
+        "The extreme tail of distances is fitted to an EVT Weibull distribution. If the calibrated anomaly score exceeds the 99th percentile radius (r_99), the sample is mathematically proven to lie outside all known training distributions. It is classified as UNKNOWN_SUSPICIOUS (Zero-Day Outlier T0884) rather than being forced into an incorrect supervised bucket."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model3_evt_geometry.png",
+        "Figure 4: Model 3 — Extreme Value Theory & Centroid Geometry Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (training/open_set/classifier.py)")
     add_code_block(doc, """
-# 1. Compute Euclidean distance to centroids
+# 1. Compute Euclidean distance to class centroids
 d_min, nearest_class = self.geometry.distance_to_nearest(X_s)
 
 # 2. EVT Weibull tail calibration
@@ -331,20 +351,27 @@ if calibrated_score > self.threshold_99 and d_min > self.geometry.radii_95[neare
     mitre_tag = "T1204 / T0884 (Zero-Day Outlier)"
 """)
 
-    # --- Section 5: Model 4 - Multiclass Random Forest ---
+    # --- Section 5: Model 4 ---
     add_heading_1("5. Model 4: Multiclass Random Forest (multiclass_model.pkl)")
     add_p("Executes only when Stage 1 flags a flow as anomalous, performing deep attack categorization.")
     add_bullet(" Multiclass Random Forest Classifier (100 estimators, balanced class weights).", "Algorithm:")
     add_bullet(" Flagged standardized feature vector X_s.", "Input:")
     add_bullet(" Discrete attack label and class probability distribution across [benign, ddos, port_scan, brute_force, mirai_beacon].", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
         "Each tree in the multiclass forest casts a unit vote for its predicted leaf class. The forest computes the posterior probability distribution by taking the softmax-normalized vote fraction:"
     )
     add_p("P(y = c | X_s) = (1 / N) * sum_{k=1}^{N} I(t_k(X_s) == c)")
     add_p(
         "The winning class c* = argmax_c P(y = c | X_s) is assigned alongside an empirical confidence score. If confidence >= 0.85 and gate_score >= 0.90, the alert is triaged as 'Critical'."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model4_multiclass_ensemble.png",
+        "Figure 5: Model 4 — Multiclass Random Forest Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (backend/app/detection.py)")
@@ -359,20 +386,27 @@ confidence = float(probs[pred_idx])
 mitre_id = MITRE_MAP.get(attack_type, "T0884")
 """)
 
-    # --- Section 6: Model 5 - Graph Intelligence Detector ---
+    # --- Section 6: Model 5 ---
     add_heading_1("6. Model 5: Graph Intelligence Detector (graph_detector.py)")
     add_p("Specialized behavioral module targeting lateral movement and network reconnaissance.")
     add_bullet(" Dynamic Directed Communication Graph & Vertex Degree Centrality.", "Algorithm:")
     add_bullet(" Device communication tuple (src_ip, dst_ip, dst_port, timestamp).", "Input:")
     add_bullet(" Graph anomaly score and Lateral Movement flag (MITRE T0886).", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
         "Aegis-IoT maintains a sliding-window directed graph G = (V, E) of network communications. Because IoT devices (cameras, sensors) have predictable star topologies (communicating solely with gateway/cloud), any sudden surge in outbound degree fanout indicates subnet infection:"
     )
     add_p("Delta deg_{out}(v) = deg_{out}(v, t) - deg_{out}(v, t - Delta t)")
     add_p(
         "If Delta deg_{out}(v) >= 5 within a 60-second window, or if destination port entropy spikes sharply, the Graph Detector flags Subnet Pivoting (T0886) even if individual packet volumes are low."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model5_graph_intelligence.png",
+        "Figure 6: Model 5 — Graph Intelligence Detector Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (training/graph/graph_detector.py)")
@@ -387,20 +421,27 @@ if fanout > self.max_expected_fanout:
     reason = f"Lateral fanout surge: {fanout} unique peers targeted (T0886)"
 """)
 
-    # --- Section 7: Model 6 - Temporal Sequence Tracker ---
+    # --- Section 7: Model 6 ---
     add_heading_1("7. Model 6: Temporal Sequence Tracker (temporal_detector.py)")
     add_p("Detects low-and-slow command-and-control (C2) botnet heartbeats that evade flow-by-flow classifiers.")
     add_bullet(" Causal Sliding-Window FIFO Buffer (depth k = 20) & Inter-Arrival Time Variance Analysis.", "Algorithm:")
     add_bullet(" Flow timestamp and device ID.", "Input:")
     add_bullet(" Periodic Beaconing score and Mirai C2 Heartbeat flag (MITRE T0885).", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
         "For each device, the tracker maintains a sliding window of the last 20 packet inter-arrival times: Delta t_i = t_i - t_{i-1}. It calculates the coefficient of variation (CV) of packet pacing:"
     )
     add_p("CV(Delta t) = sigma(Delta t) / mu(Delta t)")
     add_p(
         "Legitimate human/sensor traffic exhibits stochastic inter-arrival times (high CV). Botnet implants (Mirai, BASHLITE) maintain rigid timer loops with near-zero timing variance (CV < 0.15). When this signature is detected, it is flagged as a C2 Beacon (T0885)."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model6_temporal_tracker.png",
+        "Figure 7: Model 6 — Temporal Sequence Tracker Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (training/temporal/temporal_detector.py)")
@@ -417,20 +458,27 @@ if len(deltas) >= 10 and cv_timing < self.beacon_cv_threshold:
     tag = "T0885 (Mirai C2 Periodic Heartbeat)"
 """)
 
-    # --- Section 8: Model 7 - TreeSHAP Attribution Engine ---
+    # --- Section 8: Model 7 ---
     add_heading_1("8. Model 7: TreeSHAP Attribution Engine (shap_explainer.py)")
     add_p("Generates exact local feature attributions for every dispatched security alert.")
     add_bullet(" TreeSHAP (SHapley Additive exPlanations for tree ensembles).", "Algorithm:")
     add_bullet(" Triggered feature vector X_s and decision tree ensemble weights.", "Input:")
     add_bullet(" Exact Shapley values phi_i for all 46 features, satisfying local accuracy.", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p(
         "TreeSHAP calculates the exact marginal contribution of each feature across all possible feature subsets S subseteq F using tree path expectations in polynomial time O(TLD^2):"
     )
     add_p("phi_i(x) = sum_{S subseteq F \\ {i}} [ |S|! (|F| - |S| - 1)! / |F|! ] * [ f_x(S union {i}) - f_x(S) ]")
     add_p(
         "The model output is decomposed additively: f(x) = phi_0 + sum_{i=1}^M phi_i(x). SOC operators receive a visual waterfall breakdown explaining exactly which feature spikes (e.g. pkt_rate: +0.42, dst_port_entropy: +0.28) drove the decision."
+    )
+
+    add_figure(
+        doc,
+        IMG_DIR / "model7_treeshap_explainer.png",
+        "Figure 8: Model 7 — TreeSHAP Attribution Engine Execution Flow",
+        width_inches=6.5
     )
 
     add_heading_2("Project Code Execution (training/explainability/shap_explainer.py)")
@@ -443,19 +491,26 @@ phi = shap_values[1][0] # Positive class contributions
 top_features = sorted(zip(FEATURE_COLUMNS, phi), key=lambda x: abs(x[1]), reverse=True)[:5]
 """)
 
-    # --- Section 9: Model 8 - Online EMA & Hierarchical Risk Engine ---
-    add_heading_1("9. Model 8: Online EMA Z-Score Baseline & Risk Engine (DeviceState & HierarchicalRiskEngine)")
+    # --- Section 9: Model 8 ---
+    add_heading_1("9. Model 8: Online EMA Baseline & Risk Engine (DeviceState & HierarchicalRiskEngine)")
     add_p("Per-device behavioral baseline tracker and alert triage engine.")
     add_bullet(" Exponential Moving Average (EMA) Z-Score Standardization & Exponential Temporal Risk Decay.", "Algorithm:")
     add_bullet(" Device flow count, elapsed time Delta t, and raw alert stream.", "Input:")
     add_bullet(" Normalized baseline deviations and deduplicated, decayed device risk score R_t.", "Output:")
 
-    add_heading_2("Execution Mechanism & Math")
+    add_heading_2("Execution Mechanism & Mathematics")
     add_p("1. Online EMA Baseline: Dynamically updates per-device running mean and variance:")
     add_p("mu_t = alpha * x_t + (1 - alpha) * mu_{t-1},    z_t = (x_t - mu_t) / (sigma_t + epsilon)")
     add_p("2. Cold-Start Grace Period: Discards anomaly alerts for the first 10 flows of newly connected IoT devices, cutting onboarding false positives by > 65%.")
     add_p("3. Exponential Risk Decay: When an attack halts, device risk decays smoothly back to clean state:")
     add_p("R_t = R_0 * e^(- lambda * Delta t)")
+
+    add_figure(
+        doc,
+        IMG_DIR / "model8_risk_engine.png",
+        "Figure 9: Model 8 — Online EMA Baseline & Risk Engine Execution Flow",
+        width_inches=6.5
+    )
 
     add_heading_2("Project Code Execution (backend/app/features.py & risk.py)")
     add_code_block(doc, """
@@ -470,10 +525,8 @@ in_grace_period = (state.flow_count <= 10)
 current_risk = initial_risk * math.exp(-decay_lambda * delta_t)
 """)
 
-    # --- Section 10: Summary Comparison Matrix ---
+    # --- Section 10: Comparison Table ---
     add_heading_1("10. Comprehensive Model Comparison Matrix")
-    add_p("The table below contrasts all 8 analytical models implemented in Aegis-IoT:")
-
     sum_tbl = doc.add_table(rows=9, cols=5)
     sum_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     headers = ["Model / Component", "Algorithm", "Pipeline Stage", "P95 Latency", "Failure Mode Solved"]
@@ -513,7 +566,7 @@ current_risk = initial_risk * math.exp(-decay_lambda * delta_t)
 
     output_path = PROJECT_ROOT / "docs" / "Aegis_IoT_Models_And_Algorithms_DeepDive.docx"
     doc.save(str(output_path))
-    print(f"[SUCCESS] Exported Models DeepDive Word document to: {output_path}")
+    print(f"[SUCCESS] Exported Models DeepDive Word document with 8 model diagrams to: {output_path}")
 
     # Copy to artifact directory
     artifact_dir = Path(r"C:\Users\Hi\.gemini\antigravity\brain\9fa58b67-f6ff-4eca-bee5-b8cba48470d4")
