@@ -10,6 +10,8 @@ from training.datasets.ciciot2023_loader import CICIoT2023Loader
 from training.datasets.ton_iot_loader import TonIoTLoader
 from training.datasets.bot_iot_loader import BotIoTLoader
 from training.datasets.nbaiot_loader import NBaIoTLoader
+from training.datasets.edge_iiotset_loader import EdgeIIoTsetLoader
+from training.datasets.unsw_nb15_loader import UNSWNB15Loader
 
 LOADER_REGISTRY: Dict[str, Type[BaseDatasetLoader]] = {
     "iot23": IoT23Loader,
@@ -17,6 +19,8 @@ LOADER_REGISTRY: Dict[str, Type[BaseDatasetLoader]] = {
     "ton_iot": TonIoTLoader,
     "bot_iot": BotIoTLoader,
     "nbaiot": NBaIoTLoader,
+    "edge_iiotset": EdgeIIoTsetLoader,
+    "unsw_nb15": UNSWNB15Loader,
 }
 
 

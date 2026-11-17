@@ -292,15 +292,54 @@ def build_docx_report():
     add_figure(
         doc,
         IMG_DIR / "figure2_data_pipeline.png",
-        "Figure 2: Unified 5-Dataset Ingestion & Leakage-Safe Feature Pipeline",
+        "Figure 2: Unified Multi-Dataset Ingestion & Leakage-Safe Feature Pipeline",
         width_inches=6.5
     )
 
-    add_bullet(" 105 IoT devices, 33 attacks across 7 classes (DDoS, DoS, Recon, Mirai, Brute Force, Web, Spoofing).", "1. CICIoT2023 (UNB):")
-    add_bullet(" Real Raspberry Pi captures with live malware infections (Mirai, Torii, Okiru, Kenjiro, C&C Heartbeats).", "2. IoT-23 (Stratosphere/CTU):")
-    add_bullet(" Heterogeneous IoT and IIoT telemetry with scanning, ransomware, backdoors, and injection attacks.", "3. TON_IoT (UNSW Canberra):")
-    add_bullet(" Netflow CSV extracts capturing high-density botnet DDoS, DoS, and exfiltration flows.", "4. Bot-IoT (UNSW Canberra):")
-    add_bullet(" 115 continuous stream statistics extracted over 5 time windows from 9 commercial IoT devices.", "5. N-BaIoT (UCI Repository):")
+    add_p(
+        "Aegis-IoT incorporates and normalizes modern peer-reviewed academic datasets from leading cybersecurity research institutes, mapping diverse packet and flow formats into a standardized 20-feature contract:"
+    )
+
+    # Dataset Matrix Table
+    ds_tbl = doc.add_table(rows=10, cols=5)
+    ds_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    ds_headers = ["Dataset & Year", "Institution / Citation", "Testbed Environment", "Features & Format", "Attack Classes Covered"]
+    for j, h in enumerate(ds_headers):
+        cell = ds_tbl.rows[0].cells[j]
+        set_cell_background(cell, "0284C7")
+        set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
+        p = cell.paragraphs[0]
+        r = p.add_run(h)
+        r.bold = True
+        r.font.name = "Calibri"
+        r.font.size = Pt(9.5)
+        r.font.color.rgb = RGBColor(255, 255, 255)
+
+    ds_data = [
+        ("Edge-IIoTset (2022)", "Ferrag et al., IEEE Access 2022", "10+ IoT devices, IIoT gateways, cloud servers", "61 features (MQTT, CoAP, Modbus, HTTP)", "14 attacks: Ransomware, SQLi, XSS, DDoS, Fingerprinting"),
+        ("UNSW-NB15 (2015)", "Moustafa & Slay, MilCIS / IEEE T-BD", "Cyber Range Lab, IXIA PerfectStorm", "49 Netflow flow features", "9 families: Fuzzers, Backdoors, DoS, Exploits, Worms"),
+        ("IoT-23 (2020)", "Garcia et al., Stratosphere Lab / Avast", "Real Raspberry Pi infected with live malware", "23 columns (Zeek conn.log TSV)", "Real botnets: Mirai, Torii, Okiru, C&C Beacons"),
+        ("CICIoT2023", "Neto et al., UNB / Canadian Inst. Cyber.", "105 commercial IoT hardware devices", "46 rolling statistical features", "33 variants across DoS, Recon, Web, and Mirai"),
+        ("TON_IoT (2021)", "Al-Kadi et al., UNSW Canberra Cyber", "Heterogeneous Industry 4.0 IoT testbed", "18 Netflow CSV features", "Scanning, Ransomware, Backdoor, Password, Injection"),
+        ("BoT-IoT (2019)", "Koroniotis et al., IEEE TIFS", "Simulated smart-home IoT sensor rig", "18 features (72M+ flows)", "High-volume DDoS, DoS, OS Fingerprinting, Theft"),
+        ("N-BaIoT (2018)", "Meidan et al., Ben-Gurion Univ. / UCI", "9 commercial IoT hardware devices", "115 continuous stream statistics", "Mirai and BASHLITE botnet infections"),
+        ("WUSTL-IIoT (2021)", "Teixeira et al., IEEE IoT Journal", "Industrial SCADA / Modbus OT testbed", "CSV Netflow features", "SCADA command injection, Modbus reconnaissance"),
+        ("MedBIoT (2020)", "Guerra-Manzanares et al., IFIP SEC", "Healthcare IoT network testbed", "PCAP / CSV Netflow", "Medical device malware (Mirai, Torii, Bashlite)"),
+    ]
+    for i, row_data in enumerate(ds_data):
+        row = ds_tbl.rows[i+1]
+        for j, val in enumerate(row_data):
+            cell = row.cells[j]
+            set_cell_background(cell, "F8FAFC" if i % 2 == 1 else "FFFFFF")
+            set_cell_margins(cell, top=60, bottom=60, left=100, right=100)
+            p = cell.paragraphs[0]
+            r = p.add_run(val)
+            r.font.name = "Calibri"
+            r.font.size = Pt(8.5)
+            if j == 0:
+                r.bold = True
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
     add_heading_2("Strict Leakage Prevention Protocol (§5 & §7)")
     add_bullet(" Raw IP addresses (src_ip, dst_ip) and MAC addresses (src_mac, dst_mac) are completely removed from the ML feature vector. The models score only behavioral invariants (rates, entropy, fanout, rolling z-scores).", "Identity Leakage:")
@@ -452,7 +491,26 @@ def build_docx_report():
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
-    add_heading_2("5.3 Latency & Computational Profile")
+    add_heading_2("5.3 Operational False Positive Rate (FPR = 0.67%) & Base Rate Analysis")
+    add_p(
+        "A critical question in network security is why the Operational False Positive Rate is measured at 0.67%, and why lower is vastly superior in cybersecurity operations:"
+    )
+    add_bullet(
+        " FPR measures the fraction of harmless benign flows mistakenly flagged as attacks: FPR = FP / (FP + TN). In our target domain evaluation on 600 benign flows, only 4 were flagged (4 / 600 = 0.67%). This translates directly to a 99.33% True Negative Specificity.",
+        "Mathematical Formulation:"
+    )
+    add_bullet(
+        " Unlike Accuracy or Recall where higher numbers (e.g., 99%) are desired, False Positive Rate is an error metric. In production networks where 99.9% of traffic is benign, an academic FPR of 5% on a 1 Gbps pipe (100,000 flows/sec) generates 5,000 false alarms every second, immediately crashing the SIEM and burning out human SOC analysts. An FPR of 0.67% bounds noise so analysts only triage genuine threats.",
+        "The Base Rate Fallacy & Alert Fatigue:"
+    )
+    add_bullet(
+        " Achieved via Stage 1 Isotonic probability calibration on conformal sets, Extreme Value Theory (EVT) Weibull tail modeling that ignores normal variance, and Stage 2 multimodal verification (Graph topology + Temporal sequences).",
+        "Algorithmic Enforcement:"
+    )
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    add_heading_2("5.4 Latency & Computational Profile")
     lat_tbl = doc.add_table(rows=5, cols=4)
     lat_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     lat_headers = ["Component", "Execution Mode", "Latency (P95)", "Throughput Capacity"]

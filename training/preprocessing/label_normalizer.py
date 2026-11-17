@@ -164,6 +164,48 @@ class LabelNormalizer:
         for k, v in nbaiot_exact.items():
             self._exact_rules[("nbaiot", k)] = v
 
+        # -------------------------------------------------------------
+        # Edge-IIoTset Exact Labels (IEEE 2022)
+        # -------------------------------------------------------------
+        edge_iiotset_exact = {
+            "normal": (NormalizedLabel.BENIGN, "benign", 1.0),
+            "ddos_udp": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "ddos_icmp": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "ddos_http": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "ddos_tcp": (NormalizedLabel.DDOS, "denial_of_service", 1.0),
+            "port_scanning": (NormalizedLabel.PORT_SCAN, "reconnaissance", 1.0),
+            "vulnerability_scanner": (NormalizedLabel.PORT_SCAN, "vulnerability_scan", 0.95),
+            "os_fingerprinting": (NormalizedLabel.PORT_SCAN, "reconnaissance", 0.95),
+            "password": (NormalizedLabel.BRUTE_FORCE, "credential_access", 1.0),
+            "ransomware": (NormalizedLabel.OTHER_ATTACK, "malware_ransomware", 0.95),
+            "backdoor": (NormalizedLabel.OTHER_ATTACK, "malware_backdoor", 0.95),
+            "sql_injection": (NormalizedLabel.OTHER_ATTACK, "web_sqli", 0.95),
+            "command_injection": (NormalizedLabel.OTHER_ATTACK, "web_cmdi", 0.95),
+            "xss": (NormalizedLabel.OTHER_ATTACK, "web_xss", 0.95),
+            "uploading": (NormalizedLabel.OTHER_ATTACK, "web_upload", 0.95),
+            "mitm": (NormalizedLabel.OTHER_ATTACK, "mitm_spoofing", 0.95),
+        }
+        for k, v in edge_iiotset_exact.items():
+            self._exact_rules[("edge_iiotset", k)] = v
+
+        # -------------------------------------------------------------
+        # UNSW-NB15 Exact Labels (Moustafa & Slay, 2015)
+        # -------------------------------------------------------------
+        unsw_exact = {
+            "normal": (NormalizedLabel.BENIGN, "benign", 1.0),
+            "fuzzers": (NormalizedLabel.OTHER_ATTACK, "fuzzing", 0.9),
+            "analysis": (NormalizedLabel.PORT_SCAN, "reconnaissance", 0.95),
+            "backdoors": (NormalizedLabel.OTHER_ATTACK, "malware_backdoor", 0.95),
+            "dos": (NormalizedLabel.DDOS, "denial_of_service", 0.95),
+            "exploits": (NormalizedLabel.OTHER_ATTACK, "exploit", 0.9),
+            "generic": (NormalizedLabel.OTHER_ATTACK, "generic_attack", 0.85),
+            "reconnaissance": (NormalizedLabel.PORT_SCAN, "reconnaissance", 1.0),
+            "shellcode": (NormalizedLabel.OTHER_ATTACK, "payload_shellcode", 0.95),
+            "worms": (NormalizedLabel.BOTNET, "worm_propagation", 0.95),
+        }
+        for k, v in unsw_exact.items():
+            self._exact_rules[("unsw_nb15", k)] = v
+
     def normalize(self, raw_label: Any, dataset_name: str = "generic") -> LabelMappingResult:
         """
         Maps raw string label to standard NormalizedLabel and category.

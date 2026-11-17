@@ -1,5 +1,5 @@
-# Pahredaar-IoT Public Dataset Configuration
-version: "2.0"
+# Aegis-IoT Canonical & Research Dataset Configuration
+version: "3.1"
 
 datasets:
   iot23:
@@ -8,7 +8,8 @@ datasets:
     format: "zeek_conn_log"
     default_path: "data/iot23/conn.log.labeled"
     chunk_size: 10000
-    description: "23 network captures from real IoT malware infections and benign traffic"
+    citation: "Garcia et al., Stratosphere Laboratory & CTU University, 2020"
+    description: "23 network captures from real IoT malware infections (Mirai, Torii, Okiru) and benign baseline traffic"
     supported_classes:
       - "BENIGN"
       - "PORT_SCAN"
@@ -23,7 +24,8 @@ datasets:
     format: "csv"
     default_path: "data/ciciot2023/ciciot2023_sample.csv"
     chunk_size: 10000
-    description: "Large-scale IoT attack dataset with 33 attack variants across 105 devices"
+    citation: "Neto et al., University of New Brunswick & Canadian Institute for Cybersecurity, 2023"
+    description: "Large-scale benchmark with 33 attack variants across 105 physical smart home and industrial devices"
     supported_classes:
       - "BENIGN"
       - "DDOS"
@@ -38,11 +40,107 @@ datasets:
     format: "csv"
     default_path: "data/ton_iot/Network_dataset.csv"
     chunk_size: 10000
-    description: "Heterogeneous Industry 4.0 IoT telemetry and network flow captures"
+    citation: "Al-Kadi et al., UNSW Canberra Cyber, 2021"
+    description: "Heterogeneous Industry 4.0 IoT telemetry and network flow captures spanning 9 threat categories"
     supported_classes:
       - "BENIGN"
       - "PORT_SCAN"
       - "DDOS"
+      - "BRUTE_FORCE"
+      - "OTHER_ATTACK"
+
+  bot_iot:
+    name: "UNSW Canberra BoT-IoT"
+    official_url: "https://research.unsw.edu.au/projects/bot-iot-dataset"
+    format: "csv"
+    default_path: "data/bot_iot/bot_iot_sample.csv"
+    chunk_size: 10000
+    citation: "Koroniotis et al., IEEE Transactions on Information Forensics and Security, 2019"
+    description: "72+ million network flow records across smart-home IoT devices with high-volume DDoS, DoS, and theft"
+    supported_classes:
+      - "BENIGN"
+      - "DDOS"
+      - "PORT_SCAN"
+      - "OTHER_ATTACK"
+
+  nbaiot:
+    name: "N-BaIoT (Network-Based Anomaly Detection IoT)"
+    official_url: "https://archive.ics.uci.edu/dataset/442/detection+of+iot+botnet+attacks+n+baiot"
+    format: "csv"
+    default_path: "data/nbaiot/nbaiot_sample.csv"
+    chunk_size: 10000
+    citation: "Meidan et al., IEEE Pervasive Computing / Ben-Gurion University, 2018"
+    description: "Real traffic captured from 9 commercial IoT devices infected with Mirai and BASHLITE botnets"
+    supported_classes:
+      - "BENIGN"
+      - "BOTNET"
+      - "PORT_SCAN"
+      - "DDOS"
+
+  edge_iiotset:
+    name: "IEEE Edge-IIoTset (Cyber Security Dataset for IoT/IIoT)"
+    official_url: "https://ieee-dataport.org/documents/edge-iiotset-new-comprehensive-realistic-cyber-security-dataset-iot-and-iiot-applications"
+    format: "csv"
+    default_path: "data/edge_iiotset/edge_iiotset_sample.csv"
+    chunk_size: 10000
+    citation: "Ferrag et al., IEEE Access, Vol. 10, pp. 40281-40306, 2022"
+    description: "Comprehensive realistic IoT/IIoT dataset with 14 attack types across MQTT, CoAP, Modbus, and HTTP"
+    supported_classes:
+      - "BENIGN"
+      - "DDOS"
+      - "PORT_SCAN"
+      - "BRUTE_FORCE"
+      - "OTHER_ATTACK"
+
+  unsw_nb15:
+    name: "UNSW-NB15 Network Intrusion Dataset"
+    official_url: "https://research.unsw.edu.au/projects/unsw-nb15-dataset"
+    format: "csv"
+    default_path: "data/unsw_nb15/unsw_nb15_sample.csv"
+    chunk_size: 10000
+    citation: "Moustafa & Slay, IEEE Military Communications and Information Systems (MilCIS), 2015"
+    description: "Canonical network security benchmark capturing 9 modern attack families and realistic background traffic"
+    supported_classes:
+      - "BENIGN"
+      - "PORT_SCAN"
+      - "DDOS"
+      - "BOTNET"
+      - "OTHER_ATTACK"
+
+  wustl_iiot:
+    name: "WUSTL-IIoT-2021 (SCADA & Industrial IoT)"
+    official_url: "https://www.cse.wustl.edu/~jain/iiot/index.html"
+    format: "csv"
+    citation: "Teixeira et al., IEEE Internet of Things Journal, 2021"
+    description: "Industrial SCADA and Modbus testbed captures specifically focused on operational technology (OT) vulnerabilities"
+    supported_classes:
+      - "BENIGN"
+      - "PORT_SCAN"
+      - "DDOS"
+      - "OTHER_ATTACK"
+
+  medbiot:
+    name: "MedBIoT (Healthcare IoT Network Dataset)"
+    official_url: "https://zenodo.org/record/4030097"
+    format: "pcap/csv"
+    citation: "Guerra-Manzanares et al., IFIP SEC International Information Security Conference, 2020"
+    description: "Healthcare IoT network testbed capturing Mirai, Torii, and Bashlite botnets on medical IoT devices"
+    supported_classes:
+      - "BENIGN"
+      - "BOTNET"
+      - "MIRAI_BEACON"
+      - "OTHER_ATTACK"
+
+  cic_ids2017:
+    name: "UNB CIC-IDS2017 / CSE-CIC-IDS2018"
+    official_url: "https://www.unb.ca/cic/datasets/ids-2017.html"
+    format: "pcap/csv"
+    citation: "Sharafaldin et al., ICISSP, 2018"
+    description: "Canonical enterprise benchmark with multi-vector attacks including Heartbleed, Botnets, and Infiltration"
+    supported_classes:
+      - "BENIGN"
+      - "DDOS"
+      - "PORT_SCAN"
       - "BRUTE_FORCE"
       - "OTHER_ATTACK"
 

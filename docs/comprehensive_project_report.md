@@ -65,12 +65,16 @@ The platform implements memory-safe chunked loaders, column normalization maps, 
 
 ```mermaid
 flowchart TD
-    subgraph DATASETS["Supported Benchmark Datasets"]
+    subgraph DATASETS["Supported Canonical & Peer-Reviewed Research Datasets"]
         D1["CICIoT2023 (UNB)<br/>105 devices • 46 flow features"]
         D2["IoT-23 (Stratosphere/CTU)<br/>Real malware captures • Zeek format"]
         D3["TON_IoT (UNSW Canberra)<br/>Heterogeneous IIoT • Netflow CSV"]
         D4["Bot-IoT (UNSW Canberra)<br/>High-volume botnet flows • Netflow extract"]
         D5["N-BaIoT (UCI / Ben-Gurion)<br/>9 real IoT devices • 115 stat features"]
+        D6["Edge-IIoTset (IEEE 2022)<br/>14 attack classes • MQTT, CoAP, Modbus"]
+        D7["UNSW-NB15 (MilCIS)<br/>49 Netflow features • 9 attack families"]
+        D8["WUSTL-IIoT-2021<br/>Industrial SCADA & Modbus OT testbed"]
+        D9["MedBIoT (IFIP SEC)<br/>Healthcare IoT malware (Mirai, Torii)"]
     end
 
     NORM["Canonical Feature Contract & Schema Normalizer<br/>(training/feature_contract.py)"]
@@ -83,11 +87,22 @@ flowchart TD
     LEAK --> CHRONO
 ```
 
-1. **CICIoT2023 (University of New Brunswick):** 46 rolling statistical features capturing 33 distinct attack profiles across 105 real IoT devices.
-2. **IoT-23 (Stratosphere Laboratory / CTU):** Zeek-native `conn.log` captures of real Raspberry Pi devices infected with live botnet malware (Mirai, Torii, Okiru).
-3. **TON_IoT (UNSW Canberra Cyber):** Mixed industrial and commercial telemetry spanning reconnaissance, DoS, ransomware, and injection attacks.
-4. **Bot-IoT (UNSW Canberra):** Validated Netflow CSV extracts covering high-density DDoS, DoS, keylogging, and exfiltration.
-5. **N-BaIoT (UCI Machine Learning Repository):** 115 continuous stream statistics extracted across 5 time windows from 9 commercial IoT devices infected with Mirai and Gafgyt.
+### 3.1 Comprehensive Multi-Dataset Benchmark Matrix
+
+To guarantee robust cross-domain generalization, Aegis-IoT incorporates and normalizes modern peer-reviewed academic datasets from leading cybersecurity research institutes:
+
+| Dataset | Research Institution & Citation | Environment & Testbed | Formats / Features | Attack Classes | Loader Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Edge-IIoTset (2022)** | Ferrag et al., IEEE Access 2022 | 10+ types of IoT devices, IIoT gateways, cloud servers | CSV, 61 features (MQTT, CoAP, Modbus, HTTP) | 14 attacks: Ransomware, SQLi, XSS, DDoS, Fingerprinting, Backdoor | `ACTIVE LOADER (training/datasets/edge_iiotset_loader.py)` |
+| **UNSW-NB15 (2015)** | Moustafa & Slay, MilCIS / IEEE Trans. Big Data | Cyber Range Lab, IXIA PerfectStorm | CSV, 49 Netflow features | 9 families: Fuzzers, Backdoors, DoS, Exploits, Reconnaissance, Worms | `ACTIVE LOADER (training/datasets/unsw_nb15_loader.py)` |
+| **IoT-23 (2020)** | Garcia et al., Stratosphere Lab / Avast | Real Raspberry Pi infected with malware | Zeek conn.log, 23 columns | Real botnets: Mirai, Torii, Okiru, C&C Beacons | `ACTIVE LOADER (training/datasets/iot23_loader.py)` |
+| **CICIoT2023** | Neto et al., UNB / Canadian Inst. Cybersecurity | 105 physical commercial IoT devices | CSV, 46 rolling statistics | 33 variants across DoS, Recon, Web, and Mirai | `ACTIVE LOADER (training/datasets/ciciot2023_loader.py)` |
+| **TON_IoT (2021)** | Al-Kadi et al., UNSW Canberra Cyber | Heterogeneous Industry 4.0 / IoT testbed | CSV, 18 Netflow features | Scanning, Ransomware, Backdoor, Password, Injection | `ACTIVE LOADER (training/datasets/ton_iot_loader.py)` |
+| **BoT-IoT (2019)** | Koroniotis et al., IEEE TIFS | Simulated smart-home IoT sensor rig | CSV, 18 features (72M+ flows) | High-volume DDoS, DoS, OS Fingerprinting, Theft | `ACTIVE LOADER (training/datasets/bot_iot_loader.py)` |
+| **N-BaIoT (2018)** | Meidan et al., Ben-Gurion Univ. / UCI | 9 commercial IoT hardware devices | CSV, 115 stream statistics | Mirai and BASHLITE botnet infections | `ACTIVE LOADER (training/datasets/nbaiot_loader.py)` |
+| **WUSTL-IIoT (2021)** | Teixeira et al., IEEE IoT Journal | Industrial SCADA / Modbus OT testbed | CSV, Netflow features | SCADA command injection, Modbus reconnaissance | `REGISTERED CATALOG (training/config/datasets.yaml)` |
+| **MedBIoT (2020)** | Guerra-Manzanares et al., IFIP SEC | Healthcare IoT network testbed | PCAP / CSV, Netflow | Medical device malware (Mirai, Torii, Bashlite) | `REGISTERED CATALOG (training/config/datasets.yaml)` |
+| **CIC-IDS2017** | Sharafaldin et al., ICISSP 2018 | Emulated enterprise intranet & internet | CSV, 80 Netflow features | Heartbleed, Infiltration, Brute Force, Botnets | `REGISTERED CATALOG (training/config/datasets.yaml)` |
 
 ### 3.2 Leakage Prevention Architecture (§5 & §7)
 - **Identity Leakage Protection:** Many public datasets have attacker traffic originating from a single IP address (e.g., `192.168.1.105`). If fed to a model, the classifier simply memorizes the IP address. Aegis-IoT strictly drops `src_ip`, `dst_ip`, `src_mac`, `dst_mac`, and session identifiers prior to model scoring.
@@ -192,6 +207,28 @@ Most intrusion detectors overfit to testbed artifacts and fail when tested on di
 | **Network Port Scan** | `KNOWN ATTACK` | 120 | 120 | **100.0%** | Multiclass Model + Port Entropy |
 | **Brute Force** | `KNOWN ATTACK` | 100 | 100 | **100.0%** | Multiclass GBM + State Failure Analysis |
 | **Benign Baseline Telemetry** | `BENIGN BASELINE` | 600 | 4 | **0.67% FPR** | Passed Cleanly ($99.33\%$ Pass Rate) |
+
+### 5.3 Operational False Positive Rate (FPR = 0.67%): Significance & Base Rate Analysis
+
+#### Mathematical Definition & The Inversion from Accuracy
+Unlike metrics like **Accuracy** or **Recall** where higher values are superior, **False Positive Rate (FPR)** is an error metric where lower values represent superior performance:
+
+$$\text{FPR} = \frac{\text{False Positives (FP)}}{\text{False Positives (FP)} + \text{True Negatives (TN)}} = \frac{\text{FP}}{N_{\text{benign}}}$$
+
+During target cross-dataset verification across 600 unseen benign flows ($N_{\text{benign}} = 600$):
+$$\text{FPR} = \frac{4}{4 + 596} = \frac{4}{600} = 0.00667 \implies \mathbf{0.67\%}$$
+
+The system's corresponding **Specificity (True Negative Pass Rate)** is:
+$$\text{Specificity} = 1 - \text{FPR} = 1 - 0.0067 = \mathbf{99.33\%}$$
+
+#### The "Base Rate Fallacy" and Alert Fatigue Crisis
+In academic machine learning papers, models often publish $95\%$ accuracy with a $5\%$ False Positive Rate. In production network deployments, a $5\%$ FPR is fatal:
+- **Wire-Speed Volume:** A typical 1 Gbps enterprise or industrial IoT gateway processes approximately **100,000 flows per second** ($8.64 \times 10^9$ flows/day).
+- **The 5% FPR Catastrophe:** At a $5\%$ false positive rate, the system produces:
+  $$100,000 \text{ flows/sec} \times 0.05 = \mathbf{5,000 \text{ false alarms per second!}}$$
+  Because human SOC teams can triage at most 50–100 alerts per shift, 5,000 alarms per second floods SIEM pipelines, exhausts disk arrays, and creates severe analyst burnout (**Alert Fatigue**), causing security teams to shut off the IDS.
+- **The Aegis-IoT Breakthrough ($\text{FPR} = 0.67\%$):**
+  Aegis-IoT suppresses over $99.33\%$ of benign traffic in Stage 1 at edge speeds. Through multimodal graph and temporal confirmation in Stage 2, transient anomalies are filtered out before reaching operators, ensuring that only actionable, high-confidence security incidents trigger alerts.
 
 ---
 
